@@ -153,6 +153,22 @@ code {
   overflow-wrap: anywhere;
 }
 
+.event-list {
+  display: grid;
+  gap: 0.8rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.event-list li {
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-top: 0.8rem;
+}
+
 .subtle {
   color: var(--muted);
 }

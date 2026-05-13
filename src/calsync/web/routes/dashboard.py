@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 from calsync.config import build_external_url
 from calsync.models import AdminUser, Event, ProviderAccount, ProviderCalendar, SyncLog
 from calsync.services.publishing import ensure_combined_feed, rotate_combined_feed_token
+from calsync.services.sync import sync_account
 from calsync.web.deps import get_db, get_templates, require_admin
 
 
@@ -26,12 +27,16 @@ def dashboard_page(
     combined_feed = ensure_combined_feed(session)
     session.commit()
 
+    account_count = session.scalar(select(func.count(ProviderAccount.id))) or 0
     latest_sync = session.scalar(
         select(SyncLog).order_by(SyncLog.started_at.desc(), SyncLog.id.desc())
     )
+    upcoming_events = session.scalars(
+        select(Event).order_by(Event.starts_at, Event.id).limit(8)
+    ).all()
     context = {
         "current_admin": current_admin,
-        "account_count": session.scalar(select(func.count(ProviderAccount.id))) or 0,
+        "account_count": account_count,
         "calendar_count": session.scalar(select(func.count(ProviderCalendar.id))) or 0,
         "event_count": session.scalar(select(func.count(Event.id))) or 0,
         "combined_feed_url": build_external_url(
@@ -40,6 +45,7 @@ def dashboard_page(
             settings=request.app.state.settings,
         ),
         "latest_sync": latest_sync,
+        "upcoming_events": upcoming_events,
     }
     return templates.TemplateResponse(request, "dashboard.html", context)
 
@@ -76,3 +82,28 @@ def rotate_combined_feed(
     rotate_combined_feed_token(session)
     session.commit()
     return RedirectResponse(url="/admin/feeds", status_code=303)
+
+
+@router.post("/accounts/mock/connect")
+def connect_mock_account(
+    session: Session = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    existing_mock_count = session.scalar(
+        select(func.count(ProviderAccount.id)).where(
+            ProviderAccount.provider_type == "mock",
+        )
+    ) or 0
+    account_number = existing_mock_count + 1
+    account = ProviderAccount(
+        provider_type="mock",
+        provider_account_id=f"mock-acct-{account_number}",
+        display_name=f"Mock Account {account_number}",
+        provider_metadata={"source": "dashboard-connect"},
+    )
+    session.add(account)
+    session.flush()
+    sync_account(session, account.id, trigger="manual")
+    ensure_combined_feed(session)
+    session.commit()
+    return RedirectResponse(url="/admin", status_code=303)

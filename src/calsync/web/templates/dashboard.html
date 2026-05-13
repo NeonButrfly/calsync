@@ -42,4 +42,30 @@
     <p><a href="/admin/sync">Open sync status</a></p>
   </article>
 </section>
+
+<section class="grid dashboard-grid">
+  <article class="panel">
+    <h2>Combined calendar view</h2>
+    {% if upcoming_events %}
+    <ul class="event-list">
+      {% for event in upcoming_events %}
+      <li>
+        <strong>{{ event.title }}</strong>
+        <span>{{ event.starts_at }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No normalized events yet.</p>
+    {% endif %}
+  </article>
+
+  <article class="panel">
+    <h2>Mock provider mode</h2>
+    <p>Use the built-in mock account to validate the combined calendar flow before real Google or Apple connections are enabled.</p>
+    <form method="post" action="/admin/accounts/mock/connect">
+      <button type="submit">Connect mock provider</button>
+    </form>
+  </article>
+</section>
 {% endblock %}

@@ -29,6 +29,15 @@ SESSION_SECRET = "phase1-dashboard-session-secret"
 
 @pytest.fixture()
 def client(tmp_path: Path) -> TestClient:
+    yield from _build_client(tmp_path, seed_mock_account=True)
+
+
+@pytest.fixture()
+def empty_client(tmp_path: Path) -> TestClient:
+    yield from _build_client(tmp_path, seed_mock_account=False)
+
+
+def _build_client(tmp_path: Path, *, seed_mock_account: bool) -> TestClient:
     database_path = tmp_path / "dashboard-pages.sqlite3"
     settings = Settings(
         database_url=f"sqlite+pysqlite:///{database_path}",
@@ -67,11 +76,14 @@ def client(tmp_path: Path) -> TestClient:
             display_name="Mock Account",
             provider_metadata={"seed": "phase1"},
         )
-        session.add(account)
-        session.flush()
-        account_id = account.id
-        discover_calendars(session, account.id)
-        sync_account(session, account.id, trigger="manual")
+        if seed_mock_account:
+            session.add(account)
+            session.flush()
+            account_id = account.id
+            discover_calendars(session, account.id)
+            sync_account(session, account.id, trigger="manual")
+        else:
+            account_id = None
         combined_feed = ensure_combined_feed(session)
         combined_feed_id = combined_feed.id
         session.commit()
@@ -119,6 +131,25 @@ def test_dashboard_shows_feed_links_and_sync_summary(
     assert "Combined feed" in response.text
     assert "Last sync" in response.text
     assert "/feeds/" in response.text
+    assert "Morning Standup" in response.text
+
+
+@pytest.fixture()
+def authenticated_empty_client(empty_client: TestClient) -> TestClient:
+    password_step = empty_client.post(
+        "/login",
+        data={"identifier": "admin", "password": "StrongPassword1!"},
+        follow_redirects=False,
+    )
+    assert password_step.status_code == 303
+
+    mfa_step = empty_client.post(
+        "/login/mfa",
+        data={"code": pyotp.TOTP(empty_client.app.state.test_totp_secret).now()},
+        follow_redirects=False,
+    )
+    assert mfa_step.status_code == 303
+    return empty_client
 
 
 def test_calendar_toggle_updates_enabled_state(
@@ -193,6 +224,26 @@ def test_rotating_combined_feed_changes_token(
         )
         assert rotated_feed is not None
         assert rotated_feed.token != original_token
+
+
+def test_connecting_mock_provider_creates_account_and_events(
+    authenticated_empty_client: TestClient,
+) -> None:
+    response = authenticated_empty_client.post(
+        "/admin/accounts/mock/connect",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin"
+
+    with _db_session(authenticated_empty_client) as session:
+        assert session.query(ProviderAccount).count() == 1
+        assert session.query(SyncLog).count() == 1
+
+    dashboard = authenticated_empty_client.get("/admin")
+    assert dashboard.status_code == 200
+    assert "Morning Standup" in dashboard.text
 
 
 def _db_session(client: TestClient) -> Session:
