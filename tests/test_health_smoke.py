@@ -1,10 +1,10 @@
 from fastapi.testclient import TestClient
 
-from calsync.main import app
+from calsync.main import create_app
 
 
 def test_healthz_returns_ok() -> None:
-    client = TestClient(app)
+    client = TestClient(create_app())
 
     response = client.get("/healthz")
 
