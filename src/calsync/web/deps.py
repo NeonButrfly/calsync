@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from collections.abc import Iterator
 from http.cookies import SimpleCookie
@@ -19,8 +18,6 @@ from sqlalchemy.orm import Session
 from calsync.db import get_db_session
 
 
-DEFAULT_ENCRYPTION_KEY = "calsync-phase1-dev-encryption-key"
-DEFAULT_SESSION_SECRET = "calsync-phase1-dev-session-secret"
 SESSION_COOKIE_NAME = "calsync_session"
 
 _TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
@@ -37,29 +34,42 @@ def get_db(request: Request) -> Iterator[Session]:
 
 
 def get_encryption_key(request: Request) -> str:
-    return _get_app_secret(
+    return _require_app_secret(
         request.app,
         attr_name="encryption_key",
-        env_name="CALSYNC_ENCRYPTION_KEY",
-        default=DEFAULT_ENCRYPTION_KEY,
     )
 
 
-def get_session_secret(settings: Any) -> str:
+def get_session_secret(settings: Any) -> str | None:
     configured_secret = getattr(settings, "session_secret", None)
     if configured_secret:
         return str(configured_secret)
+    return None
 
-    return os.environ.get("CALSYNC_SESSION_SECRET", DEFAULT_SESSION_SECRET)
+
+def require_session_secret(request: Request) -> str:
+    return _require_app_secret(
+        request.app,
+        attr_name="session_secret",
+    )
 
 
-def _get_app_secret(
+def _require_app_secret(
     app: Any,
     *,
     attr_name: str,
-    env_name: str,
-    default: str,
 ) -> str:
+    configured_secret = _resolve_app_secret(app, attr_name=attr_name)
+    if configured_secret is None:
+        raise RuntimeError(f"CalSync {attr_name} must be configured explicitly.")
+    return configured_secret
+
+
+def _resolve_app_secret(
+    app: Any,
+    *,
+    attr_name: str,
+) -> str | None:
     configured_secret = getattr(app.state, attr_name, None)
     if configured_secret:
         return str(configured_secret)
@@ -70,7 +80,7 @@ def _get_app_secret(
         if settings_value:
             return str(settings_value)
 
-    return os.environ.get(env_name, default)
+    return None
 
 
 class SignedCookieSessionMiddleware(BaseHTTPMiddleware):
@@ -78,14 +88,21 @@ class SignedCookieSessionMiddleware(BaseHTTPMiddleware):
         self,
         app,
         *,
-        secret_key: str,
+        secret_key: str | None,
         cookie_name: str = SESSION_COOKIE_NAME,
     ) -> None:
         super().__init__(app)
         self.cookie_name = cookie_name
-        self.secret_key = secret_key.encode("utf-8")
+        self.secret_key = secret_key.encode("utf-8") if secret_key else None
 
     async def dispatch(self, request: Request, call_next) -> Response:
+        if self.secret_key is None:
+            request.scope["session"] = {}
+            response = await call_next(request)
+            if request.scope.get("session", {}):
+                raise RuntimeError("CalSync session_secret must be configured explicitly.")
+            return response
+
         original_cookie_present = False
         original_session = {}
         cookie_header = request.headers.get("cookie")

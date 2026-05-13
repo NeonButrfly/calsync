@@ -11,7 +11,12 @@ from calsync.services.bootstrap import (
     get_or_create_pending_setup,
     require_setup_incomplete,
 )
-from calsync.web.deps import get_db, get_encryption_key, get_templates
+from calsync.web.deps import (
+    get_db,
+    get_encryption_key,
+    get_templates,
+    require_session_secret,
+)
 
 
 router = APIRouter()
@@ -22,9 +27,10 @@ def setup_page(
     request: Request,
     session: Session = Depends(get_db),
     templates: Jinja2Templates = Depends(get_templates),
+    _: str = Depends(require_session_secret),
 ):
     require_setup_incomplete(session)
-    pending_setup = get_or_create_pending_setup(request.app)
+    pending_setup = get_or_create_pending_setup(request.app, request.session)
     return _render_setup_page(
         request,
         templates,
@@ -45,12 +51,14 @@ def submit_setup(
     recovery_acknowledged: str | None = Form(default=None),
     session: Session = Depends(get_db),
     templates: Jinja2Templates = Depends(get_templates),
+    _: str = Depends(require_session_secret),
     encryption_key: str = Depends(get_encryption_key),
 ):
-    pending_setup = get_or_create_pending_setup(request.app)
+    pending_setup = get_or_create_pending_setup(request.app, request.session)
     result = complete_first_run_setup(
         session,
         request.app,
+        request.session,
         submission=SetupSubmission(
             username=username,
             email=email,

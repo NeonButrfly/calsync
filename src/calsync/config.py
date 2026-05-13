@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     app_port: int = 3080
     public_base_url: AnyHttpUrl | None = None
     database_url: str = "sqlite+pysqlite:///./calsync.db"
+    session_secret: str | None = None
+    encryption_key: str | None = None
 
 
 @lru_cache(maxsize=1)

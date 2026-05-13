@@ -13,7 +13,12 @@ from calsync.services.auth import (
     verify_totp_for_user_once,
 )
 from calsync.services.bootstrap import is_setup_complete
-from calsync.web.deps import get_db, get_encryption_key, get_templates
+from calsync.web.deps import (
+    get_db,
+    get_encryption_key,
+    get_templates,
+    require_session_secret,
+)
 
 
 ADMIN_SESSION_KEY = "admin_session"
@@ -27,6 +32,7 @@ def login_page(
     request: Request,
     session: Session = Depends(get_db),
     templates: Jinja2Templates = Depends(get_templates),
+    _: str = Depends(require_session_secret),
 ):
     if not is_setup_complete(session):
         return RedirectResponse(url="/setup", status_code=303)
@@ -44,6 +50,7 @@ def submit_login(
     password: str = Form(...),
     session: Session = Depends(get_db),
     templates: Jinja2Templates = Depends(get_templates),
+    _: str = Depends(require_session_secret),
 ):
     if not is_setup_complete(session):
         return RedirectResponse(url="/setup", status_code=303)
@@ -80,6 +87,7 @@ def submit_login(
 def login_mfa_page(
     request: Request,
     templates: Jinja2Templates = Depends(get_templates),
+    _: str = Depends(require_session_secret),
 ):
     if PENDING_MFA_SESSION_KEY not in request.session:
         raise HTTPException(status_code=400, detail="Password verification required.")
@@ -97,6 +105,7 @@ def submit_login_mfa(
     code: str = Form(...),
     session: Session = Depends(get_db),
     templates: Jinja2Templates = Depends(get_templates),
+    _: str = Depends(require_session_secret),
     encryption_key: str = Depends(get_encryption_key),
 ):
     pending_session = request.session.get(PENDING_MFA_SESSION_KEY)
@@ -112,10 +121,14 @@ def submit_login_mfa(
         admin_user,
         code,
         encryption_key=encryption_key,
-        last_accepted_counter=None,
+        last_accepted_counter=admin_user.mfa_last_accepted_counter,
     )
     recovery_code_consumed = False
-    if matched_counter is None:
+    if matched_counter is not None:
+        admin_user.mfa_last_accepted_counter = matched_counter
+        session.add(admin_user)
+        session.commit()
+    else:
         recovery_code_consumed = consume_recovery_code(session, admin_user, code)
         if recovery_code_consumed:
             session.commit()

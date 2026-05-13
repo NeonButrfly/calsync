@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from secrets import token_urlsafe
 from typing import Any
 
 from fastapi import HTTPException
@@ -27,6 +28,8 @@ from calsync.services.auth import (
 
 
 SETUP_COMPLETED_STATE_KEY = "setup_completed"
+PENDING_SETUP_ATTEMPTS_ATTR = "pending_setup_attempts"
+PENDING_SETUP_SESSION_KEY = "pending_setup_attempt_id"
 
 
 @dataclass(slots=True)
@@ -64,31 +67,53 @@ def require_setup_incomplete(session: Session) -> None:
         raise HTTPException(status_code=404)
 
 
-def get_or_create_pending_setup(app: Any) -> PendingSetup:
-    pending_setup = getattr(app.state, "pending_setup", None)
-    if pending_setup is None:
-        pending_setup = PendingSetup(
-            enrollment=build_totp_enrollment("admin"),
-            recovery_codes=generate_recovery_codes(),
-        )
-        app.state.pending_setup = pending_setup
+def get_or_create_pending_setup(
+    app: Any,
+    session_state: dict[str, object],
+) -> PendingSetup:
+    pending_setup_attempts = _get_pending_setup_attempts(app)
+    attempt_id = session_state.get(PENDING_SETUP_SESSION_KEY)
+    if isinstance(attempt_id, str) and attempt_id in pending_setup_attempts:
+        return pending_setup_attempts[attempt_id]
+
+    pending_setup = PendingSetup(
+        enrollment=build_totp_enrollment("admin"),
+        recovery_codes=generate_recovery_codes(),
+    )
+    attempt_id = token_urlsafe(16)
+    pending_setup_attempts[attempt_id] = pending_setup
+    session_state[PENDING_SETUP_SESSION_KEY] = attempt_id
     return pending_setup
 
 
-def clear_pending_setup(app: Any) -> None:
-    if hasattr(app.state, "pending_setup"):
-        delattr(app.state, "pending_setup")
+def clear_pending_setup(
+    app: Any,
+    session_state: dict[str, object],
+) -> None:
+    pending_setup_attempts = _get_pending_setup_attempts(app)
+    attempt_id = session_state.pop(PENDING_SETUP_SESSION_KEY, None)
+    if isinstance(attempt_id, str):
+        pending_setup_attempts.pop(attempt_id, None)
+
+
+def _get_pending_setup_attempts(app: Any) -> dict[str, PendingSetup]:
+    pending_setup_attempts = getattr(app.state, PENDING_SETUP_ATTEMPTS_ATTR, None)
+    if pending_setup_attempts is None:
+        pending_setup_attempts = {}
+        setattr(app.state, PENDING_SETUP_ATTEMPTS_ATTR, pending_setup_attempts)
+    return pending_setup_attempts
 
 
 def complete_first_run_setup(
     session: Session,
     app: Any,
+    session_state: dict[str, object],
     *,
     submission: SetupSubmission,
     encryption_key: str,
 ) -> SetupResult:
     require_setup_incomplete(session)
-    pending_setup = get_or_create_pending_setup(app)
+    pending_setup = get_or_create_pending_setup(app, session_state)
 
     errors = _validate_setup_submission(
         session,
@@ -118,7 +143,7 @@ def complete_first_run_setup(
         value_text="true",
     )
     session.commit()
-    clear_pending_setup(app)
+    clear_pending_setup(app, session_state)
     return SetupResult(errors=[], user=user)
 
 

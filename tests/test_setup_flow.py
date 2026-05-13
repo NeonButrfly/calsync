@@ -20,6 +20,8 @@ def client(tmp_path: Path) -> TestClient:
     settings = Settings(
         database_url=f"sqlite+pysqlite:///{database_path}",
         public_base_url="http://testserver",
+        session_secret="phase1-setup-session-secret",
+        encryption_key="phase1-setup-encryption-key",
     )
     engine = create_engine(
         settings.database_url,
@@ -144,6 +146,86 @@ def test_setup_requires_matching_password_confirmation(
 
     with _db_session(client) as session:
         assert session.scalar(select(AdminUser)) is None
+
+
+def test_setup_pending_totp_secret_is_scoped_per_client_session(tmp_path: Path) -> None:
+    database_path = tmp_path / "setup-scope.sqlite3"
+    settings = Settings(
+        database_url=f"sqlite+pysqlite:///{database_path}",
+        public_base_url="http://testserver",
+        session_secret="phase1-setup-scope-secret",
+        encryption_key="phase1-setup-scope-encryption-key",
+    )
+    engine = create_engine(
+        settings.database_url,
+        future=True,
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(engine)
+    app = create_app(settings)
+
+    with TestClient(app) as client_a, TestClient(app) as client_b:
+        response_a = client_a.get("/setup")
+        response_b = client_b.get("/setup")
+
+    assert response_a.status_code == 200
+    assert response_b.status_code == 200
+    assert _extract_input_value(response_a.text, "totp_secret") != _extract_input_value(
+        response_b.text,
+        "totp_secret",
+    )
+
+
+def test_setup_fails_closed_without_session_secret(tmp_path: Path) -> None:
+    database_path = tmp_path / "setup-no-session-secret.sqlite3"
+    settings = Settings(
+        database_url=f"sqlite+pysqlite:///{database_path}",
+        public_base_url="http://testserver",
+        encryption_key="phase1-setup-encryption-key",
+    )
+    engine = create_engine(
+        settings.database_url,
+        future=True,
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(engine)
+
+    with TestClient(create_app(settings)) as test_client:
+        with pytest.raises(RuntimeError, match="session_secret"):
+            test_client.get("/setup")
+
+
+def test_setup_fails_closed_without_encryption_key(tmp_path: Path) -> None:
+    database_path = tmp_path / "setup-no-encryption-key.sqlite3"
+    settings = Settings(
+        database_url=f"sqlite+pysqlite:///{database_path}",
+        public_base_url="http://testserver",
+        session_secret="phase1-setup-session-secret",
+    )
+    engine = create_engine(
+        settings.database_url,
+        future=True,
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(engine)
+
+    with TestClient(create_app(settings)) as test_client:
+        setup_page = test_client.get("/setup")
+        assert setup_page.status_code == 200
+        secret = _extract_input_value(setup_page.text, "totp_secret")
+
+        with pytest.raises(RuntimeError, match="encryption_key"):
+            test_client.post(
+                "/setup",
+                data={
+                    "username": "admin",
+                    "email": "admin@example.com",
+                    "password": "StrongPassword1!",
+                    "password_confirmation": "StrongPassword1!",
+                    "totp_code": pyotp.TOTP(secret).now(),
+                    "recovery_acknowledged": "on",
+                },
+            )
 
 
 def _extract_input_value(html: str, name: str) -> str:

@@ -27,6 +27,7 @@ def upgrade() -> None:
         sa.Column("mfa_secret_encrypted", sa.Text(), nullable=True),
         sa.Column("mfa_enrolled", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column("recovery_codes_json", sa.Text(), nullable=True),
+        sa.Column("mfa_last_accepted_counter", sa.Integer(), nullable=True),
         sa.Column("session_version", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
