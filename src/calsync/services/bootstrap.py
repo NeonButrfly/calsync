@@ -40,6 +40,7 @@ class SetupSubmission:
     username: str
     email: str
     password: str
+    password_confirmation: str
     totp_code: str
     recovery_acknowledged: bool
 
@@ -137,6 +138,8 @@ def _validate_setup_submission(
         errors.append("Email is required.")
 
     errors.extend(validate_password_strength(submission.password))
+    if submission.password != submission.password_confirmation:
+        errors.append("Password confirmation must match.")
 
     if get_admin_by_username(session, username) is not None:
         errors.append("That username is already in use.")

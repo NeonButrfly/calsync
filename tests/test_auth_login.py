@@ -76,7 +76,7 @@ def test_login_requires_password_then_totp_before_session_is_established(
     password_step = client.post(
         "/login",
         data={
-            "username": "admin",
+            "identifier": "admin",
             "password": "StrongPassword1!",
         },
         follow_redirects=False,
@@ -108,7 +108,7 @@ def test_login_allows_recovery_code_as_second_factor(
     password_step = client.post(
         "/login",
         data={
-            "username": "admin",
+            "identifier": "admin@example.com",
             "password": "StrongPassword1!",
         },
         follow_redirects=False,

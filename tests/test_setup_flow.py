@@ -47,6 +47,7 @@ def test_first_run_setup_creates_initial_admin_and_locks_route(
             "username": "admin",
             "email": "admin@example.com",
             "password": "StrongPassword1!",
+            "password_confirmation": "StrongPassword1!",
             "totp_code": pyotp.TOTP(secret).now(),
             "recovery_acknowledged": "on",
         },
@@ -89,6 +90,7 @@ def test_setup_requires_valid_totp_and_recovery_acknowledgement(
             "username": "admin",
             "email": "admin@example.com",
             "password": "StrongPassword1!",
+            "password_confirmation": "StrongPassword1!",
             "totp_code": pyotp.TOTP(secret).now(),
         },
     )
@@ -104,6 +106,7 @@ def test_setup_requires_valid_totp_and_recovery_acknowledgement(
             "username": "admin",
             "email": "admin@example.com",
             "password": "StrongPassword1!",
+            "password_confirmation": "StrongPassword1!",
             "totp_code": "000000",
             "recovery_acknowledged": "on",
         },
@@ -111,6 +114,33 @@ def test_setup_requires_valid_totp_and_recovery_acknowledgement(
 
     assert invalid_totp_response.status_code == 200
     assert "Enter a valid MFA code to finish setup." in invalid_totp_response.text
+
+    with _db_session(client) as session:
+        assert session.scalar(select(AdminUser)) is None
+
+
+def test_setup_requires_matching_password_confirmation(
+    client: TestClient,
+) -> None:
+    setup_page = client.get("/setup")
+
+    assert setup_page.status_code == 200
+    secret = _extract_input_value(setup_page.text, "totp_secret")
+
+    mismatched_password_response = client.post(
+        "/setup",
+        data={
+            "username": "admin",
+            "email": "admin@example.com",
+            "password": "StrongPassword1!",
+            "password_confirmation": "DifferentPassword1!",
+            "totp_code": pyotp.TOTP(secret).now(),
+            "recovery_acknowledged": "on",
+        },
+    )
+
+    assert mismatched_password_response.status_code == 200
+    assert "Password confirmation must match." in mismatched_password_response.text
 
     with _db_session(client) as session:
         assert session.scalar(select(AdminUser)) is None

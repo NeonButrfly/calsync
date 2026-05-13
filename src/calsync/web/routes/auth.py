@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from calsync.models import AdminUser
-from calsync.repos.users import get_admin_by_username
+from calsync.repos.users import get_admin_by_email, get_admin_by_username
 from calsync.services.auth import (
     consume_recovery_code,
     verify_password,
@@ -33,14 +33,14 @@ def login_page(
     return templates.TemplateResponse(
         request,
         "login.html",
-        {"errors": [], "username": ""},
+        {"errors": [], "identifier": ""},
     )
 
 
 @router.post("/login")
 def submit_login(
     request: Request,
-    username: str = Form(...),
+    identifier: str = Form(...),
     password: str = Form(...),
     session: Session = Depends(get_db),
     templates: Jinja2Templates = Depends(get_templates),
@@ -48,20 +48,24 @@ def submit_login(
     if not is_setup_complete(session):
         return RedirectResponse(url="/setup", status_code=303)
 
-    admin_user = get_admin_by_username(session, username.strip())
+    normalized_identifier = identifier.strip()
+    if "@" in normalized_identifier:
+        admin_user = get_admin_by_email(session, normalized_identifier.lower())
+    else:
+        admin_user = get_admin_by_username(session, normalized_identifier)
     if admin_user is None or admin_user.password_hash is None:
         return _render_login_error(
             request,
             templates,
-            username=username,
-            message="Invalid username or password.",
+            identifier=identifier,
+            message="Invalid identifier or password.",
         )
     if not verify_password(password, admin_user.password_hash):
         return _render_login_error(
             request,
             templates,
-            username=username,
-            message="Invalid username or password.",
+            identifier=identifier,
+            message="Invalid identifier or password.",
         )
 
     request.session[PENDING_MFA_SESSION_KEY] = {
@@ -136,12 +140,12 @@ def _render_login_error(
     request: Request,
     templates: Jinja2Templates,
     *,
-    username: str,
+    identifier: str,
     message: str,
 ):
     return templates.TemplateResponse(
         request,
         "login.html",
-        {"errors": [message], "username": username},
+        {"errors": [message], "identifier": identifier},
         status_code=400,
     )
