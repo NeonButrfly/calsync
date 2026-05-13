@@ -17,7 +17,13 @@ app = typer.Typer(
 @app.command("reset-admin-password")
 def reset_admin_password_command(
     identifier: str = typer.Option(..., "--identifier", help="Admin username or email."),
-    password: str = typer.Option(..., "--password", help="New admin password."),
+    password: str = typer.Option(
+        ...,
+        prompt="New password",
+        confirmation_prompt=True,
+        hide_input=True,
+        help="New admin password.",
+    ),
 ) -> None:
     password_errors = validate_password_strength(password)
     if password_errors:

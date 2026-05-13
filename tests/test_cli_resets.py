@@ -105,13 +105,13 @@ def test_reset_admin_password_preserves_provider_state_and_invalidates_sessions(
             "reset-admin-password",
             "--identifier",
             "admin",
-            "--password",
-            "NewStrongPassword1!",
         ],
+        input="NewStrongPassword1!\nNewStrongPassword1!\n",
     )
 
     assert result.exit_code == 0
     assert "NewStrongPassword1!" not in result.output
+    assert "--password" not in result.output
 
     with _db_session(database_path) as session:
         admin_user = session.scalar(
