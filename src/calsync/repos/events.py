@@ -59,6 +59,9 @@ def upsert_event(session: Session, normalized_event: Mapping[str, Any]) -> Event
     provider_account_id = str(normalized_event["provider_account_id"])
     provider_calendar_id = str(normalized_event["provider_calendar_id"])
     provider_event_id = str(normalized_event["provider_event_id"])
+    all_day = _required_bool(normalized_event.get("all_day", False))
+    starts_at = _required_datetime(normalized_event["starts_at"])
+    ends_at = _required_datetime(normalized_event["ends_at"])
 
     account = _get_or_create_provider_account(
         session,
@@ -91,9 +94,9 @@ def upsert_event(session: Session, normalized_event: Mapping[str, Any]) -> Event
             title=str(normalized_event["title"]),
             description=_optional_str(normalized_event.get("description")),
             location=_optional_str(normalized_event.get("location")),
-            starts_at=_required_datetime(normalized_event["starts_at"]),
-            ends_at=_required_datetime(normalized_event["ends_at"]),
-            all_day=bool(normalized_event.get("all_day", False)),
+            starts_at=starts_at,
+            ends_at=ends_at,
+            all_day=all_day,
             status=str(normalized_event.get("status", "confirmed")),
             source_payload=_optional_dict(normalized_event.get("source_payload")),
         )
@@ -104,9 +107,9 @@ def upsert_event(session: Session, normalized_event: Mapping[str, Any]) -> Event
         event.title = str(normalized_event["title"])
         event.description = _optional_str(normalized_event.get("description"))
         event.location = _optional_str(normalized_event.get("location"))
-        event.starts_at = _required_datetime(normalized_event["starts_at"])
-        event.ends_at = _required_datetime(normalized_event["ends_at"])
-        event.all_day = bool(normalized_event.get("all_day", False))
+        event.starts_at = starts_at
+        event.ends_at = ends_at
+        event.all_day = all_day
         event.status = str(normalized_event.get("status", "confirmed"))
         event.source_payload = _optional_dict(normalized_event.get("source_payload"))
 
@@ -123,6 +126,14 @@ def _optional_str(value: Any) -> str | None:
 def _required_datetime(value: Any) -> datetime:
     if not isinstance(value, datetime):
         raise TypeError("Expected datetime value")
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("Expected timezone-aware datetime value")
+    return value
+
+
+def _required_bool(value: Any) -> bool:
+    if not isinstance(value, bool):
+        raise TypeError("Expected bool value")
     return value
 
 

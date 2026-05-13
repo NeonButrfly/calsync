@@ -1,21 +1,44 @@
 from collections.abc import Iterator
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from calsync.models import Base, Event
+from calsync.config import get_settings
+from calsync.models import Event
 from calsync.repos.events import upsert_event
 
 
-@pytest.fixture()
-def session() -> Iterator[Session]:
-    engine = create_engine("sqlite+pysqlite:///:memory:", future=True)
-    Base.metadata.create_all(engine)
+def _build_session(database_url: str) -> Iterator[Session]:
+    engine = create_engine(database_url, future=True)
     factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     with factory() as db_session:
         yield db_session
+
+
+@pytest.fixture()
+def migrated_session(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> Iterator[Session]:
+    database_path = tmp_path / "migration-schema.db"
+    database_url = f"sqlite+pysqlite:///{database_path.as_posix()}"
+
+    get_settings.cache_clear()
+    monkeypatch.setenv("DATABASE_URL", database_url)
+
+    alembic_config = Config("alembic.ini")
+    alembic_config.set_main_option("sqlalchemy.url", database_url)
+    command.upgrade(alembic_config, "head")
+
+    try:
+        yield from _build_session(database_url)
+    finally:
+        get_settings.cache_clear()
 
 
 @pytest.fixture()
@@ -37,11 +60,31 @@ def normalized_event() -> dict[str, object]:
 
 
 def test_upsert_event_reuses_existing_provider_identity(
-    session: Session,
+    migrated_session: Session,
     normalized_event: dict[str, object],
 ) -> None:
-    first = upsert_event(session, normalized_event)
-    second = upsert_event(session, normalized_event)
+    first = upsert_event(migrated_session, normalized_event)
+    second = upsert_event(migrated_session, normalized_event)
 
     assert first.id == second.id
-    assert session.query(Event).count() == 1
+    assert migrated_session.query(Event).count() == 1
+
+
+def test_upsert_event_rejects_non_boolean_all_day(
+    migrated_session: Session,
+    normalized_event: dict[str, object],
+) -> None:
+    normalized_event["all_day"] = "false"
+
+    with pytest.raises(TypeError, match="Expected bool value"):
+        upsert_event(migrated_session, normalized_event)
+
+
+def test_upsert_event_rejects_naive_required_datetime(
+    migrated_session: Session,
+    normalized_event: dict[str, object],
+) -> None:
+    normalized_event["starts_at"] = datetime(2026, 5, 12, 18, 0)
+
+    with pytest.raises(ValueError, match="timezone-aware datetime"):
+        upsert_event(migrated_session, normalized_event)
