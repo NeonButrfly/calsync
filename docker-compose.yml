@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-calsync}
+      POSTGRES_USER: ${POSTGRES_USER:-calsync}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-calsync}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-calsync} -d ${POSTGRES_DB:-calsync}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${CALSYNC_DATABASE_URL:-postgresql+psycopg://calsync:calsync@db:5432/calsync}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-3080}:${APP_PORT:-3080}"
+    command: >-
+      python -m uvicorn calsync.main:app --host ${APP_HOST:-0.0.0.0} --port ${APP_PORT:-3080}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:${APP_PORT:-3080}/healthz')\"",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build: .
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${CALSYNC_DATABASE_URL:-postgresql+psycopg://calsync:calsync@db:5432/calsync}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >-
+      python -m calsync.worker
+
+volumes:
+  postgres_data:

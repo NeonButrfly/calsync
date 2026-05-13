@@ -9,6 +9,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         case_sensitive=False,
+        env_file=".env",
+        env_ignore_empty=True,
+        extra="ignore",
     )
 
     app_host: str = "0.0.0.0"
@@ -17,6 +20,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+pysqlite:///./calsync.db"
     session_secret: str | None = None
     encryption_key: str | None = None
+    sync_poll_seconds: int = 300
 
 
 @lru_cache(maxsize=1)
