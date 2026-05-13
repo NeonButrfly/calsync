@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from calsync.config import get_settings
 from calsync.main import create_app
+from calsync.models import PublishedFeed
 from calsync.repos.events import upsert_event
 from calsync.services.publishing import (
     ensure_combined_feed,
@@ -99,6 +100,53 @@ def test_rotating_feed_token_invalidates_previous_token(
     assert old_response.status_code == 404
     assert new_response.status_code == 200
     assert "BEGIN:VCALENDAR" in new_response.text
+
+
+def test_ensure_combined_feed_reactivates_existing_inactive_feed(
+    migrated_session: Session,
+) -> None:
+    existing_feed = PublishedFeed(
+        scope_type="combined",
+        scope_key="all",
+        token="inactive-combined-token",
+        is_active=False,
+    )
+    migrated_session.add(existing_feed)
+    migrated_session.commit()
+
+    ensured_feed = ensure_combined_feed(migrated_session)
+    migrated_session.commit()
+
+    assert ensured_feed.id == existing_feed.id
+    assert ensured_feed.is_active is True
+    assert ensured_feed.token == "inactive-combined-token"
+
+
+def test_rotate_combined_feed_token_avoids_collision_with_inactive_tokens(
+    migrated_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reserved_feed = PublishedFeed(
+        scope_type="calendar",
+        scope_key="archived",
+        token="reserved-token",
+        is_active=False,
+    )
+    migrated_session.add(reserved_feed)
+    active_feed = ensure_combined_feed(migrated_session)
+    active_feed.token = "current-token"
+    migrated_session.commit()
+
+    generated_tokens = iter(["reserved-token", "fresh-token"])
+    monkeypatch.setattr(
+        "calsync.services.publishing.token_urlsafe",
+        lambda _: next(generated_tokens),
+    )
+
+    rotated_feed = rotate_combined_feed_token(migrated_session)
+    migrated_session.commit()
+
+    assert rotated_feed.token == "fresh-token"
 
 
 def _seed_normalized_events(session: Session) -> None:

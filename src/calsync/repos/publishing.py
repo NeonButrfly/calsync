@@ -31,3 +31,15 @@ def get_active_published_feed_by_token(
             PublishedFeed.is_active.is_(True),
         )
     )
+
+
+def get_published_feed_by_token(
+    session: Session,
+    *,
+    token: str,
+) -> PublishedFeed | None:
+    return session.scalar(
+        select(PublishedFeed).where(
+            PublishedFeed.token == token,
+        )
+    )

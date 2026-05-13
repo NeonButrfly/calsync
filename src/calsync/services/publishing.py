@@ -10,6 +10,7 @@ from calsync.models import Event, ProviderCalendar, PublishedFeed, utcnow
 from calsync.repos.publishing import (
     get_active_published_feed_by_token,
     get_published_feed_by_scope,
+    get_published_feed_by_token,
 )
 
 
@@ -31,7 +32,10 @@ def ensure_combined_feed(session: Session) -> PublishedFeed:
             is_active=True,
         )
         session.add(feed)
-        session.flush()
+    elif not feed.is_active:
+        feed.is_active = True
+
+    session.flush()
     return feed
 
 
@@ -71,7 +75,7 @@ def render_feed_for_token(session: Session, token: str) -> str:
 def _generate_feed_token(session: Session) -> str:
     for _ in range(10):
         token = token_urlsafe(32)
-        if get_active_published_feed_by_token(session, token=token) is None:
+        if get_published_feed_by_token(session, token=token) is None:
             return token
     raise RuntimeError("Unable to allocate a unique feed token.")
 
