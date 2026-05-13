@@ -62,6 +62,51 @@ def is_setup_complete(session: Session) -> bool:
     return session.scalar(select(AdminUser.id).limit(1)) is not None
 
 
+def get_admin_for_reset(session: Session, identifier: str) -> AdminUser | None:
+    normalized_identifier = identifier.strip()
+    if not normalized_identifier:
+        return None
+    if "@" in normalized_identifier:
+        return get_admin_by_email(session, normalized_identifier.lower())
+    return get_admin_by_username(session, normalized_identifier)
+
+
+def reset_admin_password(
+    session: Session,
+    *,
+    identifier: str,
+    password: str,
+) -> AdminUser:
+    user = get_admin_for_reset(session, identifier)
+    if user is None:
+        raise LookupError("Admin user not found.")
+
+    user.password_hash = hash_password(password)
+    _invalidate_admin_sessions(user)
+    session.add(user)
+    session.commit()
+    return user
+
+
+def reset_admin_mfa(
+    session: Session,
+    *,
+    identifier: str,
+) -> AdminUser:
+    user = get_admin_for_reset(session, identifier)
+    if user is None:
+        raise LookupError("Admin user not found.")
+
+    user.mfa_secret_encrypted = None
+    user.mfa_enrolled = False
+    user.recovery_codes_json = None
+    user.mfa_last_accepted_counter = None
+    _invalidate_admin_sessions(user)
+    session.add(user)
+    session.commit()
+    return user
+
+
 def require_setup_incomplete(session: Session) -> None:
     if is_setup_complete(session):
         raise HTTPException(status_code=404)
@@ -178,3 +223,7 @@ def _validate_setup_submission(
         errors.append("Acknowledge that you stored at least one recovery code.")
 
     return errors
+
+
+def _invalidate_admin_sessions(user: AdminUser) -> None:
+    user.session_version += 1
