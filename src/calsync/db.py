@@ -15,30 +15,40 @@ def _engine_kwargs(database_url: str) -> dict[str, object]:
 
 def create_db_engine(settings: Settings | None = None) -> Engine:
     resolved_settings = settings or get_settings()
+    return _get_engine_for_url(resolved_settings.database_url)
+
+
+@lru_cache(maxsize=None)
+def _get_engine_for_url(database_url: str) -> Engine:
     return create_engine(
-        resolved_settings.database_url,
+        database_url,
         future=True,
-        **_engine_kwargs(resolved_settings.database_url),
+        **_engine_kwargs(database_url),
     )
 
 
-@lru_cache(maxsize=1)
-def get_engine() -> Engine:
-    return create_db_engine()
+def get_engine(settings: Settings | None = None) -> Engine:
+    return create_db_engine(settings)
 
 
 def create_session_factory(
     settings: Settings | None = None,
 ) -> sessionmaker[Session]:
-    engine = create_db_engine(settings) if settings else get_engine()
-    return sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    resolved_settings = settings or get_settings()
+    return _get_session_factory_for_url(resolved_settings.database_url)
 
 
-SessionLocal = create_session_factory()
+@lru_cache(maxsize=None)
+def _get_session_factory_for_url(database_url: str) -> sessionmaker[Session]:
+    return sessionmaker(
+        bind=_get_engine_for_url(database_url),
+        autoflush=False,
+        expire_on_commit=False,
+    )
 
 
-def get_db_session() -> Iterator[Session]:
-    session = SessionLocal()
+def get_db_session(settings: Settings | None = None) -> Iterator[Session]:
+    session = create_session_factory(settings)()
     try:
         yield session
     finally:

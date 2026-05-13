@@ -2,6 +2,8 @@ from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
 from calsync.config import Settings, build_external_url
+from calsync.db import get_db_session
+from calsync.main import create_app
 
 
 def test_settings_default_bind_host(monkeypatch) -> None:
@@ -46,3 +48,22 @@ def test_public_base_url_overrides_request_origin() -> None:
     assert response.json() == {
         "url": "https://calendar.example.com/base/healthz"
     }
+
+
+def test_create_app_accepts_explicit_settings() -> None:
+    settings = Settings(bind_host="127.0.0.1", bind_port=4010)
+
+    app = create_app(settings=settings)
+
+    assert app.state.settings is settings
+
+
+def test_get_db_session_uses_explicit_settings(tmp_path) -> None:
+    database_path = tmp_path / "explicit.db"
+    settings = Settings(database_url=f"sqlite+pysqlite:///{database_path.as_posix()}")
+
+    session = next(get_db_session(settings))
+    try:
+        assert str(session.bind.url) == settings.database_url
+    finally:
+        session.close()
