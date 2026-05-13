@@ -54,6 +54,12 @@ class SetupResult:
     user: AdminUser | None = None
 
 
+@dataclass(slots=True)
+class AdminMfaResetResult:
+    user: AdminUser
+    recovery_codes: list[str]
+
+
 def is_setup_complete(session: Session) -> bool:
     state = get_app_state(session, SETUP_COMPLETED_STATE_KEY)
     if state is not None and state.value_text == "true":
@@ -92,19 +98,20 @@ def reset_admin_mfa(
     session: Session,
     *,
     identifier: str,
-) -> AdminUser:
+) -> AdminMfaResetResult:
     user = get_admin_for_reset(session, identifier)
     if user is None:
         raise LookupError("Admin user not found.")
 
+    recovery_codes = generate_recovery_codes()
     user.mfa_secret_encrypted = None
     user.mfa_enrolled = False
-    user.recovery_codes_json = None
+    store_recovery_codes(session, user, recovery_codes)
     user.mfa_last_accepted_counter = None
     _invalidate_admin_sessions(user)
     session.add(user)
     session.commit()
-    return user
+    return AdminMfaResetResult(user=user, recovery_codes=recovery_codes)
 
 
 def require_setup_incomplete(session: Session) -> None:

@@ -17,17 +17,15 @@ app = typer.Typer(
 @app.command("reset-admin-password")
 def reset_admin_password_command(
     identifier: str = typer.Option(..., "--identifier", help="Admin username or email."),
-    password: str = typer.Option(
-        ...,
-        prompt="New password",
-        confirmation_prompt=True,
-        hide_input=True,
-        help="New admin password.",
-    ),
 ) -> None:
+    password = typer.prompt(
+        "New password",
+        hide_input=True,
+        confirmation_prompt=True,
+    )
     password_errors = validate_password_strength(password)
     if password_errors:
-        raise typer.BadParameter(" ".join(password_errors), param_hint="--password")
+        raise typer.BadParameter(" ".join(password_errors))
 
     session_factory = create_session_factory(Settings())
     with session_factory() as session:
@@ -52,7 +50,7 @@ def reset_admin_mfa_command(
     session_factory = create_session_factory(Settings())
     with session_factory() as session:
         try:
-            user = reset_admin_mfa(
+            result = reset_admin_mfa(
                 session,
                 identifier=identifier,
             )
@@ -60,8 +58,11 @@ def reset_admin_mfa_command(
             raise typer.Exit(code=_print_error(str(error))) from error
 
     typer.echo(
-        f"Admin MFA reset for {user.username}. Existing sessions were invalidated."
+        f"Admin MFA reset for {result.user.username}. Existing sessions were invalidated."
     )
+    typer.echo("New recovery codes:")
+    for recovery_code in result.recovery_codes:
+        typer.echo(f"- {recovery_code}")
 
 
 def _print_error(message: str) -> int:
