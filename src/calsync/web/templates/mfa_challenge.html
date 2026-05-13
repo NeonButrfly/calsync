@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>CalSync MFA Challenge</title>
+  </head>
+  <body>
+    <h1>Enter your MFA code</h1>
+
+    {% if errors %}
+    <ul>
+      {% for error in errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    <form method="post" action="/login/mfa">
+      <label>
+        MFA or recovery code
+        <input name="code" type="text" />
+      </label>
+      <button type="submit">Sign in</button>
+    </form>
+  </body>
+</html>

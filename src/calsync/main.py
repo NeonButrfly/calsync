@@ -5,6 +5,8 @@ from fastapi import FastAPI
 
 from calsync.config import get_settings
 from calsync.logging import get_logger, log_startup
+from calsync.web import router as web_router
+from calsync.web.deps import SignedCookieSessionMiddleware, get_session_secret
 
 
 def create_app(settings=None) -> FastAPI:
@@ -18,9 +20,18 @@ def create_app(settings=None) -> FastAPI:
 
     app = FastAPI(lifespan=lifespan)
     app.state.settings = resolved_settings
+    app.add_middleware(
+        SignedCookieSessionMiddleware,
+        secret_key=get_session_secret(resolved_settings),
+    )
+    app.include_router(web_router)
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @app.get("/")
+    def home() -> dict[str, str]:
         return {"status": "ok"}
 
     return app

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>CalSync Setup</title>
+  </head>
+  <body>
+    <h1>Set up CalSync</h1>
+
+    {% if errors %}
+    <ul>
+      {% for error in errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    <p>Scan this QR code with your authenticator app, then confirm with a live code.</p>
+    <img alt="TOTP QR code" src="{{ totp_qr_data_url }}" />
+    <p>Manual setup secret: <strong>{{ totp_secret }}</strong></p>
+
+    <h2>Recovery codes</h2>
+    <ul>
+      {% for recovery_code in recovery_codes %}
+      <li>{{ recovery_code }}</li>
+      {% endfor %}
+    </ul>
+
+    <form method="post" action="/setup">
+      <input type="hidden" name="totp_secret" value="{{ totp_secret }}" />
+      <label>
+        Username
+        <input name="username" type="text" value="{{ form_data.get('username', '') }}" />
+      </label>
+      <label>
+        Email
+        <input name="email" type="email" value="{{ form_data.get('email', '') }}" />
+      </label>
+      <label>
+        Password
+        <input name="password" type="password" />
+      </label>
+      <label>
+        MFA code
+        <input name="totp_code" type="text" inputmode="numeric" />
+      </label>
+      <label>
+        <input name="recovery_acknowledged" type="checkbox" />
+        I stored at least one recovery code.
+      </label>
+      <button type="submit">Finish setup</button>
+    </form>
+  </body>
+</html>
