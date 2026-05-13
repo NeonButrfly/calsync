@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -42,6 +42,7 @@ def upsert_provider_calendar(
         )
         session.add(calendar)
 
+    calendar.enabled = True
     calendar.name = discovered_calendar.name
     calendar.timezone = discovered_calendar.timezone
     calendar.provider_metadata = (
@@ -51,6 +52,24 @@ def upsert_provider_calendar(
     )
     session.flush()
     return calendar
+
+
+def reconcile_provider_calendars(
+    session: Session,
+    *,
+    account: ProviderAccount,
+    discovered_external_ids: set[str],
+) -> None:
+    calendars = session.scalars(
+        select(ProviderCalendar).where(
+            ProviderCalendar.provider_account_pk == account.id,
+        )
+    ).all()
+
+    for calendar in calendars:
+        calendar.enabled = calendar.provider_calendar_id in discovered_external_ids
+
+    session.flush()
 
 
 def list_enabled_provider_calendars(
@@ -73,16 +92,28 @@ def list_enabled_provider_calendars(
 @dataclass
 class SyncRunHandle:
     log: SyncLog
+    events_seen: int = field(default=0, init=False)
+    events_upserted: int = field(default=0, init=False)
+
+    def record_seen(self, count: int = 1) -> None:
+        self.events_seen += count
+        self.log.events_seen = self.events_seen
+
+    def record_upserted(self, count: int = 1) -> None:
+        self.events_upserted += count
+        self.log.events_upserted = self.events_upserted
 
     def mark_success(
         self,
         *,
-        events_seen: int,
-        events_upserted: int,
+        events_seen: int | None = None,
+        events_upserted: int | None = None,
     ) -> None:
         self.log.status = "success"
-        self.log.events_seen = events_seen
-        self.log.events_upserted = events_upserted
+        self.log.events_seen = self.events_seen if events_seen is None else events_seen
+        self.log.events_upserted = (
+            self.events_upserted if events_upserted is None else events_upserted
+        )
         self.log.error_text = None
         self.log.finished_at = utcnow()
 
@@ -90,12 +121,14 @@ class SyncRunHandle:
         self,
         *,
         error_text: str,
-        events_seen: int = 0,
-        events_upserted: int = 0,
+        events_seen: int | None = None,
+        events_upserted: int | None = None,
     ) -> None:
         self.log.status = "failed"
-        self.log.events_seen = events_seen
-        self.log.events_upserted = events_upserted
+        self.log.events_seen = self.events_seen if events_seen is None else events_seen
+        self.log.events_upserted = (
+            self.events_upserted if events_upserted is None else events_upserted
+        )
         self.log.error_text = error_text
         self.log.finished_at = utcnow()
 

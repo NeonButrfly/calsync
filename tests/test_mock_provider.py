@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from calsync.models import Event, ProviderAccount, ProviderCalendar, SyncLog
 from calsync.config import get_settings
+from calsync.schemas.providers import DiscoveredCalendar, NormalizedEvent
 from calsync.services.sync import discover_calendars, sync_account
 
 
@@ -125,3 +126,109 @@ def test_mock_sync_logging_is_recorded(
     assert stored.events_upserted == EXPECTED_MOCK_EVENT_COUNT
     assert stored.error_text is None
     assert stored.started_at <= stored.finished_at
+
+
+def test_mock_sync_failure_records_partial_progress(
+    migrated_session: Session,
+    mock_account: ProviderAccount,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FailingAdapter:
+        provider_type = "mock"
+
+        def discover_calendars(
+            self,
+            account: ProviderAccount,
+        ) -> list[DiscoveredCalendar]:
+            return [
+                DiscoveredCalendar(external_id="home", name="Home", timezone="America/Anchorage"),
+                DiscoveredCalendar(external_id="work", name="Work", timezone="America/Anchorage"),
+            ]
+
+        def fetch_events(
+            self,
+            account: ProviderAccount,
+            calendar: ProviderCalendar,
+        ) -> list[NormalizedEvent]:
+            if calendar.provider_calendar_id == "home":
+                return [
+                    NormalizedEvent(
+                        provider_type="mock",
+                        provider_account_id=account.provider_account_id,
+                        provider_calendar_id="home",
+                        provider_event_id="home-standup",
+                        title="Morning Standup",
+                        starts_at=datetime(2026, 5, 13, 16, 0, tzinfo=UTC),
+                        ends_at=datetime(2026, 5, 13, 16, 15, tzinfo=UTC),
+                    )
+                ]
+            raise RuntimeError("provider fetch failed")
+
+    monkeypatch.setattr(
+        "calsync.services.sync.get_provider_adapter",
+        lambda provider_type: FailingAdapter(),
+    )
+
+    with pytest.raises(RuntimeError, match="provider fetch failed"):
+        sync_account(migrated_session, mock_account.id, trigger="manual")
+
+    migrated_session.commit()
+
+    logs = migrated_session.scalars(select(SyncLog).order_by(SyncLog.started_at)).all()
+    events = migrated_session.scalars(select(Event)).all()
+
+    assert len(logs) == 1
+    assert logs[0].status == "failed"
+    assert logs[0].events_seen == 1
+    assert logs[0].events_upserted == 1
+    assert logs[0].error_text == "provider fetch failed"
+    assert len(events) == 1
+
+
+def test_discovery_disables_calendars_missing_from_provider(
+    migrated_session: Session,
+    mock_account: ProviderAccount,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    discover_calendars(migrated_session, mock_account.id)
+    migrated_session.commit()
+
+    class ReducedAdapter:
+        provider_type = "mock"
+
+        def discover_calendars(
+            self,
+            account: ProviderAccount,
+        ) -> list[DiscoveredCalendar]:
+            return [
+                DiscoveredCalendar(external_id="home", name="Home", timezone="America/Anchorage"),
+                DiscoveredCalendar(external_id="work", name="Work", timezone="America/Anchorage"),
+            ]
+
+        def fetch_events(
+            self,
+            account: ProviderAccount,
+            calendar: ProviderCalendar,
+        ) -> list[NormalizedEvent]:
+            return []
+
+    monkeypatch.setattr(
+        "calsync.services.sync.get_provider_adapter",
+        lambda provider_type: ReducedAdapter(),
+    )
+
+    discover_calendars(migrated_session, mock_account.id)
+    migrated_session.commit()
+
+    calendars = migrated_session.scalars(
+        select(ProviderCalendar)
+        .where(ProviderCalendar.provider_account_pk == mock_account.id)
+        .order_by(ProviderCalendar.provider_calendar_id)
+    ).all()
+
+    assert [calendar.provider_calendar_id for calendar in calendars] == [
+        "home",
+        "shared",
+        "work",
+    ]
+    assert [calendar.enabled for calendar in calendars] == [True, False, True]
