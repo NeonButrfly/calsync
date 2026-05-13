@@ -198,6 +198,7 @@ def test_login_rejects_replayed_totp_code_after_counter_is_persisted(
 def test_login_fails_closed_without_session_secret(tmp_path: Path) -> None:
     database_path = tmp_path / "login-no-session-secret.sqlite3"
     settings = Settings(
+        _env_file=None,
         database_url=f"sqlite+pysqlite:///{database_path}",
         public_base_url="http://testserver",
         encryption_key=ENCRYPTION_KEY,

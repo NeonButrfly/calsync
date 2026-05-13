@@ -25,7 +25,8 @@ services:
     ports:
       - "${APP_PORT:-3080}:${APP_PORT:-3080}"
     command: >-
-      python -m uvicorn calsync.main:app --host ${APP_HOST:-0.0.0.0} --port ${APP_PORT:-3080}
+      sh -c "alembic upgrade head &&
+      python -m uvicorn calsync.main:app --host ${APP_HOST:-0.0.0.0} --port ${APP_PORT:-3080}"
     healthcheck:
       test:
         [
@@ -46,7 +47,8 @@ services:
       db:
         condition: service_healthy
     command: >-
-      python -m calsync.worker
+      sh -c "alembic upgrade head &&
+      python -m calsync.worker"
 
 volumes:
   postgres_data:

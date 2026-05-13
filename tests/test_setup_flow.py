@@ -179,6 +179,7 @@ def test_setup_pending_totp_secret_is_scoped_per_client_session(tmp_path: Path) 
 def test_setup_fails_closed_without_session_secret(tmp_path: Path) -> None:
     database_path = tmp_path / "setup-no-session-secret.sqlite3"
     settings = Settings(
+        _env_file=None,
         database_url=f"sqlite+pysqlite:///{database_path}",
         public_base_url="http://testserver",
         encryption_key="phase1-setup-encryption-key",
@@ -198,6 +199,7 @@ def test_setup_fails_closed_without_session_secret(tmp_path: Path) -> None:
 def test_setup_fails_closed_without_encryption_key(tmp_path: Path) -> None:
     database_path = tmp_path / "setup-no-encryption-key.sqlite3"
     settings = Settings(
+        _env_file=None,
         database_url=f"sqlite+pysqlite:///{database_path}",
         public_base_url="http://testserver",
         session_secret="phase1-setup-session-secret",

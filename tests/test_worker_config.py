@@ -49,3 +49,4 @@ def test_docker_compose_uses_configurable_port_mapping() -> None:
     assert '--port ${APP_PORT:-3080}' in content
     assert '${CALSYNC_DATABASE_URL:-postgresql+psycopg://calsync:calsync@db:5432/calsync}' in content
     assert '${DATABASE_URL:-' not in content
+    assert 'alembic upgrade head' in content
