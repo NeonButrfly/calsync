@@ -1,5 +1,6 @@
 from .auth import (
     build_totp_enrollment,
+    build_png_data_url,
     consume_recovery_code,
     generate_recovery_codes,
     hash_password,
@@ -9,11 +10,14 @@ from .auth import (
     validate_password_strength,
     verify_password,
     verify_totp,
+    verify_totp_for_user_once,
     verify_totp_for_user,
+    verify_totp_once,
 )
 
 __all__ = [
     "build_totp_enrollment",
+    "build_png_data_url",
     "consume_recovery_code",
     "generate_recovery_codes",
     "hash_password",
@@ -23,5 +27,7 @@ __all__ = [
     "validate_password_strength",
     "verify_password",
     "verify_totp",
+    "verify_totp_for_user_once",
     "verify_totp_for_user",
+    "verify_totp_once",
 ]

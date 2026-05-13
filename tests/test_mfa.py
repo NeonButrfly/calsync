@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from io import BytesIO
 
 import pyotp
@@ -12,6 +13,7 @@ from calsync.services.auth import (
     build_totp_enrollment,
     store_totp_secret,
     verify_totp,
+    verify_totp_for_user_once,
     verify_totp_for_user,
 )
 
@@ -60,6 +62,13 @@ def test_qr_generation_works() -> None:
         assert qr_image.size[1] > 0
 
 
+def test_qr_generation_is_json_serializable_for_web_setup_usage() -> None:
+    enrollment = build_totp_enrollment("admin@example.com")
+    payload = enrollment.model_dump(mode="json")
+
+    assert payload["qr_png_data_url"].startswith("data:image/png;base64,")
+
+
 def test_successful_totp_verification_works() -> None:
     enrollment = build_totp_enrollment("admin@example.com")
     code = pyotp.TOTP(enrollment.secret).now()
@@ -96,3 +105,38 @@ def test_totp_secret_is_encrypted_at_rest_and_verifies_for_user(
         code,
         encryption_key=ENCRYPTION_KEY,
     ) is True
+
+
+def test_replay_aware_totp_verification_rejects_reused_code_for_user(
+    session: Session,
+    admin_user: AdminUser,
+) -> None:
+    enrollment = build_totp_enrollment(admin_user.email)
+    store_totp_secret(
+        session,
+        admin_user,
+        enrollment.secret,
+        encryption_key=ENCRYPTION_KEY,
+    )
+    session.flush()
+    reference_time = datetime(2026, 5, 12, 18, 0, tzinfo=UTC)
+    code = pyotp.TOTP(enrollment.secret).at(reference_time)
+
+    matched_counter = verify_totp_for_user_once(
+        admin_user,
+        code,
+        encryption_key=ENCRYPTION_KEY,
+        for_time=reference_time,
+    )
+
+    assert matched_counter is not None
+    assert (
+        verify_totp_for_user_once(
+            admin_user,
+            code,
+            encryption_key=ENCRYPTION_KEY,
+            for_time=reference_time,
+            last_accepted_counter=matched_counter,
+        )
+        is None
+    )

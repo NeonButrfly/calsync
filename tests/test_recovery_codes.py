@@ -47,6 +47,6 @@ def test_recovery_codes_are_one_time_use(
 
     assert len(stored_payload) == 3
     assert all(entry["code_hash"] != codes[index] for index, entry in enumerate(stored_payload))
-    assert consume_recovery_code(session, admin_user, codes[0]) is True
-    assert consume_recovery_code(session, admin_user, codes[0]) is False
+    assert consume_recovery_code(session, admin_user, codes[0].lower()) is True
+    assert consume_recovery_code(session, admin_user, codes[0].lower()) is False
     assert consume_recovery_code(session, admin_user, "not-a-real-code") is False

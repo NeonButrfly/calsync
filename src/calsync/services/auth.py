@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from base64 import b64encode
+from datetime import UTC, datetime
 import json
 import secrets
 import string
@@ -69,12 +71,38 @@ def build_totp_enrollment(
     return TotpEnrollment(
         secret=secret,
         otpauth_uri=otpauth_uri,
-        qr_png_bytes=render_qr_png(otpauth_uri),
+        qr_png_data_url=build_png_data_url(render_qr_png(otpauth_uri)),
     )
 
 
 def verify_totp(secret: str, code: str, *, valid_window: int = 1) -> bool:
     return pyotp.TOTP(secret).verify(code.strip(), valid_window=valid_window)
+
+
+def verify_totp_once(
+    secret: str,
+    code: str,
+    *,
+    for_time: datetime | None = None,
+    valid_window: int = 1,
+    last_accepted_counter: int | None = None,
+) -> int | None:
+    normalized_code = code.strip()
+    if not normalized_code:
+        return None
+
+    totp = pyotp.TOTP(secret)
+    reference_time = for_time or datetime.now(UTC)
+    current_counter = totp.timecode(reference_time)
+
+    for counter_offset in range(-valid_window, valid_window + 1):
+        counter = current_counter + counter_offset
+        if last_accepted_counter is not None and counter <= last_accepted_counter:
+            continue
+        if totp.at(reference_time, counter_offset=counter_offset) == normalized_code:
+            return counter
+
+    return None
 
 
 def store_totp_secret(
@@ -107,6 +135,27 @@ def verify_totp_for_user(
     return verify_totp(secret, code, valid_window=valid_window)
 
 
+def verify_totp_for_user_once(
+    user: AdminUser,
+    code: str,
+    *,
+    encryption_key: str,
+    for_time: datetime | None = None,
+    valid_window: int = 1,
+    last_accepted_counter: int | None = None,
+) -> int | None:
+    secret = load_totp_secret(user, encryption_key=encryption_key)
+    if secret is None:
+        return None
+    return verify_totp_once(
+        secret,
+        code,
+        for_time=for_time,
+        valid_window=valid_window,
+        last_accepted_counter=last_accepted_counter,
+    )
+
+
 def generate_recovery_codes(
     *,
     count: int = DEFAULT_RECOVERY_CODE_COUNT,
@@ -122,7 +171,7 @@ def store_recovery_codes(
     now = utcnow()
     stored_codes = [
         RecoveryCodeRecord(
-            code_hash=PASSWORD_CONTEXT.hash(recovery_code),
+            code_hash=PASSWORD_CONTEXT.hash(_normalize_recovery_code(recovery_code)),
             created_at=now,
         )
         for recovery_code in recovery_codes
@@ -139,12 +188,13 @@ def consume_recovery_code(
     user: AdminUser,
     recovery_code: str,
 ) -> bool:
+    normalized_code = _normalize_recovery_code(recovery_code)
     stored_codes = _load_recovery_code_records(user)
 
     for stored_code in stored_codes:
         if stored_code.used_at is not None:
             continue
-        if not PASSWORD_CONTEXT.verify(recovery_code, stored_code.code_hash):
+        if not PASSWORD_CONTEXT.verify(normalized_code, stored_code.code_hash):
             continue
 
         stored_code.used_at = utcnow()
@@ -162,6 +212,15 @@ def _load_recovery_code_records(user: AdminUser) -> list[RecoveryCodeRecord]:
         return []
     payload = json.loads(user.recovery_codes_json)
     return [RecoveryCodeRecord.model_validate(entry) for entry in payload]
+
+
+def build_png_data_url(png_bytes: bytes) -> str:
+    encoded_png = b64encode(png_bytes).decode("ascii")
+    return f"data:image/png;base64,{encoded_png}"
+
+
+def _normalize_recovery_code(recovery_code: str) -> str:
+    return recovery_code.strip().upper()
 
 
 def _generate_recovery_code() -> str:
