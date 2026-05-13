@@ -42,7 +42,6 @@ def upsert_provider_calendar(
         )
         session.add(calendar)
 
-    calendar.enabled = True
     calendar.name = discovered_calendar.name
     calendar.timezone = discovered_calendar.timezone
     calendar.provider_metadata = (
@@ -67,7 +66,8 @@ def reconcile_provider_calendars(
     ).all()
 
     for calendar in calendars:
-        calendar.enabled = calendar.provider_calendar_id in discovered_external_ids
+        if calendar.provider_calendar_id not in discovered_external_ids:
+            calendar.enabled = False
 
     session.flush()
 

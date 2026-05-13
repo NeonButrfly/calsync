@@ -232,3 +232,38 @@ def test_discovery_disables_calendars_missing_from_provider(
         "work",
     ]
     assert [calendar.enabled for calendar in calendars] == [True, False, True]
+
+
+def test_discovery_preserves_manual_disabled_state_on_rediscovery(
+    migrated_session: Session,
+    mock_account: ProviderAccount,
+) -> None:
+    discover_calendars(migrated_session, mock_account.id)
+    migrated_session.commit()
+
+    work_calendar = migrated_session.scalar(
+        select(ProviderCalendar).where(
+            ProviderCalendar.provider_account_pk == mock_account.id,
+            ProviderCalendar.provider_calendar_id == "work",
+        )
+    )
+    assert work_calendar is not None
+
+    work_calendar.enabled = False
+    migrated_session.commit()
+
+    discover_calendars(migrated_session, mock_account.id)
+    migrated_session.commit()
+
+    calendars = migrated_session.scalars(
+        select(ProviderCalendar)
+        .where(ProviderCalendar.provider_account_pk == mock_account.id)
+        .order_by(ProviderCalendar.provider_calendar_id)
+    ).all()
+
+    assert [calendar.provider_calendar_id for calendar in calendars] == [
+        "home",
+        "shared",
+        "work",
+    ]
+    assert [calendar.enabled for calendar in calendars] == [True, True, False]
