@@ -8,12 +8,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="CALSYNC_",
         case_sensitive=False,
     )
 
-    bind_host: str = "0.0.0.0"
-    bind_port: int = 3080
+    app_host: str = "0.0.0.0"
+    app_port: int = 3080
     public_base_url: AnyHttpUrl | None = None
     database_url: str = "sqlite+pysqlite:///./calsync.db"
 
@@ -41,10 +40,10 @@ def build_healthcheck_url(settings: Settings | None = None) -> str:
 
     host = (
         "127.0.0.1"
-        if resolved_settings.bind_host == "0.0.0.0"
-        else resolved_settings.bind_host
+        if resolved_settings.app_host == "0.0.0.0"
+        else resolved_settings.app_host
     )
-    return join_url(f"http://{host}:{resolved_settings.bind_port}", "/healthz")
+    return join_url(f"http://{host}:{resolved_settings.app_port}", "/healthz")
 
 
 def join_url(base_url: str, path: str) -> str:

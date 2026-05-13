@@ -6,24 +6,36 @@ from calsync.db import get_db_session
 from calsync.main import create_app
 
 
-def test_settings_default_bind_host(monkeypatch) -> None:
-    monkeypatch.delenv("CALSYNC_BIND_HOST", raising=False)
-    monkeypatch.delenv("CALSYNC_BIND_PORT", raising=False)
-    monkeypatch.delenv("CALSYNC_PUBLIC_BASE_URL", raising=False)
+def test_settings_default_app_host(monkeypatch) -> None:
+    monkeypatch.delenv("APP_HOST", raising=False)
+    monkeypatch.delenv("APP_PORT", raising=False)
+    monkeypatch.delenv("PUBLIC_BASE_URL", raising=False)
 
     settings = Settings()
 
-    assert settings.bind_host == "0.0.0.0"
+    assert settings.app_host == "0.0.0.0"
 
 
-def test_settings_default_bind_port(monkeypatch) -> None:
-    monkeypatch.delenv("CALSYNC_BIND_HOST", raising=False)
-    monkeypatch.delenv("CALSYNC_BIND_PORT", raising=False)
-    monkeypatch.delenv("CALSYNC_PUBLIC_BASE_URL", raising=False)
+def test_settings_default_app_port(monkeypatch) -> None:
+    monkeypatch.delenv("APP_HOST", raising=False)
+    monkeypatch.delenv("APP_PORT", raising=False)
+    monkeypatch.delenv("PUBLIC_BASE_URL", raising=False)
 
     settings = Settings()
 
-    assert settings.bind_port == 3080
+    assert settings.app_port == 3080
+
+
+def test_settings_read_required_app_env_names(monkeypatch) -> None:
+    monkeypatch.setenv("APP_HOST", "127.0.0.1")
+    monkeypatch.setenv("APP_PORT", "4010")
+    monkeypatch.setenv("PUBLIC_BASE_URL", "https://calendar.example.com")
+
+    settings = Settings()
+
+    assert settings.app_host == "127.0.0.1"
+    assert settings.app_port == 4010
+    assert str(settings.public_base_url) == "https://calendar.example.com/"
 
 
 def test_public_base_url_overrides_request_origin() -> None:
@@ -51,7 +63,7 @@ def test_public_base_url_overrides_request_origin() -> None:
 
 
 def test_create_app_accepts_explicit_settings() -> None:
-    settings = Settings(bind_host="127.0.0.1", bind_port=4010)
+    settings = Settings(app_host="127.0.0.1", app_port=4010)
 
     app = create_app(settings=settings)
 

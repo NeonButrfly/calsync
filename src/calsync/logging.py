@@ -22,8 +22,8 @@ def get_logger(name: str) -> logging.Logger:
 def log_startup(logger: logging.Logger, settings: Settings) -> None:
     logger.info(
         "Starting CalSync on %s:%s",
-        settings.bind_host,
-        settings.bind_port,
+        settings.app_host,
+        settings.app_port,
     )
     if settings.public_base_url:
         logger.info("Configured public base URL: %s", str(settings.public_base_url))
