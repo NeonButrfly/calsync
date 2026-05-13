@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}CalSync Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<section class="grid">
+  <article class="panel metric-panel">
+    <h2>Connected accounts</h2>
+    <p class="metric">{{ account_count }}</p>
+  </article>
+  <article class="panel metric-panel">
+    <h2>Tracked calendars</h2>
+    <p class="metric">{{ calendar_count }}</p>
+  </article>
+  <article class="panel metric-panel">
+    <h2>Normalized events</h2>
+    <p class="metric">{{ event_count }}</p>
+  </article>
+</section>
+
+<section class="grid dashboard-grid">
+  <article class="panel">
+    <h2>ICS publishing</h2>
+    <p>Combined feed</p>
+    <p><a class="feed-link" href="{{ combined_feed_url }}">{{ combined_feed_url }}</a></p>
+    <p><a href="/admin/feeds">Manage ICS publishing</a></p>
+  </article>
+
+  <article class="panel">
+    <h2>Last sync</h2>
+    {% if latest_sync %}
+    <dl class="detail-list">
+      <div><dt>Status</dt><dd>{{ latest_sync.status }}</dd></div>
+      <div><dt>Trigger</dt><dd>{{ latest_sync.trigger }}</dd></div>
+      <div><dt>Events imported</dt><dd>{{ latest_sync.events_upserted }}</dd></div>
+      <div><dt>Started</dt><dd>{{ latest_sync.started_at }}</dd></div>
+    </dl>
+    {% else %}
+    <p>No syncs have run yet.</p>
+    {% endif %}
+    <p><a href="/admin/sync">Open sync status</a></p>
+  </article>
+</section>
+{% endblock %}

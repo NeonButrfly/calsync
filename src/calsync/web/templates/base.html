@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}CalSync{% endblock %}</title>
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <header class="shell-header">
+      <div>
+        <p class="eyebrow">CalSync</p>
+        <h1>{% block page_title %}Admin{% endblock %}</h1>
+      </div>
+      <div class="admin-badge">
+        Signed in as <strong>{{ current_admin.username }}</strong>
+      </div>
+    </header>
+
+    <nav class="shell-nav" aria-label="Primary">
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/calendars">Calendars</a>
+      <a href="/admin/sync">Sync Status</a>
+      <a href="/admin/feeds">ICS Publishing</a>
+    </nav>
+
+    <main class="shell-main">
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

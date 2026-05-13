@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}CalSync Calendars{% endblock %}
+{% block page_title %}Calendars{% endblock %}
+
+{% block content %}
+<section class="stack">
+  {% for account in accounts %}
+  <article class="panel">
+    <h2>{{ account.display_name or account.provider_account_id }}</h2>
+    <p class="subtle">{{ account.provider_type }} account</p>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Calendar</th>
+          <th>Timezone</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for calendar in account.calendars | sort(attribute="provider_calendar_id") %}
+        <tr>
+          <td>{{ calendar.name or calendar.provider_calendar_id }}</td>
+          <td>{{ calendar.timezone or "Unknown" }}</td>
+          <td>{{ "Enabled" if calendar.enabled else "Disabled" }}</td>
+          <td>
+            <form method="post" action="/admin/calendars/{{ calendar.id }}/toggle">
+              <button type="submit">{{ "Disable" if calendar.enabled else "Enable" }}</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+  {% else %}
+  <article class="panel">
+    <h2>No connected accounts yet</h2>
+    <p>Phase 1 ships with the mock provider foundation. Real Google and iCloud account setup lands in later phases.</p>
+  </article>
+  {% endfor %}
+</section>
+{% endblock %}

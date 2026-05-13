@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}CalSync ICS Publishing{% endblock %}
+{% block page_title %}ICS Publishing{% endblock %}
+
+{% block content %}
+<section class="stack">
+  <article class="panel">
+    <h2>Combined feed</h2>
+    <p>Share this read-only ICS URL with downstream calendar clients on your LAN.</p>
+    <p><a class="feed-link" href="{{ combined_feed_url }}">{{ combined_feed_url }}</a></p>
+    <p class="subtle">Current token: <code>{{ combined_feed_token }}</code></p>
+    <form method="post" action="/admin/feeds/combined/rotate">
+      <button type="submit">Rotate token</button>
+    </form>
+  </article>
+</section>
+{% endblock %}

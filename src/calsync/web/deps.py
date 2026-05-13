@@ -9,16 +9,18 @@ from typing import Any
 import hmac
 from hashlib import sha256
 
-from fastapi import Request
+from fastapi import Depends, HTTPException, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+from calsync.models import AdminUser
 from calsync.db import get_db_session
 
 
 SESSION_COOKIE_NAME = "calsync_session"
+ADMIN_SESSION_KEY = "admin_session"
 
 _TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
 _templates = Jinja2Templates(directory=str(_TEMPLATE_DIR))
@@ -52,6 +54,28 @@ def require_session_secret(request: Request) -> str:
         request.app,
         attr_name="session_secret",
     )
+
+
+def require_admin(
+    request: Request,
+    session: Session = Depends(get_db),
+) -> AdminUser:
+    admin_session = request.session.get(ADMIN_SESSION_KEY)
+    if not isinstance(admin_session, dict):
+        raise _login_redirect()
+
+    user_id = admin_session.get("user_id")
+    session_version = admin_session.get("session_version")
+    if not isinstance(user_id, str) or not isinstance(session_version, int):
+        request.session.pop(ADMIN_SESSION_KEY, None)
+        raise _login_redirect()
+
+    admin_user = session.get(AdminUser, user_id)
+    if admin_user is None or admin_user.session_version != session_version:
+        request.session.pop(ADMIN_SESSION_KEY, None)
+        raise _login_redirect()
+
+    return admin_user
 
 
 def _require_app_secret(
@@ -170,3 +194,7 @@ class SignedCookieSessionMiddleware(BaseHTTPMiddleware):
 def _with_padding(value: str) -> str:
     padding = (-len(value)) % 4
     return value + ("=" * padding)
+
+
+def _login_redirect() -> HTTPException:
+    return HTTPException(status_code=303, headers={"Location": "/login"})

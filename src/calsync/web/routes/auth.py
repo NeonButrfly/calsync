@@ -14,14 +14,12 @@ from calsync.services.auth import (
 )
 from calsync.services.bootstrap import is_setup_complete
 from calsync.web.deps import (
+    ADMIN_SESSION_KEY,
     get_db,
     get_encryption_key,
     get_templates,
     require_session_secret,
 )
-
-
-ADMIN_SESSION_KEY = "admin_session"
 PENDING_MFA_SESSION_KEY = "pending_mfa_session"
 
 router = APIRouter()

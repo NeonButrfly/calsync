@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}CalSync Sync Status{% endblock %}
+{% block page_title %}Sync Status{% endblock %}
+
+{% block content %}
+<section class="stack">
+  {% for account in accounts %}
+  {% set latest_log = latest_logs.get(account.id) %}
+  <article class="panel">
+    <div class="panel-heading">
+      <div>
+        <h2>{{ account.display_name or account.provider_account_id }}</h2>
+        <p class="subtle">{{ account.provider_type }} account</p>
+      </div>
+      <form method="post" action="/admin/sync/accounts/{{ account.id }}/run">
+        <button type="submit">Sync now</button>
+      </form>
+    </div>
+
+    {% if latest_log %}
+    <dl class="detail-list">
+      <div><dt>Last sync</dt><dd>{{ latest_log.finished_at or latest_log.started_at }}</dd></div>
+      <div><dt>Status</dt><dd>{{ latest_log.status }}</dd></div>
+      <div><dt>Events seen</dt><dd>{{ latest_log.events_seen }}</dd></div>
+      <div><dt>Events imported</dt><dd>{{ latest_log.events_upserted }}</dd></div>
+      <div><dt>Last error</dt><dd>{{ latest_log.error_text or "None" }}</dd></div>
+    </dl>
+    {% else %}
+    <p>No sync history yet.</p>
+    {% endif %}
+  </article>
+  {% else %}
+  <article class="panel">
+    <h2>No provider accounts available</h2>
+    <p>Add a provider account in a later phase to begin syncing.</p>
+  </article>
+  {% endfor %}
+</section>
+{% endblock %}
