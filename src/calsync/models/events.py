@@ -1,11 +1,39 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.types import TypeDecorator
 
 from calsync.models import Base, new_uuid, utcnow
+
+
+class UtcDateTime(TypeDecorator[datetime]):
+    impl = DateTime
+    cache_ok = True
+
+    def process_bind_param(
+        self,
+        value: datetime | None,
+        dialect: object,
+    ) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("Expected timezone-aware datetime value")
+        return value.astimezone(UTC).replace(tzinfo=None)
+
+    def process_result_value(
+        self,
+        value: datetime | None,
+        dialect: object,
+    ) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None or value.utcoffset() is None:
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
 
 
 class Event(Base):
@@ -38,8 +66,8 @@ class Event(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    starts_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
+    ends_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
     all_day: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="confirmed")
     source_payload: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)

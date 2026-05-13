@@ -5,26 +5,17 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from calsync.config import get_settings
 from calsync.models import Event
 from calsync.repos.events import upsert_event
 
-
-def _build_session(database_url: str) -> Iterator[Session]:
-    engine = create_engine(database_url, future=True)
-    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-    with factory() as db_session:
-        yield db_session
-
-
 @pytest.fixture()
-def migrated_session(
+def migrated_session_factory(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-) -> Iterator[Session]:
+) -> sessionmaker[Session]:
     database_path = tmp_path / "migration-schema.db"
     database_url = f"sqlite+pysqlite:///{database_path.as_posix()}"
 
@@ -36,9 +27,18 @@ def migrated_session(
     command.upgrade(alembic_config, "head")
 
     try:
-        yield from _build_session(database_url)
+        from sqlalchemy import create_engine
+
+        engine = create_engine(database_url, future=True)
+        yield sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     finally:
         get_settings.cache_clear()
+
+
+@pytest.fixture()
+def migrated_session(migrated_session_factory: sessionmaker[Session]) -> Iterator[Session]:
+    with migrated_session_factory() as db_session:
+        yield db_session
 
 
 @pytest.fixture()
@@ -68,6 +68,27 @@ def test_upsert_event_reuses_existing_provider_identity(
 
     assert first.id == second.id
     assert migrated_session.query(Event).count() == 1
+
+
+def test_upsert_event_round_trips_timezone_aware_datetimes(
+    migrated_session_factory: sessionmaker[Session],
+    normalized_event: dict[str, object],
+) -> None:
+    with migrated_session_factory() as write_session:
+        created = upsert_event(write_session, normalized_event)
+        event_id = created.id
+        write_session.commit()
+
+    with migrated_session_factory() as read_session:
+        reloaded = read_session.get(Event, event_id)
+
+        assert reloaded is not None
+        assert reloaded.starts_at == normalized_event["starts_at"]
+        assert reloaded.ends_at == normalized_event["ends_at"]
+        assert reloaded.starts_at.tzinfo is not None
+        assert reloaded.ends_at.tzinfo is not None
+        assert reloaded.starts_at.utcoffset() == UTC.utcoffset(None)
+        assert reloaded.ends_at.utcoffset() == UTC.utcoffset(None)
 
 
 def test_upsert_event_rejects_non_boolean_all_day(
