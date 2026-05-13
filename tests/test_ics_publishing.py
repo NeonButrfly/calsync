@@ -148,6 +148,15 @@ def test_combined_feed_sets_non_cacheable_headers(
     assert response.headers["cache-control"] == "private, no-store"
 
 
+def test_missing_feed_sets_non_cacheable_headers(
+    client: TestClient,
+) -> None:
+    response = client.get("/feeds/missing-token.ics")
+
+    assert response.status_code == 404
+    assert response.headers["cache-control"] == "private, no-store"
+
+
 def test_rotating_feed_token_invalidates_previous_token(
     migrated_session: Session,
     client: TestClient,
@@ -168,6 +177,22 @@ def test_rotating_feed_token_invalidates_previous_token(
     assert old_response.status_code == 404
     assert new_response.status_code == 200
     assert "BEGIN:VCALENDAR" in new_response.text
+
+
+def test_combined_feed_uids_remain_stable_across_repeated_renders(
+    migrated_session: Session,
+    client: TestClient,
+) -> None:
+    _seed_normalized_events(migrated_session)
+    feed = ensure_combined_feed(migrated_session)
+    migrated_session.commit()
+
+    first_response = client.get(f"/feeds/{feed.token}.ics")
+    second_response = client.get(f"/feeds/{feed.token}.ics")
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 200
+    assert _extract_uids(first_response.text) == _extract_uids(second_response.text)
 
 
 def test_ensure_combined_feed_reactivates_existing_inactive_feed(
@@ -253,3 +278,11 @@ def _seed_normalized_events(session: Session) -> None:
         },
     )
     session.flush()
+
+
+def _extract_uids(payload: str) -> list[str]:
+    return [
+        line.removeprefix("UID:")
+        for line in payload.splitlines()
+        if line.startswith("UID:")
+    ]

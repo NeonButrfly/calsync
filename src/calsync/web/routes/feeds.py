@@ -9,6 +9,7 @@ from calsync.web.deps import get_db
 
 
 router = APIRouter()
+FEED_CACHE_CONTROL = "private, no-store"
 
 
 @router.get("/feeds/{token}.ics")
@@ -19,10 +20,14 @@ def get_feed(
     try:
         payload = render_feed_for_token(session, token)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail="Feed not found.") from exc
+        raise HTTPException(
+            status_code=404,
+            detail="Feed not found.",
+            headers={"Cache-Control": FEED_CACHE_CONTROL},
+        ) from exc
 
     return Response(
         content=payload,
         media_type="text/calendar",
-        headers={"Cache-Control": "private, no-store"},
+        headers={"Cache-Control": FEED_CACHE_CONTROL},
     )
