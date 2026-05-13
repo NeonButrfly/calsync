@@ -49,4 +49,16 @@ def test_docker_compose_uses_configurable_port_mapping() -> None:
     assert '--port ${APP_PORT:-3080}' in content
     assert '${CALSYNC_DATABASE_URL:-postgresql+psycopg://calsync:calsync@db:5432/calsync}' in content
     assert '${DATABASE_URL:-' not in content
-    assert 'alembic upgrade head' in content
+    assert 'migrate:' in content
+    assert 'service_completed_successfully' in content
+    assert 'python -m uvicorn calsync.main:app' in content
+    assert 'python -m calsync.worker' in content
+    assert '- alembic' in content
+    assert '- upgrade' in content
+    assert '- head' in content
+
+
+def test_dockerfile_installs_editable_source_tree() -> None:
+    content = Path("Dockerfile").read_text(encoding="utf-8")
+
+    assert "pip install --no-cache-dir --editable ." in content

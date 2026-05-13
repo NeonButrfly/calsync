@@ -13,7 +13,7 @@ services:
       timeout: 5s
       retries: 5
 
-  web:
+  migrate:
     build: .
     env_file:
       - .env
@@ -22,11 +22,24 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    command:
+      - alembic
+      - upgrade
+      - head
+
+  web:
+    build: .
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${CALSYNC_DATABASE_URL:-postgresql+psycopg://calsync:calsync@db:5432/calsync}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "${APP_PORT:-3080}:${APP_PORT:-3080}"
     command: >-
-      sh -c "alembic upgrade head &&
-      python -m uvicorn calsync.main:app --host ${APP_HOST:-0.0.0.0} --port ${APP_PORT:-3080}"
+      python -m uvicorn calsync.main:app --host ${APP_HOST:-0.0.0.0} --port ${APP_PORT:-3080}
     healthcheck:
       test:
         [
@@ -44,11 +57,10 @@ services:
     environment:
       DATABASE_URL: ${CALSYNC_DATABASE_URL:-postgresql+psycopg://calsync:calsync@db:5432/calsync}
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     command: >-
-      sh -c "alembic upgrade head &&
-      python -m calsync.worker"
+      python -m calsync.worker
 
 volumes:
   postgres_data:

@@ -11,7 +11,7 @@ COPY alembic ./alembic
 COPY src ./src
 
 RUN python -m pip install --upgrade pip \
-    && python -m pip install --no-cache-dir .
+    && python -m pip install --no-cache-dir --editable .
 
 EXPOSE 3080
 
