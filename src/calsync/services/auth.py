@@ -85,7 +85,6 @@ def store_totp_secret(
     encryption_key: str,
 ) -> None:
     user.mfa_secret_encrypted = encrypt_text(encryption_key, secret)
-    user.mfa_enrolled = True
     session.add(user)
 
 

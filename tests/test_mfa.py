@@ -88,6 +88,7 @@ def test_totp_secret_is_encrypted_at_rest_and_verifies_for_user(
     code = pyotp.TOTP(enrollment.secret).now()
 
     assert admin_user.mfa_secret_encrypted is not None
+    assert admin_user.mfa_enrolled is False
     assert admin_user.mfa_secret_encrypted != enrollment.secret
     assert enrollment.secret not in admin_user.mfa_secret_encrypted
     assert verify_totp_for_user(
