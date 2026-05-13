@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from secrets import token_urlsafe
 
 from icalendar import Calendar, Event as IcsEvent
@@ -98,14 +100,18 @@ def _list_combined_feed_events(session: Session) -> list[Event]:
 
 def _build_ics_event(event: Event) -> IcsEvent:
     ics_event = IcsEvent()
+    uid_payload = json.dumps(
+        [
+            event.provider_type,
+            event.provider_account_id,
+            event.provider_calendar_id,
+            event.provider_event_id,
+        ],
+        separators=(",", ":"),
+    )
     ics_event.add(
         "uid",
-        (
-            f"{event.provider_type}-"
-            f"{event.provider_account_id}-"
-            f"{event.provider_calendar_id}-"
-            f"{event.provider_event_id}@calsync.local"
-        ),
+        f"{hashlib.sha256(uid_payload.encode('utf-8')).hexdigest()}@calsync.local",
     )
     ics_event.add("summary", event.title)
     if event.description:

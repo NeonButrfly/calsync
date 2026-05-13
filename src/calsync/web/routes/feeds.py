@@ -21,4 +21,8 @@ def get_feed(
     except LookupError as exc:
         raise HTTPException(status_code=404, detail="Feed not found.") from exc
 
-    return Response(content=payload, media_type="text/calendar")
+    return Response(
+        content=payload,
+        media_type="text/calendar",
+        headers={"Cache-Control": "private, no-store"},
+    )
