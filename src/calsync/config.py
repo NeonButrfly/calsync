@@ -52,8 +52,24 @@ def build_google_callback_url(
     settings: Settings | None = None,
 ) -> str:
     resolved_settings = settings or get_settings()
+    request_base_url = str(request.base_url)
+    if resolved_settings.public_base_url:
+        public_base_url = str(resolved_settings.public_base_url)
+        public_callback_url = build_google_callback_url_from_base(
+            public_base_url,
+            settings=resolved_settings,
+        )
+        request_callback_url = build_google_callback_url_from_base(
+            request_base_url,
+            settings=resolved_settings,
+        )
+        if (
+            validate_google_callback_url(public_callback_url) is not None
+            and validate_google_callback_url(request_callback_url) is None
+        ):
+            return request_callback_url
     return build_google_callback_url_from_base(
-        str(resolved_settings.public_base_url or request.base_url),
+        str(resolved_settings.public_base_url or request_base_url),
         settings=resolved_settings,
     )
 

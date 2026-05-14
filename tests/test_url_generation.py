@@ -124,6 +124,25 @@ def test_google_callback_url_uses_request_origin_when_public_base_url_is_unset()
     assert response.json() == {"url": "http://localhost:3080/auth/google/callback"}
 
 
+def test_google_callback_url_prefers_localhost_request_over_invalid_public_base_url() -> None:
+    settings = Settings(
+        public_base_url="http://192.168.50.232:3080",
+        google_oauth_redirect_path="/auth/google/callback",
+    )
+    app = FastAPI()
+
+    @app.get("/callback-url")
+    def callback_url(request: Request) -> dict[str, str]:
+        return {"url": build_google_callback_url(request, settings=settings)}
+
+    client = TestClient(app, base_url="http://localhost:3080")
+
+    response = client.get("/callback-url")
+
+    assert response.status_code == 200
+    assert response.json() == {"url": "http://localhost:3080/auth/google/callback"}
+
+
 def test_validate_google_callback_url_accepts_localhost_http() -> None:
     assert (
         validate_google_callback_url("http://localhost:3080/auth/google/callback")
