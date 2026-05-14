@@ -56,3 +56,28 @@
 - server-configured credentials are the only supported credential source in this phase
 - localhost and HTTPS-hostname callbacks are valid; raw LAN IP callbacks are a documented Google limitation
 - the connected-accounts admin page now exposes mock and Google onboarding paths
+
+---
+
+- GitHub issue: `#3`
+- Scope: UI-managed provider onboarding for multiple Google and Apple accounts
+
+## Interpreted Requirements
+
+- Google OAuth client ID and secret should be settable in the admin UI
+- the app should support multiple Google accounts
+- the app should support multiple Apple/iCloud accounts
+- onboarding should gather provider or account credentials in the interface
+- discovered calendars should be enabled after account connection, not manually credentialed one by one
+
+## Behavioral Boundaries
+
+- provider onboarding remains read-only
+- Google client credentials are deployment-wide configuration, not per-calendar data
+- Apple credentials are per-account data
+- the UI should say add or connect account, not imply each calendar is configured manually
+
+## Phase Notes
+
+- issue `#3` supersedes the earlier server-config-only Google credential assumption for future onboarding work
+- the onboarding model is now provider settings -> connected accounts -> discovered calendars
