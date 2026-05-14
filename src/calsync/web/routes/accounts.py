@@ -7,13 +7,11 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from calsync.config import (
-    build_google_callback_url,
-    validate_google_callback_url,
-)
+from calsync.config import validate_google_callback_url
 from calsync.crypto import encrypt_text
 from calsync.models import AdminUser, ProviderAccount
 from calsync.repos.providers import upsert_provider_account
+from calsync.services.app_settings import build_google_callback_url
 from calsync.services.provider_config import get_google_provider_configuration_snapshot
 from calsync.services.providers.icloud import ICloudCalDAVError
 from calsync.services.sync import sync_account
@@ -178,7 +176,11 @@ def _render_accounts_page(
     status_code: int = 200,
 ):
     settings = request.app.state.settings
-    callback_url = build_google_callback_url(request, settings=settings)
+    callback_url = build_google_callback_url(
+        request,
+        session=session,
+        settings=settings,
+    )
     callback_error = validate_google_callback_url(callback_url)
     google_snapshot = get_google_provider_configuration_snapshot(
         session,
@@ -187,7 +189,7 @@ def _render_accounts_page(
     google_block_message = None
     if bool(google_snapshot["configured"]) and callback_error is not None:
         google_block_message = (
-            "Google settings are saved, but this browser host cannot be used for Google sign-in yet. "
+            "Google settings are saved, but Google sign-in is still blocked for the current callback URL. "
             f"{callback_error}"
         )
     accounts = session.scalars(

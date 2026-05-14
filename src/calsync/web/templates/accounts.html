@@ -21,12 +21,13 @@
   <article class="panel">
     <h2>Google Calendar Accounts</h2>
     <p class="subtle">Read-only OAuth connection for one or more Google Calendar accounts.</p>
-    <p><strong>Callback URL:</strong> {{ google_callback_url }}</p>
+    <p><strong>Google sign-in callback URL:</strong> {{ google_callback_url }}</p>
+    <p class="subtle">Google sign-in will use this callback URL for both the consent start and callback return.</p>
     {% if not google_configured %}
     <p>Google OAuth is not configured yet. Add the Google client ID and secret on the Provider Settings page first.</p>
     {% elif google_block_message %}
     <p>{{ google_block_message }}</p>
-    <p class="subtle">Use <strong>localhost</strong> on the server itself, or set <strong>PUBLIC_BASE_URL</strong> to an <strong>https hostname registered with Google</strong>.</p>
+    <p class="subtle">Use <strong>localhost</strong> directly on the server, or save a <strong>Public app URL</strong> with an <strong>https hostname registered with Google</strong>.</p>
     {% else %}
     <form method="get" action="/auth/google/start">
       <button type="submit">Connect Google Account</button>

@@ -116,14 +116,14 @@ def validate_google_callback_url(callback_url: str) -> str | None:
     if _is_ip_address(hostname):
         return (
             "Google OAuth does not allow raw IP addresses as redirect URIs except "
-            "localhost. Use localhost on the server itself, or configure "
-            "PUBLIC_BASE_URL to an HTTPS hostname registered with Google."
+            "localhost. Use localhost on the server itself, or save a Public "
+            "app URL with an HTTPS hostname registered with Google."
         )
 
     if split.scheme != "https":
         return (
             "Google OAuth requires an HTTPS hostname for non-localhost callbacks. "
-            "Use localhost on the server itself, or configure PUBLIC_BASE_URL to an "
+            "Use localhost on the server itself, or save a Public app URL with an "
             "HTTPS hostname registered with Google."
         )
 

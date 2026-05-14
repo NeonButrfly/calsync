@@ -7,7 +7,10 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from calsync.config import build_google_callback_url
+from calsync.services.app_settings import (
+    build_google_callback_url,
+    resolve_public_base_url,
+)
 from calsync.services.providers.google import (
     GoogleOAuthError,
     build_google_authorization_url,
@@ -40,7 +43,11 @@ def start_google_oauth(
     _: str = Depends(require_session_secret),
 ):
     settings = request.app.state.settings
-    callback_url = build_google_callback_url(request, settings=settings)
+    callback_url = build_google_callback_url(
+        request,
+        session=session,
+        settings=settings,
+    )
     state = token_urlsafe(24)
     request.session[GOOGLE_OAUTH_SESSION_KEY] = {"state": state}
     try:
@@ -96,11 +103,17 @@ def google_oauth_callback(
             error_message="Google did not return an authorization code.",
         )
 
+    callback_base_url = resolve_public_base_url(
+        request,
+        session=session,
+        settings=request.app.state.settings,
+    )
+
     try:
         account = connect_google_account_from_callback(
             session,
             code=code,
-            callback_base_url=str(request.app.state.settings.public_base_url or request.base_url),
+            callback_base_url=callback_base_url,
             settings=request.app.state.settings,
             encryption_key=encryption_key,
         )

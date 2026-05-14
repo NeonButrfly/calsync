@@ -59,6 +59,7 @@ def _build_client(
     google_client_secret: str | None,
     base_url: str,
     seed_provider_settings: bool = False,
+    saved_public_base_url: str | None = None,
 ) -> TestClient:
     database_path = tmp_path / "google-oauth-routes.sqlite3"
     settings = Settings(
@@ -103,6 +104,12 @@ def _build_client(
                     "https://www.googleapis.com/auth/calendar.readonly"
                 ),
                 encryption_key=ENCRYPTION_KEY,
+            )
+        if saved_public_base_url is not None:
+            set_app_state(
+                session,
+                key="public_base_url",
+                value_text=saved_public_base_url,
             )
         session.commit()
 
@@ -157,6 +164,26 @@ def test_accounts_page_explains_lan_callback_block_even_when_settings_are_saved(
     assert "https hostname registered with Google" in response.text
 
 
+def test_accounts_page_allows_google_connect_when_saved_public_url_is_valid(
+    tmp_path: Path,
+) -> None:
+    with _build_client(
+        tmp_path,
+        public_base_url=None,
+        google_client_id=None,
+        google_client_secret=None,
+        base_url="http://192.168.50.232:3080",
+        seed_provider_settings=True,
+        saved_public_base_url="https://calsync.neonbutterfly.net",
+    ) as client:
+        response = client.get("/admin/accounts")
+
+    assert response.status_code == 200
+    assert "Connect Google Account" in response.text
+    assert "https://calsync.neonbutterfly.net/auth/google/callback" in response.text
+    assert "raw IP addresses" not in response.text
+
+
 def test_google_start_reports_missing_provider_settings(
     tmp_path: Path,
 ) -> None:
@@ -193,6 +220,97 @@ def test_google_start_redirects_to_google_when_callback_is_compatible(
         assert parsed.netloc == "accounts.google.com"
         assert query["redirect_uri"] == ["http://localhost:3080/auth/google/callback"]
         assert query["state"]
+
+
+def test_google_start_uses_saved_public_url_when_request_origin_is_lan_ip(
+    tmp_path: Path,
+) -> None:
+    with _build_client(
+        tmp_path,
+        public_base_url=None,
+        google_client_id=None,
+        google_client_secret=None,
+        base_url="http://192.168.50.232:3080",
+        seed_provider_settings=True,
+        saved_public_base_url="https://calsync.neonbutterfly.net",
+    ) as client:
+        response = client.get("/auth/google/start", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert "https://accounts.google.com" in response.headers["location"]
+    assert (
+        "redirect_uri=https%3A%2F%2Fcalsync.neonbutterfly.net%2Fauth%2Fgoogle%2Fcallback"
+        in response.headers["location"]
+    )
+
+
+def test_google_callback_uses_saved_public_url_for_token_exchange_on_lan_origin(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    token_redirect_uri: str | None = None
+
+    with _build_client(
+        tmp_path,
+        public_base_url=None,
+        google_client_id=None,
+        google_client_secret=None,
+        base_url="http://192.168.50.232:3080",
+        seed_provider_settings=True,
+        saved_public_base_url="https://calsync.neonbutterfly.net",
+    ) as client:
+        start_response = client.get("/auth/google/start", follow_redirects=False)
+        assert start_response.status_code == 303
+        state = parse_qs(urlsplit(start_response.headers["location"]).query)["state"][0]
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            nonlocal token_redirect_uri
+            if request.url == httpx.URL("https://oauth2.googleapis.com/token"):
+                form = dict(httpx.QueryParams(request.content.decode()))
+                token_redirect_uri = form.get("redirect_uri")
+                return httpx.Response(
+                    200,
+                    json={
+                        "access_token": "access-token",
+                        "refresh_token": "refresh-token",
+                        "expires_in": 3600,
+                        "scope": "openid email profile https://www.googleapis.com/auth/calendar.readonly",
+                    },
+                    request=request,
+                )
+            if request.url == httpx.URL("https://openidconnect.googleapis.com/v1/userinfo"):
+                return httpx.Response(
+                    200,
+                    json={
+                        "sub": "google-sub",
+                        "email": "owner@example.com",
+                        "name": "Owner",
+                    },
+                    request=request,
+                )
+            if request.url.path == "/calendar/v3/users/me/calendarList":
+                return httpx.Response(
+                    200,
+                    json={"items": [], "nextSyncToken": "calendar-sync-token"},
+                    request=request,
+                )
+            raise AssertionError(f"Unexpected request: {request.method} {request.url}")
+
+        monkeypatch.setattr(
+            "calsync.services.providers.google._build_http_client",
+            lambda: httpx.Client(transport=httpx.MockTransport(handler)),
+        )
+
+        callback_response = client.get(
+            f"/auth/google/callback?state={state}&code=google-code",
+            follow_redirects=False,
+        )
+
+    assert callback_response.status_code == 303
+    assert (
+        token_redirect_uri
+        == "https://calsync.neonbutterfly.net/auth/google/callback"
+    )
 
 
 def test_google_callback_persists_account_and_discovers_calendars(
