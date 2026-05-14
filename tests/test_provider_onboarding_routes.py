@@ -78,7 +78,7 @@ def test_adding_icloud_account_discovers_calendars_and_stores_secret(
         )
 
         assert response.status_code == 303
-        assert response.headers["location"] == "/admin/accounts"
+        assert response.headers["location"] == "/admin/calendars"
 
         with _db_session(client) as session:
             account = session.scalar(
@@ -101,6 +101,53 @@ def test_adding_icloud_account_discovers_calendars_and_stores_secret(
             assert calendar is not None
             assert calendar.provider_calendar_id == "family"
             assert calendar.enabled is False
+
+
+def test_accounts_page_shows_manage_calendars_link_for_connected_account(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client, client.app.state.test_totp_secret)
+
+        class FakeICloudAdapter:
+            provider_type = "icloud_caldav"
+
+            def discover_calendars(self, account: ProviderAccount) -> list[DiscoveredCalendar]:
+                return [
+                    DiscoveredCalendar(
+                        external_id="family",
+                        name="Family",
+                        timezone="America/Anchorage",
+                        default_enabled=False,
+                        metadata={},
+                    )
+                ]
+
+            def fetch_events(self, account, calendar):
+                return []
+
+        monkeypatch.setattr(
+            "calsync.services.sync.get_provider_adapter",
+            lambda provider_type, settings=None, session=None: FakeICloudAdapter(),
+        )
+
+        response = client.post(
+            "/admin/accounts/icloud/connect",
+            data={
+                "label": "Kay iCloud",
+                "username": "kay@icloud.com",
+                "app_password": "abcd-efgh-ijkl-mnop",
+            },
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+
+        page = client.get("/admin/accounts")
+
+    assert page.status_code == 200
+    assert "Choose calendars" in page.text
+    assert "/admin/calendars" in page.text
 
 
 def _build_client(tmp_path: Path) -> TestClient:

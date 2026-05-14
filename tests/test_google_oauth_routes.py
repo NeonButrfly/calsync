@@ -263,7 +263,7 @@ def test_google_callback_persists_account_and_discovers_calendars(
         )
 
         assert callback_response.status_code == 303
-        assert callback_response.headers["location"] == "/admin/accounts"
+        assert callback_response.headers["location"] == "/admin/calendars"
 
         with _db_session(localhost_client) as session:
             account = session.scalar(

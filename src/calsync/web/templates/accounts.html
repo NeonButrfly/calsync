@@ -75,6 +75,7 @@
           <th>Account</th>
           <th>Calendars</th>
           <th>Status</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -89,10 +90,17 @@
             <div class="subtle">{{ account.last_error }}</div>
             {% endif %}
           </td>
+          <td>
+            {% if account.manage_calendars_url %}
+            <a href="{{ account.manage_calendars_url }}">Choose calendars</a>
+            {% else %}
+            <span class="subtle">Discover calendars first</span>
+            {% endif %}
+          </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="4">No connected accounts yet.</td>
+          <td colspan="5">No connected accounts yet.</td>
         </tr>
         {% endfor %}
       </tbody>

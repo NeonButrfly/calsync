@@ -120,4 +120,4 @@ def google_oauth_callback(
         )
 
     session.commit()
-    return RedirectResponse(url="/admin/accounts", status_code=303)
+    return RedirectResponse(url="/admin/calendars", status_code=303)

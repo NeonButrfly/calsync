@@ -146,7 +146,7 @@ def connect_icloud_account(
         )
 
     session.commit()
-    return RedirectResponse(url="/admin/accounts", status_code=303)
+    return RedirectResponse(url="/admin/calendars", status_code=303)
 
 
 def render_accounts_page_with_error(
@@ -239,4 +239,5 @@ def _build_account_row(account: ProviderAccount) -> dict[str, object]:
         "calendar_count": len(account.calendars),
         "status": status,
         "last_error": metadata.get("last_auth_error") or metadata.get("google_last_auth_error"),
+        "manage_calendars_url": "/admin/calendars" if account.calendars else None,
     }
