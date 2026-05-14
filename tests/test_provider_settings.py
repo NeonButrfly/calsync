@@ -179,7 +179,7 @@ def test_provider_settings_can_clear_saved_public_base_url(tmp_path: Path) -> No
         assert "Public app URL saved." in page.text
         assert "Environment fallback" in page.text
         assert "https://calsync.neonbutterfly.net" not in page.text
-        assert 'value="http://localhost:3080/' in page.text
+        assert 'value="http://localhost:3080' in page.text
 
         with _db_session(client) as session:
             assert get_app_state_text(session, "public_base_url") is None

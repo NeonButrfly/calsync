@@ -29,7 +29,10 @@ def get_saved_public_base_url(session: Session) -> str | None:
 
 def get_configured_public_base_url(settings: Settings) -> str | None:
     if settings.public_base_url:
-        return str(settings.public_base_url)
+        return _normalize_public_base_url(
+            str(settings.public_base_url),
+            reject_invalid=False,
+        )
     return None
 
 
@@ -43,29 +46,47 @@ def save_public_base_url(session: Session, public_base_url: str) -> str | None:
         )
         return None
 
-    try:
-        validated_public_base_url = PUBLIC_BASE_URL_ADAPTER.validate_python(
-            normalized_public_base_url
-        )
-    except ValidationError as exc:
-        raise ValueError("Public app URL must be a valid http or https URL.") from exc
-
-    persisted_public_base_url = str(validated_public_base_url).rstrip("/")
-    if urlsplit(persisted_public_base_url).hostname in {"127.0.0.1", "::1"}:
-        raise ValueError(PUBLIC_BASE_URL_REQUIREMENTS_MESSAGE)
-
-    callback_validation_error = validate_google_callback_url(
-        join_url(persisted_public_base_url, "/auth/google/callback")
+    persisted_public_base_url = _normalize_public_base_url(
+        normalized_public_base_url,
+        reject_invalid=True,
     )
-    if callback_validation_error is not None:
-        raise ValueError(PUBLIC_BASE_URL_REQUIREMENTS_MESSAGE)
-
     set_app_state(
         session,
         key=PUBLIC_BASE_URL_STATE_KEY,
         value_text=persisted_public_base_url,
     )
     return persisted_public_base_url
+
+
+def _normalize_public_base_url(
+    public_base_url: str,
+    *,
+    reject_invalid: bool,
+) -> str | None:
+    try:
+        validated_public_base_url = PUBLIC_BASE_URL_ADAPTER.validate_python(
+            public_base_url
+        )
+    except ValidationError as exc:
+        if reject_invalid:
+            raise ValueError("Public app URL must be a valid http or https URL.") from exc
+        return None
+
+    normalized_public_base_url = str(validated_public_base_url).rstrip("/")
+    if urlsplit(normalized_public_base_url).hostname in {"127.0.0.1", "::1"}:
+        if reject_invalid:
+            raise ValueError(PUBLIC_BASE_URL_REQUIREMENTS_MESSAGE)
+        return None
+
+    callback_validation_error = validate_google_callback_url(
+        join_url(normalized_public_base_url, "/auth/google/callback")
+    )
+    if callback_validation_error is not None:
+        if reject_invalid:
+            raise ValueError(PUBLIC_BASE_URL_REQUIREMENTS_MESSAGE)
+        return None
+
+    return normalized_public_base_url
 
 
 def resolve_public_base_url(

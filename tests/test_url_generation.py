@@ -219,6 +219,29 @@ def test_google_callback_url_prefers_localhost_request_over_invalid_public_base_
     assert response.json() == {"url": "http://localhost:3080/auth/google/callback"}
 
 
+def test_configured_loopback_ip_public_base_url_falls_back_to_request_origin() -> None:
+    settings = Settings(public_base_url="http://127.0.0.1:3080")
+    app = FastAPI()
+
+    @app.get("/external-url")
+    def external_url(request: Request) -> dict[str, str]:
+        return {
+            "url": _build_external_url_via_service(
+                request,
+                "/healthz",
+                session=None,
+                settings=settings,
+            )
+        }
+
+    client = TestClient(app, base_url="http://internal.service.local:9999")
+
+    response = client.get("/external-url")
+
+    assert response.status_code == 200
+    assert response.json() == {"url": "http://internal.service.local:9999/healthz"}
+
+
 def test_saved_public_base_url_overrides_request_origin_when_present(tmp_path: Path) -> None:
     with _build_client_with_state(
         tmp_path,
@@ -348,7 +371,7 @@ def _build_external_url_via_service(
     request: Request,
     path: str,
     *,
-    session: Session,
+    session: Session | None,
     settings: Settings,
 ) -> str:
     from calsync.services.app_settings import (
