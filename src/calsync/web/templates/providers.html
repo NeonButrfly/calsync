@@ -22,7 +22,8 @@
   <article class="panel">
     <h2>Public App URL</h2>
     <p class="subtle">
-      Set the canonical public URL for this deployment. Generated external links and Google OAuth callback previews use this value.
+      Set the canonical public URL for this deployment. Use <code>http://localhost</code> only for local development, or an HTTPS hostname for public use.
+      Leave this blank to clear the admin override and return to the environment or current-request fallback.
     </p>
     <form method="post" action="/admin/providers/public-url" class="stack">
       <label>

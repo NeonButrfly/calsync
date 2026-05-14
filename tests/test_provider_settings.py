@@ -11,7 +11,7 @@ from calsync.config import Settings
 from calsync.crypto import decrypt_text
 from calsync.main import create_app
 from calsync.models import Base, ProviderConfiguration
-from calsync.repos.state import set_app_state
+from calsync.repos.state import get_app_state_text, set_app_state
 from calsync.repos.users import create_admin_user
 from calsync.services.auth import (
     generate_recovery_codes,
@@ -106,6 +106,68 @@ def test_provider_settings_rejects_invalid_public_base_url(tmp_path: Path) -> No
         assert "Public app URL must be a valid http or https URL." in response.text
 
 
+def test_provider_settings_rejects_raw_lan_ip_public_base_url(tmp_path: Path) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client, client.app.state.test_totp_secret)
+
+        response = client.post(
+            "/admin/providers/public-url",
+            data={"public_base_url": "http://192.168.50.232:3080"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 400
+        assert (
+            "Public app URL must use localhost for local development or an HTTPS hostname for public use."
+            in response.text
+        )
+
+
+def test_provider_settings_rejects_non_https_hostname_public_base_url(
+    tmp_path: Path,
+) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client, client.app.state.test_totp_secret)
+
+        response = client.post(
+            "/admin/providers/public-url",
+            data={"public_base_url": "http://calendar.example.com"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 400
+        assert (
+            "Public app URL must use localhost for local development or an HTTPS hostname for public use."
+            in response.text
+        )
+
+
+def test_provider_settings_can_clear_saved_public_base_url(tmp_path: Path) -> None:
+    with _build_client(
+        tmp_path,
+        saved_public_base_url="https://calsync.neonbutterfly.net",
+    ) as client:
+        _login(client, client.app.state.test_totp_secret)
+
+        response = client.post(
+            "/admin/providers/public-url",
+            data={"public_base_url": ""},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 303
+        assert response.headers["location"] == "/admin/providers?saved=public-url"
+
+        page = client.get("/admin/providers?saved=public-url")
+        assert "Public app URL saved." in page.text
+        assert "Environment fallback" in page.text
+        assert "https://calsync.neonbutterfly.net" not in page.text
+        assert 'value="http://localhost:3080/' in page.text
+
+        with _db_session(client) as session:
+            assert get_app_state_text(session, "public_base_url") is None
+
+
 def test_provider_settings_page_requires_authenticated_admin(tmp_path: Path) -> None:
     with _build_client(tmp_path) as client:
         response = client.get("/admin/providers", follow_redirects=False)
@@ -114,7 +176,11 @@ def test_provider_settings_page_requires_authenticated_admin(tmp_path: Path) -> 
     assert response.headers["location"] == "/login"
 
 
-def _build_client(tmp_path: Path) -> TestClient:
+def _build_client(
+    tmp_path: Path,
+    *,
+    saved_public_base_url: str | None = None,
+) -> TestClient:
     database_path = tmp_path / "provider-settings.sqlite3"
     settings = Settings(
         database_url=f"sqlite+pysqlite:///{database_path}",
@@ -131,6 +197,12 @@ def _build_client(tmp_path: Path) -> TestClient:
 
     with Session(engine) as session:
         set_app_state(session, key="setup_completed", value_text="true")
+        if saved_public_base_url is not None:
+            set_app_state(
+                session,
+                key="public_base_url",
+                value_text=saved_public_base_url,
+            )
         admin_user = create_admin_user(
             session,
             username="admin",

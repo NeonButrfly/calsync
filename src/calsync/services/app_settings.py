@@ -6,6 +6,7 @@ from fastapi import Request
 from pydantic import AnyHttpUrl, TypeAdapter, ValidationError
 from sqlalchemy.orm import Session
 
+from calsync.config import join_url, validate_google_callback_url
 from calsync.repos.state import get_app_state_text, set_app_state
 
 
@@ -15,6 +16,10 @@ if TYPE_CHECKING:
 
 PUBLIC_BASE_URL_STATE_KEY = "public_base_url"
 PUBLIC_BASE_URL_ADAPTER = TypeAdapter(AnyHttpUrl)
+PUBLIC_BASE_URL_REQUIREMENTS_MESSAGE = (
+    "Public app URL must use localhost for local development or an HTTPS hostname "
+    "for public use."
+)
 
 
 def get_saved_public_base_url(session: Session) -> str | None:
@@ -27,10 +32,15 @@ def get_configured_public_base_url(settings: Settings) -> str | None:
     return None
 
 
-def save_public_base_url(session: Session, public_base_url: str) -> str:
+def save_public_base_url(session: Session, public_base_url: str) -> str | None:
     normalized_public_base_url = public_base_url.strip()
     if not normalized_public_base_url:
-        raise ValueError("Public app URL is required.")
+        set_app_state(
+            session,
+            key=PUBLIC_BASE_URL_STATE_KEY,
+            value_text=None,
+        )
+        return None
 
     try:
         validated_public_base_url = PUBLIC_BASE_URL_ADAPTER.validate_python(
@@ -40,6 +50,12 @@ def save_public_base_url(session: Session, public_base_url: str) -> str:
         raise ValueError("Public app URL must be a valid http or https URL.") from exc
 
     persisted_public_base_url = str(validated_public_base_url).rstrip("/")
+    callback_validation_error = validate_google_callback_url(
+        join_url(persisted_public_base_url, "/auth/google/callback")
+    )
+    if callback_validation_error is not None:
+        raise ValueError(PUBLIC_BASE_URL_REQUIREMENTS_MESSAGE)
+
     set_app_state(
         session,
         key=PUBLIC_BASE_URL_STATE_KEY,
