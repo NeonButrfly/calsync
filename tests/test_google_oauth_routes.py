@@ -138,6 +138,25 @@ def test_google_start_blocks_raw_ip_callback_origin(
     assert "raw IP addresses" in response.text
 
 
+def test_accounts_page_explains_lan_callback_block_even_when_settings_are_saved(
+    tmp_path: Path,
+) -> None:
+    with _build_client(
+        tmp_path,
+        public_base_url=None,
+        google_client_id=None,
+        google_client_secret=None,
+        base_url="http://192.168.50.232:3080",
+        seed_provider_settings=True,
+    ) as client:
+        response = client.get("/admin/accounts")
+
+    assert response.status_code == 200
+    assert "Google settings are saved" in response.text
+    assert "Provider Settings page first" not in response.text
+    assert "https hostname registered with Google" in response.text
+
+
 def test_google_start_reports_missing_provider_settings(
     tmp_path: Path,
 ) -> None:

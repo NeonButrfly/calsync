@@ -184,6 +184,12 @@ def _render_accounts_page(
         session,
         settings=settings,
     )
+    google_block_message = None
+    if bool(google_snapshot["configured"]) and callback_error is not None:
+        google_block_message = (
+            "Google settings are saved, but this browser host cannot be used for Google sign-in yet. "
+            f"{callback_error}"
+        )
     accounts = session.scalars(
         select(ProviderAccount)
         .options(selectinload(ProviderAccount.calendars))
@@ -198,6 +204,7 @@ def _render_accounts_page(
             "google_configured": google_snapshot["configured"],
             "google_callback_url": callback_url,
             "google_callback_error": callback_error,
+            "google_block_message": google_block_message,
             "google_connect_allowed": bool(google_snapshot["configured"])
             and callback_error is None,
             "google_configuration_source": google_snapshot["source"],

@@ -24,8 +24,9 @@
     <p><strong>Callback URL:</strong> {{ google_callback_url }}</p>
     {% if not google_configured %}
     <p>Google OAuth is not configured yet. Add the Google client ID and secret on the Provider Settings page first.</p>
-    {% elif google_callback_error %}
-    <p>{{ google_callback_error }}</p>
+    {% elif google_block_message %}
+    <p>{{ google_block_message }}</p>
+    <p class="subtle">Use <strong>localhost</strong> on the server itself, or set <strong>PUBLIC_BASE_URL</strong> to an <strong>https hostname registered with Google</strong>.</p>
     {% else %}
     <form method="get" action="/auth/google/start">
       <button type="submit">Connect Google Account</button>
