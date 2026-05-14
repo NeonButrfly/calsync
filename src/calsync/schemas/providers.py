@@ -11,6 +11,7 @@ class DiscoveredCalendar(BaseModel):
     external_id: str
     name: str
     timezone: str | None = None
+    default_enabled: bool = True
     metadata: dict[str, object] | None = None
 
 

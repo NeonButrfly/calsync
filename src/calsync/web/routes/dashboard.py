@@ -10,7 +10,6 @@ from fastapi.templating import Jinja2Templates
 from calsync.config import build_external_url
 from calsync.models import AdminUser, Event, ProviderAccount, ProviderCalendar, SyncLog
 from calsync.services.publishing import ensure_combined_feed, rotate_combined_feed_token
-from calsync.services.sync import sync_account
 from calsync.web.deps import get_db, get_templates, require_admin
 
 
@@ -83,27 +82,3 @@ def rotate_combined_feed(
     session.commit()
     return RedirectResponse(url="/admin/feeds", status_code=303)
 
-
-@router.post("/accounts/mock/connect")
-def connect_mock_account(
-    session: Session = Depends(get_db),
-    _: AdminUser = Depends(require_admin),
-):
-    existing_mock_count = session.scalar(
-        select(func.count(ProviderAccount.id)).where(
-            ProviderAccount.provider_type == "mock",
-        )
-    ) or 0
-    account_number = existing_mock_count + 1
-    account = ProviderAccount(
-        provider_type="mock",
-        provider_account_id=f"mock-acct-{account_number}",
-        display_name=f"Mock Account {account_number}",
-        provider_metadata={"source": "dashboard-connect"},
-    )
-    session.add(account)
-    session.flush()
-    sync_account(session, account.id, trigger="manual")
-    ensure_combined_feed(session)
-    session.commit()
-    return RedirectResponse(url="/admin", status_code=303)

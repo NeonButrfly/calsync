@@ -235,7 +235,7 @@ def test_connecting_mock_provider_creates_account_and_events(
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/admin"
+    assert response.headers["location"] == "/admin/accounts"
 
     with _db_session(authenticated_empty_client) as session:
         assert session.query(ProviderAccount).count() == 1

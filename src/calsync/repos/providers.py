@@ -11,6 +11,20 @@ from calsync.models import ProviderAccount, ProviderCalendar, SyncLog, utcnow
 from calsync.schemas.providers import DiscoveredCalendar
 
 
+def get_provider_account_by_identity(
+    session: Session,
+    *,
+    provider_type: str,
+    provider_account_id: str,
+) -> ProviderAccount | None:
+    return session.scalar(
+        select(ProviderAccount).where(
+            ProviderAccount.provider_type == provider_type,
+            ProviderAccount.provider_account_id == provider_account_id,
+        )
+    )
+
+
 def get_provider_account(session: Session, account_pk: str) -> ProviderAccount | None:
     return session.get(ProviderAccount, account_pk)
 
@@ -38,7 +52,7 @@ def upsert_provider_calendar(
         calendar = ProviderCalendar(
             provider_account_pk=account.id,
             provider_calendar_id=discovered_calendar.external_id,
-            enabled=True,
+            enabled=discovered_calendar.default_enabled,
         )
         session.add(calendar)
 
@@ -51,6 +65,36 @@ def upsert_provider_calendar(
     )
     session.flush()
     return calendar
+
+
+def upsert_provider_account(
+    session: Session,
+    *,
+    provider_type: str,
+    provider_account_id: str,
+    display_name: str | None = None,
+    provider_metadata: dict[str, object] | None = None,
+) -> ProviderAccount:
+    account = get_provider_account_by_identity(
+        session,
+        provider_type=provider_type,
+        provider_account_id=provider_account_id,
+    )
+    if account is None:
+        account = ProviderAccount(
+            provider_type=provider_type,
+            provider_account_id=provider_account_id,
+        )
+        session.add(account)
+
+    account.display_name = display_name
+    account.provider_metadata = (
+        dict(provider_metadata)
+        if provider_metadata is not None
+        else None
+    )
+    session.flush()
+    return account
 
 
 def reconcile_provider_calendars(

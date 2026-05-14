@@ -55,3 +55,4 @@
 - browser-based OAuth is supported in this phase; manual headless completion is deferred
 - server-configured credentials are the only supported credential source in this phase
 - localhost and HTTPS-hostname callbacks are valid; raw LAN IP callbacks are a documented Google limitation
+- the connected-accounts admin page now exposes mock and Google onboarding paths

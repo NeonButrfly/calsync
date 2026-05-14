@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from calsync.config import Settings
 from calsync.models import ProviderCalendar, SyncLog
 from calsync.repos.events import upsert_event
 from calsync.repos.providers import (
@@ -14,9 +15,14 @@ from calsync.repos.providers import (
 from calsync.services.providers import get_provider_adapter
 
 
-def discover_calendars(session: Session, account_pk: str) -> list[ProviderCalendar]:
+def discover_calendars(
+    session: Session,
+    account_pk: str,
+    *,
+    settings: Settings | None = None,
+) -> list[ProviderCalendar]:
     account = require_provider_account(session, account_pk)
-    adapter = get_provider_adapter(account.provider_type)
+    adapter = get_provider_adapter(account.provider_type, settings=settings)
     discovered_calendars = adapter.discover_calendars(account)
 
     calendars = [
@@ -43,12 +49,13 @@ def sync_account(
     account_pk: str,
     *,
     trigger: str = "manual",
+    settings: Settings | None = None,
 ) -> SyncLog:
     account = require_provider_account(session, account_pk)
-    adapter = get_provider_adapter(account.provider_type)
+    adapter = get_provider_adapter(account.provider_type, settings=settings)
 
     with begin_sync_run(session, account=account, trigger=trigger) as sync_run:
-        discover_calendars(session, account_pk)
+        discover_calendars(session, account_pk, settings=settings)
         calendars = list_enabled_provider_calendars(session, account=account)
 
         for calendar in calendars:

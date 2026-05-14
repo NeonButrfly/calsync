@@ -12,7 +12,7 @@ The application is designed for local and LAN-first operation:
 - Default bind port: `APP_PORT=3080`
 - Optional public URL override: `PUBLIC_BASE_URL`
 
-## Current Phase 1 Scope
+## Current Phase 2 Scope
 
 Implemented today:
 
@@ -20,13 +20,16 @@ Implemented today:
 - password plus TOTP login for the admin UI
 - local break-glass commands for `reset-admin-password` and `reset-admin-mfa`
 - mock provider discovery and event import into the normalized event store
+- Google account connection through browser-based OAuth with server-configured credentials
+- Google calendar discovery with calendars disabled by default until explicitly enabled
+- Google read-only event sync into the normalized event store
 - combined read-only ICS feed publishing with stable tokens and token rotation
 - protected admin dashboard, calendars management, sync status, and ICS publishing pages
+- protected connected-accounts page for mock and Google provider onboarding
 - separate `web`, `worker`, and `db` services for Docker deployment
 
 Not implemented yet:
 
-- Google account connection and Google OAuth setup inside the app
 - Apple/iCloud CalDAV connection inside the app
 - production hardening such as TLS termination, rate limiting, email delivery, and advanced worker retry policy
 
@@ -45,6 +48,10 @@ The default `.env.example` includes:
 - `PUBLIC_BASE_URL=`
 - `CALSYNC_DATABASE_URL=postgresql+psycopg://calsync:calsync@db:5432/calsync`
 - `SYNC_POLL_SECONDS=300`
+- `GOOGLE_OAUTH_CLIENT_ID`
+- `GOOGLE_OAUTH_CLIENT_SECRET`
+- `GOOGLE_OAUTH_SCOPES`
+- `GOOGLE_OAUTH_REDIRECT_PATH`
 
 Changing the published web port:
 
@@ -116,9 +123,10 @@ python -m calsync.cli reset-admin-mfa --identifier admin
 
 ## Admin UI
 
-Current Phase 1 admin pages:
+Current admin pages:
 
 - `/admin` for the dashboard, combined feed link, and last sync summary
+- `/admin/accounts` for mock and Google account connection
 - `/admin/calendars` for provider calendar enable or disable actions
 - `/admin/sync` for sync history and manual sync now actions
 - `/admin/feeds` for combined ICS publishing and token rotation
@@ -127,16 +135,37 @@ These pages require admin login plus MFA-backed session establishment.
 
 ## Google OAuth Setup
 
-Google OAuth setup is part of Phase 2 and is not wired into the UI yet. This README still captures the operator expectation so documentation stays aligned with the roadmap for issue `#1`.
+Google OAuth setup is implemented and is tracked in issue `#2`.
 
-Google OAuth setup will require:
+Google OAuth setup requires:
 
 - creating a Google Cloud project
 - enabling the Google Calendar API
-- creating OAuth client credentials
-- adding the CalSync callback URL derived from `PUBLIC_BASE_URL` or the LAN host and `APP_PORT`
+- creating OAuth web application client credentials
+- setting `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`
+- adding the CalSync callback URL derived from `PUBLIC_BASE_URL` or the request origin
 
-For LAN and headless Linux use, plan to register a redirect URI that matches the exact browser-facing origin, such as `http://SERVER-IP:3080/...`, or provide a stable `PUBLIC_BASE_URL` before enabling Google OAuth.
+Typical redirect URIs:
+
+- `http://localhost:3080/auth/google/callback`
+- `https://calendar.example.com/auth/google/callback`
+
+Important Google limitation:
+
+- Google does not allow raw LAN IP addresses such as `http://192.168.50.232:3080/auth/google/callback` as OAuth redirect URIs.
+
+Practical meaning:
+
+- The CalSync app itself still works on `http://SERVER-IP:3080` for normal LAN access.
+- Google account connection works on `http://localhost:3080` when you complete the OAuth flow on the server machine itself.
+- For remote browser-based Google account connection, configure `PUBLIC_BASE_URL` to an HTTPS hostname or domain that is registered with Google.
+
+The Google integration is read-only and requests:
+
+- `openid`
+- `email`
+- `profile`
+- `https://www.googleapis.com/auth/calendar.readonly`
 
 ## Apple App-Specific Password
 
@@ -171,6 +200,12 @@ Headless and LAN deployments should verify:
 - the browser uses the same host or `PUBLIC_BASE_URL` that feed links and future OAuth callbacks will use
 - Docker publishes the chosen port to the host
 
+For Google OAuth specifically:
+
+- raw LAN IP callback URIs are blocked by Google
+- localhost callbacks are valid
+- remote Google OAuth flows should use an HTTPS hostname in `PUBLIC_BASE_URL`
+
 ## Backup And Restore
 
 See [docs/ops.md](docs/ops.md) for the fuller operator runbook.
@@ -189,6 +224,7 @@ Restore requires:
 
 ## Known Limitations
 
-- Phase 1 uses the mock provider for validation and does not yet include real Google or iCloud account connection flows.
+- Google OAuth has a real upstream redirect restriction: raw LAN IP callback URIs are not accepted by Google, even though the CalSync app itself works on LAN IPs.
 - The worker loop is intentionally simple and will be expanded with richer retry and provider-specific error handling in later phases.
+- Apple/iCloud CalDAV connection is still a later phase.
 - Local HTTP mode is suitable for localhost and LAN use, but public internet exposure should add TLS and tighter network controls first.

@@ -97,11 +97,11 @@ def test_login_requires_password_then_totp_before_session_is_established(
     )
 
     assert mfa_step.status_code == 303
-    assert mfa_step.headers["location"] == "/"
+    assert mfa_step.headers["location"] == "/admin"
 
-    home = client.get("/")
-    assert home.status_code == 200
-    assert home.json() == {"status": "ok"}
+    admin = client.get("/admin")
+    assert admin.status_code == 200
+    assert "Combined feed" in admin.text
 
 
 def test_login_allows_recovery_code_as_second_factor(
@@ -127,7 +127,7 @@ def test_login_allows_recovery_code_as_second_factor(
     )
 
     assert recovery_step.status_code == 303
-    assert recovery_step.headers["location"] == "/"
+    assert recovery_step.headers["location"] == "/admin"
 
     reused_code = client.post(
         "/login/mfa",

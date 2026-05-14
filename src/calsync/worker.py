@@ -29,7 +29,12 @@ def run_sync_cycle(settings: Settings | None = None) -> int:
     for account_id in account_ids:
         with session_factory() as session:
             try:
-                sync_account(session, account_id, trigger="scheduled")
+                sync_account(
+                    session,
+                    account_id,
+                    trigger="scheduled",
+                    settings=resolved_settings,
+                )
                 session.commit()
             except Exception:
                 session.rollback()

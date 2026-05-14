@@ -49,6 +49,7 @@ def sync_status_page(
 @router.post("/accounts/{account_id}/run")
 def run_sync_now(
     account_id: str,
+    request: Request,
     session: Session = Depends(get_db),
     _: AdminUser = Depends(require_admin),
 ):
@@ -56,6 +57,11 @@ def run_sync_now(
     if account is None:
         raise HTTPException(status_code=404, detail="Account not found.")
 
-    sync_account(session, account_id, trigger="manual")
+    sync_account(
+        session,
+        account_id,
+        trigger="manual",
+        settings=request.app.state.settings,
+    )
     session.commit()
     return RedirectResponse(url="/admin/sync", status_code=303)

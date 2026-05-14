@@ -166,7 +166,7 @@ def test_mock_sync_failure_records_partial_progress(
 
     monkeypatch.setattr(
         "calsync.services.sync.get_provider_adapter",
-        lambda provider_type: FailingAdapter(),
+        lambda provider_type, **kwargs: FailingAdapter(),
     )
 
     with pytest.raises(RuntimeError, match="provider fetch failed"):
@@ -214,7 +214,7 @@ def test_discovery_disables_calendars_missing_from_provider(
 
     monkeypatch.setattr(
         "calsync.services.sync.get_provider_adapter",
-        lambda provider_type: ReducedAdapter(),
+        lambda provider_type, **kwargs: ReducedAdapter(),
     )
 
     discover_calendars(migrated_session, mock_account.id)

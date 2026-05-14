@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}CalSync Accounts{% endblock %}
+{% block page_title %}Connected Accounts{% endblock %}
+
+{% block content %}
+<section class="stack">
+  {% if error_message %}
+  <article class="panel">
+    <h2>Action needed</h2>
+    <p>{{ error_message }}</p>
+  </article>
+  {% endif %}
+
+  <article class="panel">
+    <h2>Google Calendar</h2>
+    <p class="subtle">Read-only OAuth connection for Google Calendar accounts.</p>
+    <p><strong>Callback URL:</strong> {{ google_callback_url }}</p>
+    {% if not google_configured %}
+    <p>Google OAuth is not configured yet. Set the server-side Google client ID and secret first.</p>
+    {% elif google_callback_error %}
+    <p>{{ google_callback_error }}</p>
+    {% else %}
+    <form method="get" action="/auth/google/start">
+      <button type="submit">Connect Google Account</button>
+    </form>
+    <form method="get" action="/auth/google/start">
+      <input type="hidden" name="force_consent" value="true" />
+      <button type="submit">Reconnect Google With Consent</button>
+    </form>
+    {% endif %}
+  </article>
+
+  <article class="panel">
+    <h2>Mock Provider</h2>
+    <p class="subtle">Deterministic sample data for offline testing and validation.</p>
+    <form method="post" action="/admin/accounts/mock/connect">
+      <button type="submit">Connect Mock Account</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <h2>Connected Accounts</h2>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>Account</th>
+          <th>Calendars</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for account in accounts %}
+        {% set metadata = account.provider_metadata or {} %}
+        <tr>
+          <td>{{ account.provider_type }}</td>
+          <td>{{ account.display_name or account.provider_account_id }}</td>
+          <td>{{ account.calendars|length }}</td>
+          <td>
+            {% if metadata.get("google_reconnect_required") %}
+            Reconnect required
+            {% else %}
+            {{ metadata.get("google_auth_status") or "Connected" }}
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4">No connected accounts yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+</section>
+{% endblock %}

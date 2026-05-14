@@ -1,4 +1,5 @@
 from functools import lru_cache
+from ipaddress import ip_address
 from urllib.parse import urlsplit, urlunsplit
 
 from fastapi import Request
@@ -21,6 +22,12 @@ class Settings(BaseSettings):
     session_secret: str | None = None
     encryption_key: str | None = None
     sync_poll_seconds: int = 300
+    google_oauth_client_id: str | None = None
+    google_oauth_client_secret: str | None = None
+    google_oauth_scopes: str = (
+        "openid,email,profile,https://www.googleapis.com/auth/calendar.readonly"
+    )
+    google_oauth_redirect_path: str = "/auth/google/callback"
 
 
 @lru_cache(maxsize=1)
@@ -37,6 +44,73 @@ def build_external_url(
     resolved_settings = settings or get_settings()
     base_url = str(resolved_settings.public_base_url or request.base_url)
     return join_url(base_url, path)
+
+
+def build_google_callback_url(
+    request: Request,
+    *,
+    settings: Settings | None = None,
+) -> str:
+    resolved_settings = settings or get_settings()
+    return build_google_callback_url_from_base(
+        str(resolved_settings.public_base_url or request.base_url),
+        settings=resolved_settings,
+    )
+
+
+def build_google_callback_url_from_base(
+    base_url: str,
+    *,
+    settings: Settings | None = None,
+) -> str:
+    resolved_settings = settings or get_settings()
+    return join_url(base_url, resolved_settings.google_oauth_redirect_path)
+
+
+def get_google_oauth_scopes(settings: Settings | None = None) -> tuple[str, ...]:
+    resolved_settings = settings or get_settings()
+    return tuple(
+        scope.strip()
+        for scope in resolved_settings.google_oauth_scopes.split(",")
+        if scope.strip()
+    )
+
+
+def validate_google_callback_url(callback_url: str) -> str | None:
+    split = urlsplit(callback_url)
+    if split.scheme not in {"http", "https"}:
+        return "Google OAuth callback URLs must use http or https."
+
+    hostname = split.hostname
+    if not hostname:
+        return "Google OAuth callback URL must include a hostname."
+
+    if _is_localhost_hostname(hostname):
+        return None if split.scheme == "http" else None
+
+    if _is_ip_address(hostname):
+        return (
+            "Google OAuth does not allow raw IP addresses as redirect URIs except "
+            "localhost. Use localhost on the server itself, or configure "
+            "PUBLIC_BASE_URL to an HTTPS hostname registered with Google."
+        )
+
+    if split.scheme != "https":
+        return (
+            "Google OAuth requires an HTTPS hostname for non-localhost callbacks. "
+            "Use localhost on the server itself, or configure PUBLIC_BASE_URL to an "
+            "HTTPS hostname registered with Google."
+        )
+
+    return None
+
+
+def has_google_oauth_config(settings: Settings | None = None) -> bool:
+    resolved_settings = settings or get_settings()
+    return bool(
+        resolved_settings.google_oauth_client_id
+        and resolved_settings.google_oauth_client_secret
+    )
 
 
 def build_healthcheck_url(settings: Settings | None = None) -> str:
@@ -68,3 +142,15 @@ def join_url(base_url: str, path: str) -> str:
             "",
         )
     )
+
+
+def _is_ip_address(hostname: str) -> bool:
+    try:
+        ip_address(hostname)
+    except ValueError:
+        return False
+    return True
+
+
+def _is_localhost_hostname(hostname: str) -> bool:
+    return hostname in {"localhost", "127.0.0.1", "::1"}

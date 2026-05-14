@@ -144,7 +144,7 @@ def submit_login_mfa(
         "session_version": admin_user.session_version,
     }
     request.session.pop(PENDING_MFA_SESSION_KEY, None)
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/admin", status_code=303)
 
 
 def _render_login_error(
