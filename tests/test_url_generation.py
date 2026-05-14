@@ -1,5 +1,11 @@
+from collections.abc import Iterator
+from contextlib import contextmanager
+from pathlib import Path
+
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
 from calsync.config import (
     Settings,
@@ -10,6 +16,9 @@ from calsync.config import (
 )
 from calsync.db import get_db_session
 from calsync.main import create_app
+from calsync.models import Base
+from calsync.repos.state import set_app_state
+from calsync.services.app_settings import resolve_public_base_url
 
 
 def test_settings_default_app_host(monkeypatch) -> None:
@@ -143,6 +152,34 @@ def test_google_callback_url_prefers_localhost_request_over_invalid_public_base_
     assert response.json() == {"url": "http://localhost:3080/auth/google/callback"}
 
 
+def test_saved_public_base_url_overrides_request_origin_when_present(tmp_path: Path) -> None:
+    with _build_client_with_state(
+        tmp_path,
+        saved_public_base_url="https://calsync.neonbutterfly.net",
+        base_url="http://192.168.50.232:3080",
+    ) as client:
+        response = client.get("/debug/external-url")
+
+    assert response.json() == {
+        "url": "https://calsync.neonbutterfly.net/healthz"
+    }
+
+
+def test_google_callback_prefers_saved_https_public_url_over_lan_origin(
+    tmp_path: Path,
+) -> None:
+    with _build_client_with_state(
+        tmp_path,
+        saved_public_base_url="https://calsync.neonbutterfly.net",
+        base_url="http://192.168.50.232:3080",
+    ) as client:
+        response = client.get("/debug/google-callback-url")
+
+    assert response.json() == {
+        "url": "https://calsync.neonbutterfly.net/auth/google/callback"
+    }
+
+
 def test_validate_google_callback_url_accepts_localhost_http() -> None:
     assert (
         validate_google_callback_url("http://localhost:3080/auth/google/callback")
@@ -181,3 +218,72 @@ def test_google_oauth_scopes_are_split_from_config_string() -> None:
     settings = Settings(google_oauth_scopes="openid,email, profile ")
 
     assert get_google_oauth_scopes(settings) == ("openid", "email", "profile")
+
+
+@contextmanager
+def _build_client_with_state(
+    tmp_path: Path,
+    *,
+    saved_public_base_url: str | None,
+    base_url: str,
+) -> Iterator[TestClient]:
+    database_path = tmp_path / "url-generation.sqlite3"
+    settings = Settings(
+        database_url=f"sqlite+pysqlite:///{database_path.as_posix()}",
+        session_secret="url-generation-session-secret",
+        encryption_key="url-generation-encryption-key",
+        google_oauth_redirect_path="/auth/google/callback",
+    )
+    engine = create_engine(
+        settings.database_url,
+        future=True,
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(engine)
+
+    with Session(engine) as session:
+        if saved_public_base_url is not None:
+            set_app_state(
+                session,
+                key="public_base_url",
+                value_text=saved_public_base_url,
+            )
+        session.commit()
+
+    app = create_app(settings=settings)
+
+    @app.get("/debug/external-url")
+    def debug_external_url(request: Request) -> dict[str, str]:
+        with Session(engine) as session:
+            public_base_url = resolve_public_base_url(
+                request,
+                session=session,
+                settings=settings,
+            )
+        return {
+            "url": build_external_url(
+                request,
+                "/healthz",
+                settings=settings,
+                public_base_url=public_base_url,
+            )
+        }
+
+    @app.get("/debug/google-callback-url")
+    def debug_google_callback_url(request: Request) -> dict[str, str]:
+        with Session(engine) as session:
+            public_base_url = resolve_public_base_url(
+                request,
+                session=session,
+                settings=settings,
+            )
+        return {
+            "url": build_google_callback_url(
+                request,
+                settings=settings,
+                public_base_url=public_base_url,
+            )
+        }
+
+    with TestClient(app, base_url=base_url) as client:
+        yield client

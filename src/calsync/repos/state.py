@@ -9,6 +9,15 @@ def get_app_state(session: Session, key: str) -> AppState | None:
     return session.get(AppState, key)
 
 
+def get_app_state_text(session: Session, key: str) -> str | None:
+    state = get_app_state(session, key)
+    if state is None or state.value_text is None:
+        return None
+
+    value = state.value_text.strip()
+    return value or None
+
+
 def require_app_state(session: Session, key: str) -> AppState:
     state = get_app_state(session, key)
     if state is None:
