@@ -74,6 +74,38 @@ def test_google_provider_settings_can_be_saved_from_admin_ui(tmp_path: Path) -> 
             assert decrypted_secret == "google-client-secret"
 
 
+def test_provider_settings_can_save_public_base_url(tmp_path: Path) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client, client.app.state.test_totp_secret)
+
+        response = client.post(
+            "/admin/providers/public-url",
+            data={"public_base_url": "https://calsync.neonbutterfly.net"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 303
+        assert response.headers["location"] == "/admin/providers?saved=public-url"
+
+        page = client.get("/admin/providers?saved=public-url")
+        assert "https://calsync.neonbutterfly.net" in page.text
+        assert "Public app URL saved." in page.text
+
+
+def test_provider_settings_rejects_invalid_public_base_url(tmp_path: Path) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client, client.app.state.test_totp_secret)
+
+        response = client.post(
+            "/admin/providers/public-url",
+            data={"public_base_url": "not-a-valid-url"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 400
+        assert "Public app URL must be a valid http or https URL." in response.text
+
+
 def test_provider_settings_page_requires_authenticated_admin(tmp_path: Path) -> None:
     with _build_client(tmp_path) as client:
         response = client.get("/admin/providers", follow_redirects=False)

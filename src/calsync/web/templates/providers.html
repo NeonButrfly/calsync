@@ -20,6 +20,26 @@
   {% endif %}
 
   <article class="panel">
+    <h2>Public App URL</h2>
+    <p class="subtle">
+      Set the canonical public URL for this deployment. Generated external links and Google OAuth callback previews use this value.
+    </p>
+    <form method="post" action="/admin/providers/public-url" class="stack">
+      <label>
+        Public app URL
+        <input type="text" name="public_base_url" value="{{ public_base_url_value }}" autocomplete="url" />
+      </label>
+      <button type="submit">Save Public App URL</button>
+    </form>
+    {% if public_base_url_source %}
+    <p class="subtle">
+      Current source:
+      <strong>{{ "Admin UI" if public_base_url_source == "database" else "Environment fallback" }}</strong>
+    </p>
+    {% endif %}
+  </article>
+
+  <article class="panel">
     <h2>Google OAuth App</h2>
     <p class="subtle">Store the shared Google OAuth client for all Google account connections.</p>
     <p><strong>Callback URL:</strong> {{ google_callback_url }}</p>

@@ -5,11 +5,17 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from calsync.config import build_google_callback_url, validate_google_callback_url
+from calsync.config import validate_google_callback_url
 from calsync.models import AdminUser
 from calsync.services.provider_config import (
     get_google_provider_configuration_snapshot,
     save_google_oauth_configuration,
+)
+from calsync.services.app_settings import (
+    build_google_callback_url,
+    get_configured_public_base_url,
+    get_saved_public_base_url,
+    save_public_base_url,
 )
 from calsync.web.deps import (
     get_db,
@@ -35,7 +41,11 @@ def provider_settings_page(
         session,
         templates,
         current_admin=current_admin,
-        success_message="Google OAuth app settings saved." if saved == "google" else None,
+        success_message=(
+            "Google OAuth app settings saved."
+            if saved == "google"
+            else "Public app URL saved." if saved == "public-url" else None
+        ),
     )
 
 
@@ -84,6 +94,30 @@ def save_google_provider_settings(
     return RedirectResponse(url="/admin/providers?saved=google", status_code=303)
 
 
+@router.post("/public-url")
+def save_public_provider_url(
+    request: Request,
+    public_base_url: str = Form(""),
+    session: Session = Depends(get_db),
+    templates: Jinja2Templates = Depends(get_templates),
+    current_admin: AdminUser = Depends(require_admin),
+):
+    try:
+        save_public_base_url(session, public_base_url)
+    except ValueError as exc:
+        return _render_provider_settings_page(
+            request,
+            session,
+            templates,
+            current_admin=current_admin,
+            error_message=str(exc),
+            status_code=400,
+        )
+
+    session.commit()
+    return RedirectResponse(url="/admin/providers?saved=public-url", status_code=303)
+
+
 def _render_provider_settings_page(
     request: Request,
     session: Session,
@@ -95,11 +129,17 @@ def _render_provider_settings_page(
     status_code: int = 200,
 ):
     settings = request.app.state.settings
+    saved_public_base_url = get_saved_public_base_url(session)
+    configured_public_base_url = get_configured_public_base_url(settings)
     google_snapshot = get_google_provider_configuration_snapshot(
         session,
         settings=settings,
     )
-    callback_url = build_google_callback_url(request, settings=settings)
+    callback_url = build_google_callback_url(
+        request,
+        session=session,
+        settings=settings,
+    )
     callback_error = validate_google_callback_url(callback_url)
     return templates.TemplateResponse(
         request,
@@ -108,6 +148,14 @@ def _render_provider_settings_page(
             "current_admin": current_admin,
             "error_message": error_message,
             "success_message": success_message,
+            "public_base_url_value": (
+                saved_public_base_url or configured_public_base_url or ""
+            ),
+            "public_base_url_source": (
+                "database"
+                if saved_public_base_url
+                else "environment" if configured_public_base_url else None
+            ),
             "google_client_id": google_snapshot["client_id"],
             "google_scopes": google_snapshot["scopes"],
             "google_has_secret": google_snapshot["has_secret"],
