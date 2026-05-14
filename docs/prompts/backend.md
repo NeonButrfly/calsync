@@ -86,3 +86,29 @@
 - Apple/iCloud accounts can be added directly in the admin UI with app-specific passwords
 - Google setup docs now explicitly explain that one Google OAuth web client can authorize multiple Google accounts, with separate consent per account and test-user requirements while the Google app remains in testing mode
 - successful Google and Apple account connections now route directly into calendar selection, and connected accounts expose a direct choose-calendars action
+
+---
+
+- GitHub issue: `#4`
+- Scope: public app URL management, domain-backed Google onboarding, and private flightboard view
+
+## Interpreted Requirements
+
+- admins should be able to save a canonical public app URL in the UI
+- Google account connection should use that saved HTTPS hostname when present
+- Google connect should remain available even when the admin browses from LAN or localhost, as long as the saved public URL is valid
+- generated external links should prefer the saved public URL
+- the app should provide a private scrolling flightboard-style view of enabled calendars
+
+## Behavioral Boundaries
+
+- the flightboard remains private and admin-only
+- no reverse proxy automation is added inside CalSync
+- no public anonymous board is introduced in this phase
+- provider access remains read-only
+
+## Phase Notes
+
+- issue `#4` uses `https://calsync.neonbutterfly.net` as the first real target hostname
+- Google callback messaging should explain the exact hostname that will be used
+- the flightboard view should read from the normalized local event store and only include enabled calendars
