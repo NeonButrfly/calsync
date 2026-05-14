@@ -123,6 +123,23 @@ def test_provider_settings_rejects_raw_lan_ip_public_base_url(tmp_path: Path) ->
         )
 
 
+def test_provider_settings_rejects_loopback_ip_public_base_url(tmp_path: Path) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client, client.app.state.test_totp_secret)
+
+        response = client.post(
+            "/admin/providers/public-url",
+            data={"public_base_url": "http://127.0.0.1:3080"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 400
+        assert (
+            "Public app URL must use localhost for local development or an HTTPS hostname for public use."
+            in response.text
+        )
+
+
 def test_provider_settings_rejects_non_https_hostname_public_base_url(
     tmp_path: Path,
 ) -> None:

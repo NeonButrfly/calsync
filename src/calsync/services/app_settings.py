@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 
 from fastapi import Request
 from pydantic import AnyHttpUrl, TypeAdapter, ValidationError
@@ -50,6 +51,9 @@ def save_public_base_url(session: Session, public_base_url: str) -> str | None:
         raise ValueError("Public app URL must be a valid http or https URL.") from exc
 
     persisted_public_base_url = str(validated_public_base_url).rstrip("/")
+    if urlsplit(persisted_public_base_url).hostname in {"127.0.0.1", "::1"}:
+        raise ValueError(PUBLIC_BASE_URL_REQUIREMENTS_MESSAGE)
+
     callback_validation_error = validate_google_callback_url(
         join_url(persisted_public_base_url, "/auth/google/callback")
     )
