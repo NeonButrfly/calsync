@@ -26,6 +26,10 @@
     {% if google_callback_error %}
     <p>{{ google_callback_error }}</p>
     {% endif %}
+    <p class="subtle">
+      One Google Cloud web OAuth client can be reused for multiple Google accounts in this CalSync deployment.
+      After you save the shared client here, go to the Accounts page and connect each Google account separately.
+    </p>
     <form method="post" action="/admin/providers/google" class="stack">
       <label>
         Google OAuth client ID
@@ -47,6 +51,11 @@
     <p class="subtle">
       Current source:
       <strong>{{ "Admin UI" if google_source == "database" else "Environment fallback" }}</strong>
+    </p>
+    <p class="subtle">
+      If your Google app is set to <strong>External</strong> and still in testing mode, every Google account you want
+      to connect must be listed as a test user in Google Auth Platform before it can authorize
+      <code>calendar.readonly</code>.
     </p>
   </article>
 

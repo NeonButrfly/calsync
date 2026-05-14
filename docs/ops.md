@@ -37,6 +37,31 @@ Normal operator flow:
 4. open `/admin/accounts`
 5. connect one or more Google accounts
 
+Google Cloud setup checklist for multiple accounts:
+
+1. create or choose one Google Cloud project for this CalSync deployment
+2. enable the Google Calendar API
+3. open `Google Auth Platform`
+4. complete `Branding` with app name, support email, and contact email
+5. choose the right `Audience`
+   - use `External` for personal Gmail accounts or a mix of Google accounts
+   - use `Internal` only when all accounts belong to the same Google Workspace organization
+6. if the app is `External` and still in testing mode, add every Google account you want to connect under `Test users`
+7. in `Data Access`, add:
+   - `openid`
+   - `email`
+   - `profile`
+   - `https://www.googleapis.com/auth/calendar.readonly`
+8. in `Clients`, create a `Web application` OAuth client
+9. add the redirect URI shown by CalSync on `/admin/providers`
+10. paste that client ID and client secret into CalSync once, then connect each Google account separately from `/admin/accounts`
+
+Operational note:
+
+- one Google OAuth web client is enough for multiple connected Google accounts in the same CalSync deployment
+- each Google account still has to complete its own consent flow
+- if Google shows a testing or unverified-app restriction, check the Google Auth Platform `Audience` and `Test users` settings first
+
 Redirect URI examples:
 
 - `http://localhost:3080/auth/google/callback`

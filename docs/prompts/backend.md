@@ -84,3 +84,4 @@
 - issue `#3` is now implemented in the app
 - Google deployment credentials can be managed in the admin UI with environment fallback available for bootstrap
 - Apple/iCloud accounts can be added directly in the admin UI with app-specific passwords
+- Google setup docs now explicitly explain that one Google OAuth web client can authorize multiple Google accounts, with separate consent per account and test-user requirements while the Google app remains in testing mode

@@ -148,6 +148,30 @@ Google OAuth setup requires:
 - saving the Google client ID and secret in `Provider Settings` inside the admin UI
 - adding the CalSync callback URL derived from `PUBLIC_BASE_URL` or the request origin
 
+Recommended Google Auth Platform setup:
+
+1. In Google Cloud, open `Google Auth Platform`.
+2. Configure `Branding` with an app name, support email, and contact email.
+3. In `Audience`, choose:
+   - `External` if you want to connect personal Gmail accounts or multiple unrelated Google accounts
+   - `Internal` only if every Google account you will connect belongs to the same Google Workspace organization
+4. If you use `External` while the app is still in testing mode, add every Google account you plan to connect as a test user.
+5. In `Data Access`, add only the scopes CalSync needs:
+   - `openid`
+   - `email`
+   - `profile`
+   - `https://www.googleapis.com/auth/calendar.readonly`
+6. In `Clients`, create a `Web application` OAuth client.
+7. Add the CalSync redirect URI shown on the Provider Settings page.
+8. Save the client ID and client secret into CalSync at `/admin/providers`.
+
+How multiple Google accounts work:
+
+- You only need one Google Cloud project and one OAuth web client for this CalSync deployment.
+- That one OAuth client can be reused to connect multiple Google accounts.
+- Each Google account still has to go through its own consent flow from `/admin/accounts`.
+- CalSync stores each connected Google account separately after the user authorizes it.
+
 Optional bootstrap fallback:
 
 - operators may still set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`
@@ -167,6 +191,7 @@ Practical meaning:
 - The CalSync app itself still works on `http://SERVER-IP:3080` for normal LAN access.
 - Google account connection works on `http://localhost:3080` when you complete the OAuth flow on the server machine itself.
 - For remote browser-based Google account connection, configure `PUBLIC_BASE_URL` to an HTTPS hostname or domain that is registered with Google.
+- If your Google app is still in testing mode and requests `calendar.readonly`, every Google account you want to connect must be added as a test user first.
 
 The Google integration is read-only and requests:
 
