@@ -6,11 +6,6 @@ from fastapi import Request
 from pydantic import AnyHttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from calsync.services.app_settings import (
-    get_configured_public_base_url,
-    resolve_public_base_url,
-)
-
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -48,10 +43,10 @@ def build_external_url(
     public_base_url: str | None = None,
 ) -> str:
     resolved_settings = settings or get_settings()
-    base_url = public_base_url or resolve_public_base_url(
+    base_url = _resolve_public_base_url(
         request,
-        session=None,
         settings=resolved_settings,
+        public_base_url=public_base_url,
     )
     return join_url(base_url, path)
 
@@ -64,10 +59,9 @@ def build_google_callback_url(
 ) -> str:
     resolved_settings = settings or get_settings()
     request_base_url = str(request.base_url)
-    resolved_public_base_url = public_base_url or resolve_public_base_url(
-        request,
-        session=None,
-        settings=resolved_settings,
+    resolved_public_base_url = _resolve_configured_public_base_url(
+        resolved_settings,
+        public_base_url=public_base_url,
     )
     if resolved_public_base_url:
         public_callback_url = build_google_callback_url_from_base(
@@ -150,8 +144,9 @@ def build_healthcheck_url(
     public_base_url: str | None = None,
 ) -> str:
     resolved_settings = settings or get_settings()
-    resolved_public_base_url = public_base_url or get_configured_public_base_url(
-        resolved_settings
+    resolved_public_base_url = _resolve_configured_public_base_url(
+        resolved_settings,
+        public_base_url=public_base_url,
     )
     if resolved_public_base_url:
         return join_url(resolved_public_base_url, "/healthz")
@@ -192,3 +187,27 @@ def _is_ip_address(hostname: str) -> bool:
 
 def _is_localhost_hostname(hostname: str) -> bool:
     return hostname in {"localhost", "127.0.0.1", "::1"}
+
+
+def _resolve_public_base_url(
+    request: Request,
+    *,
+    settings: Settings,
+    public_base_url: str | None,
+) -> str:
+    return _resolve_configured_public_base_url(
+        settings,
+        public_base_url=public_base_url,
+    ) or str(request.base_url)
+
+
+def _resolve_configured_public_base_url(
+    settings: Settings,
+    *,
+    public_base_url: str | None,
+) -> str | None:
+    if public_base_url:
+        return public_base_url
+    if settings.public_base_url:
+        return str(settings.public_base_url)
+    return None

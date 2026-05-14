@@ -38,3 +38,47 @@ def resolve_public_base_url(
     if configured_public_url:
         return configured_public_url
     return str(request.base_url)
+
+
+def build_external_url(
+    request: Request,
+    path: str,
+    *,
+    session: Session | None,
+    settings: Settings,
+) -> str:
+    from calsync.config import build_external_url as build_config_external_url
+
+    public_base_url = resolve_public_base_url(
+        request,
+        session=session,
+        settings=settings,
+    )
+    return build_config_external_url(
+        request,
+        path,
+        settings=settings,
+        public_base_url=public_base_url,
+    )
+
+
+def build_google_callback_url(
+    request: Request,
+    *,
+    session: Session | None,
+    settings: Settings,
+) -> str:
+    from calsync.config import (
+        build_google_callback_url as build_config_google_callback_url,
+    )
+
+    public_base_url = resolve_public_base_url(
+        request,
+        session=session,
+        settings=settings,
+    )
+    return build_config_google_callback_url(
+        request,
+        settings=settings,
+        public_base_url=public_base_url,
+    )

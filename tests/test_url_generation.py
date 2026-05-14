@@ -1,8 +1,8 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
+import importlib
 
-import calsync.config as config_module
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -77,42 +77,70 @@ def test_public_base_url_overrides_request_origin() -> None:
     }
 
 
-def test_build_external_url_uses_shared_resolution_service(monkeypatch) -> None:
-    settings = Settings()
-    app = FastAPI()
+def test_debug_external_url_uses_production_service_builder(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    app_settings = importlib.import_module("calsync.services.app_settings")
 
-    def fake_resolve_public_base_url(
+    def fake_build_external_url(
         request: Request,
+        path: str,
         *,
-        session,
+        session: Session | None,
         settings: Settings,
     ) -> str:
-        return "https://calendar.example.com/shared"
+        return "https://calendar.example.com/from-service/healthz"
 
     monkeypatch.setattr(
-        config_module,
-        "resolve_public_base_url",
-        fake_resolve_public_base_url,
+        app_settings,
+        "build_external_url",
+        fake_build_external_url,
         raising=False,
     )
 
-    @app.get("/external-url")
-    def external_url(request: Request) -> dict[str, str]:
-        return {
-            "url": build_external_url(
-                request,
-                "/healthz",
-                settings=settings,
-            )
-        }
+    with _build_client_with_state(
+        tmp_path,
+        saved_public_base_url="https://calsync.neonbutterfly.net",
+        base_url="http://192.168.50.232:3080",
+    ) as client:
+        response = client.get("/debug/external-url")
 
-    client = TestClient(app, base_url="http://internal.service.local:9999")
-
-    response = client.get("/external-url")
-
-    assert response.status_code == 200
     assert response.json() == {
-        "url": "https://calendar.example.com/shared/healthz"
+        "url": "https://calendar.example.com/from-service/healthz"
+    }
+
+
+def test_debug_google_callback_url_uses_production_service_builder(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    app_settings = importlib.import_module("calsync.services.app_settings")
+
+    def fake_build_google_callback_url(
+        request: Request,
+        *,
+        session: Session | None,
+        settings: Settings,
+    ) -> str:
+        return "https://calendar.example.com/from-service/auth/google/callback"
+
+    monkeypatch.setattr(
+        app_settings,
+        "build_google_callback_url",
+        fake_build_google_callback_url,
+        raising=False,
+    )
+
+    with _build_client_with_state(
+        tmp_path,
+        saved_public_base_url="https://calsync.neonbutterfly.net",
+        base_url="http://192.168.50.232:3080",
+    ) as client:
+        response = client.get("/debug/google-callback-url")
+
+    assert response.json() == {
+        "url": "https://calendar.example.com/from-service/auth/google/callback"
     }
 
 
@@ -294,51 +322,58 @@ def _build_client_with_state(
     @app.get("/debug/external-url")
     def debug_external_url(request: Request) -> dict[str, str]:
         with Session(engine) as session:
-            public_base_url = _resolve_public_base_url_via_service(
+            url = _build_external_url_via_service(
                 request,
+                "/healthz",
                 session=session,
                 settings=settings,
             )
-        return {
-            "url": build_external_url(
-                request,
-                "/healthz",
-                settings=settings,
-                public_base_url=public_base_url,
-            )
-        }
+        return {"url": url}
 
     @app.get("/debug/google-callback-url")
     def debug_google_callback_url(request: Request) -> dict[str, str]:
         with Session(engine) as session:
-            public_base_url = _resolve_public_base_url_via_service(
+            url = _build_google_callback_url_via_service(
                 request,
                 session=session,
                 settings=settings,
             )
-        return {
-            "url": build_google_callback_url(
-                request,
-                settings=settings,
-                public_base_url=public_base_url,
-            )
-        }
+        return {"url": url}
 
     with TestClient(app, base_url=base_url) as client:
         yield client
 
 
-def _resolve_public_base_url_via_service(
+def _build_external_url_via_service(
+    request: Request,
+    path: str,
+    *,
+    session: Session,
+    settings: Settings,
+) -> str:
+    from calsync.services.app_settings import (
+        build_external_url as service_build_external_url,
+    )
+
+    return service_build_external_url(
+        request,
+        path,
+        session=session,
+        settings=settings,
+    )
+
+
+def _build_google_callback_url_via_service(
     request: Request,
     *,
     session: Session,
     settings: Settings,
 ) -> str:
     from calsync.services.app_settings import (
-        resolve_public_base_url as service_resolve_public_base_url,
+        build_google_callback_url as service_build_google_callback_url,
     )
 
-    return service_resolve_public_base_url(
+    return service_build_google_callback_url(
         request,
         session=session,
         settings=settings,
