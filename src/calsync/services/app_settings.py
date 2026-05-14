@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from fastapi import Request
 from sqlalchemy.orm import Session
 
-from calsync.config import Settings
 from calsync.repos.state import get_app_state_text
+
+
+if TYPE_CHECKING:
+    from calsync.config import Settings
 
 
 PUBLIC_BASE_URL_STATE_KEY = "public_base_url"
@@ -12,6 +17,12 @@ PUBLIC_BASE_URL_STATE_KEY = "public_base_url"
 
 def get_saved_public_base_url(session: Session) -> str | None:
     return get_app_state_text(session, PUBLIC_BASE_URL_STATE_KEY)
+
+
+def get_configured_public_base_url(settings: Settings) -> str | None:
+    if settings.public_base_url:
+        return str(settings.public_base_url)
+    return None
 
 
 def resolve_public_base_url(
@@ -23,6 +34,7 @@ def resolve_public_base_url(
     saved_public_url = get_saved_public_base_url(session) if session is not None else None
     if saved_public_url:
         return saved_public_url
-    if settings.public_base_url:
-        return str(settings.public_base_url)
+    configured_public_url = get_configured_public_base_url(settings)
+    if configured_public_url:
+        return configured_public_url
     return str(request.base_url)

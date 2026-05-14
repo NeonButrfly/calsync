@@ -2,6 +2,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+import calsync.config as config_module
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -17,7 +18,7 @@ from calsync.config import (
 from calsync.db import get_db_session
 from calsync.main import create_app
 from calsync.models import Base
-from calsync.repos.state import get_app_state, set_app_state
+from calsync.repos.state import set_app_state
 
 
 def test_settings_default_app_host(monkeypatch) -> None:
@@ -73,6 +74,45 @@ def test_public_base_url_overrides_request_origin() -> None:
     assert response.status_code == 200
     assert response.json() == {
         "url": "https://calendar.example.com/base/healthz"
+    }
+
+
+def test_build_external_url_uses_shared_resolution_service(monkeypatch) -> None:
+    settings = Settings()
+    app = FastAPI()
+
+    def fake_resolve_public_base_url(
+        request: Request,
+        *,
+        session,
+        settings: Settings,
+    ) -> str:
+        return "https://calendar.example.com/shared"
+
+    monkeypatch.setattr(
+        config_module,
+        "resolve_public_base_url",
+        fake_resolve_public_base_url,
+        raising=False,
+    )
+
+    @app.get("/external-url")
+    def external_url(request: Request) -> dict[str, str]:
+        return {
+            "url": build_external_url(
+                request,
+                "/healthz",
+                settings=settings,
+            )
+        }
+
+    client = TestClient(app, base_url="http://internal.service.local:9999")
+
+    response = client.get("/external-url")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "url": "https://calendar.example.com/shared/healthz"
     }
 
 
@@ -254,8 +294,10 @@ def _build_client_with_state(
     @app.get("/debug/external-url")
     def debug_external_url(request: Request) -> dict[str, str]:
         with Session(engine) as session:
-            public_base_url = _get_saved_public_base_url(session) or str(
-                settings.public_base_url or request.base_url
+            public_base_url = _resolve_public_base_url_via_service(
+                request,
+                session=session,
+                settings=settings,
             )
         return {
             "url": build_external_url(
@@ -269,8 +311,10 @@ def _build_client_with_state(
     @app.get("/debug/google-callback-url")
     def debug_google_callback_url(request: Request) -> dict[str, str]:
         with Session(engine) as session:
-            public_base_url = _get_saved_public_base_url(session) or str(
-                settings.public_base_url or request.base_url
+            public_base_url = _resolve_public_base_url_via_service(
+                request,
+                session=session,
+                settings=settings,
             )
         return {
             "url": build_google_callback_url(
@@ -284,10 +328,18 @@ def _build_client_with_state(
         yield client
 
 
-def _get_saved_public_base_url(session: Session) -> str | None:
-    state = get_app_state(session, "public_base_url")
-    if state is None or state.value_text is None:
-        return None
+def _resolve_public_base_url_via_service(
+    request: Request,
+    *,
+    session: Session,
+    settings: Settings,
+) -> str:
+    from calsync.services.app_settings import (
+        resolve_public_base_url as service_resolve_public_base_url,
+    )
 
-    value = state.value_text.strip()
-    return value or None
+    return service_resolve_public_base_url(
+        request,
+        session=session,
+        settings=settings,
+    )
