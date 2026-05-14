@@ -17,8 +17,7 @@ from calsync.config import (
 from calsync.db import get_db_session
 from calsync.main import create_app
 from calsync.models import Base
-from calsync.repos.state import set_app_state
-from calsync.services.app_settings import resolve_public_base_url
+from calsync.repos.state import get_app_state, set_app_state
 
 
 def test_settings_default_app_host(monkeypatch) -> None:
@@ -255,10 +254,8 @@ def _build_client_with_state(
     @app.get("/debug/external-url")
     def debug_external_url(request: Request) -> dict[str, str]:
         with Session(engine) as session:
-            public_base_url = resolve_public_base_url(
-                request,
-                session=session,
-                settings=settings,
+            public_base_url = _get_saved_public_base_url(session) or str(
+                settings.public_base_url or request.base_url
             )
         return {
             "url": build_external_url(
@@ -272,10 +269,8 @@ def _build_client_with_state(
     @app.get("/debug/google-callback-url")
     def debug_google_callback_url(request: Request) -> dict[str, str]:
         with Session(engine) as session:
-            public_base_url = resolve_public_base_url(
-                request,
-                session=session,
-                settings=settings,
+            public_base_url = _get_saved_public_base_url(session) or str(
+                settings.public_base_url or request.base_url
             )
         return {
             "url": build_google_callback_url(
@@ -287,3 +282,12 @@ def _build_client_with_state(
 
     with TestClient(app, base_url=base_url) as client:
         yield client
+
+
+def _get_saved_public_base_url(session: Session) -> str | None:
+    state = get_app_state(session, "public_base_url")
+    if state is None or state.value_text is None:
+        return None
+
+    value = state.value_text.strip()
+    return value or None
