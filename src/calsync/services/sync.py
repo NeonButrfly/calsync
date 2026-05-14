@@ -22,7 +22,7 @@ def discover_calendars(
     settings: Settings | None = None,
 ) -> list[ProviderCalendar]:
     account = require_provider_account(session, account_pk)
-    adapter = get_provider_adapter(account.provider_type, settings=settings)
+    adapter = get_provider_adapter(account.provider_type, settings=settings, session=session)
     discovered_calendars = adapter.discover_calendars(account)
 
     calendars = [
@@ -52,7 +52,7 @@ def sync_account(
     settings: Settings | None = None,
 ) -> SyncLog:
     account = require_provider_account(session, account_pk)
-    adapter = get_provider_adapter(account.provider_type, settings=settings)
+    adapter = get_provider_adapter(account.provider_type, settings=settings, session=session)
 
     with begin_sync_run(session, account=account, trigger=trigger) as sync_run:
         discover_calendars(session, account_pk, settings=settings)

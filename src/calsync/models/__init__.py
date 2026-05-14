@@ -21,6 +21,7 @@ class Base(DeclarativeBase):
 from .admin import AdminUser
 from .app_state import AppState
 from .events import Event
+from .provider_configurations import ProviderConfiguration
 from .providers import ProviderAccount, ProviderCalendar, SyncLog
 from .publishing import PublishedFeed
 
@@ -29,6 +30,7 @@ __all__ = [
     "AppState",
     "Base",
     "Event",
+    "ProviderConfiguration",
     "ProviderAccount",
     "ProviderCalendar",
     "PublishedFeed",

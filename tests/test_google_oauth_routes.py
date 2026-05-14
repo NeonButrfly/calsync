@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from calsync.config import Settings
 from calsync.main import create_app
 from calsync.models import Base, ProviderAccount, ProviderCalendar
+from calsync.services.provider_config import save_google_oauth_configuration
 from calsync.repos.state import set_app_state
 from calsync.repos.users import create_admin_user
 from calsync.services.auth import (
@@ -28,24 +29,26 @@ ENCRYPTION_KEY = "phase2-google-route-key"
 
 @pytest.fixture()
 def localhost_client(tmp_path: Path) -> TestClient:
-    yield from _build_client(
+    with _build_client(
         tmp_path,
         public_base_url=None,
         google_client_id="google-client-id",
         google_client_secret="google-client-secret",
         base_url="http://localhost:3080",
-    )
+    ) as client:
+        yield client
 
 
 @pytest.fixture()
 def lan_ip_client(tmp_path: Path) -> TestClient:
-    yield from _build_client(
+    with _build_client(
         tmp_path,
         public_base_url=None,
         google_client_id="google-client-id",
         google_client_secret="google-client-secret",
         base_url="http://192.168.50.232:3080",
-    )
+    ) as client:
+        yield client
 
 
 def _build_client(
@@ -55,6 +58,7 @@ def _build_client(
     google_client_id: str | None,
     google_client_secret: str | None,
     base_url: str,
+    seed_provider_settings: bool = False,
 ) -> TestClient:
     database_path = tmp_path / "google-oauth-routes.sqlite3"
     settings = Settings(
@@ -89,13 +93,24 @@ def _build_client(
         )
         admin_user.mfa_enrolled = True
         store_recovery_codes(session, admin_user, generate_recovery_codes(count=2))
+        if seed_provider_settings:
+            save_google_oauth_configuration(
+                session,
+                client_id="google-client-id",
+                client_secret="google-client-secret",
+                scopes=(
+                    "openid,email,profile,"
+                    "https://www.googleapis.com/auth/calendar.readonly"
+                ),
+                encryption_key=ENCRYPTION_KEY,
+            )
         session.commit()
 
     app = create_app(settings)
     app.state.test_totp_secret = totp_secret
-    with TestClient(app, base_url=base_url) as client:
-        _login(client, totp_secret)
-        yield client
+    client = TestClient(app, base_url=base_url)
+    _login(client, totp_secret)
+    return client
 
 
 def _login(client: TestClient, totp_secret: str) -> None:
@@ -123,136 +138,177 @@ def test_google_start_blocks_raw_ip_callback_origin(
     assert "raw IP addresses" in response.text
 
 
-def test_google_start_redirects_to_google_when_callback_is_compatible(
-    localhost_client: TestClient,
+def test_google_start_reports_missing_provider_settings(
+    tmp_path: Path,
 ) -> None:
-    response = localhost_client.get("/auth/google/start", follow_redirects=False)
+    with _build_client(
+        tmp_path,
+        public_base_url=None,
+        google_client_id=None,
+        google_client_secret=None,
+        base_url="http://localhost:3080",
+        seed_provider_settings=False,
+    ) as client:
+        response = client.get("/auth/google/start")
 
-    assert response.status_code == 303
-    parsed = urlsplit(response.headers["location"])
-    query = parse_qs(parsed.query)
-    assert parsed.netloc == "accounts.google.com"
-    assert query["redirect_uri"] == ["http://localhost:3080/auth/google/callback"]
-    assert query["state"]
+    assert response.status_code == 400
+    assert "Provider Settings" in response.text
+
+
+def test_google_start_redirects_to_google_when_callback_is_compatible(
+    tmp_path: Path,
+) -> None:
+    with _build_client(
+        tmp_path,
+        public_base_url=None,
+        google_client_id=None,
+        google_client_secret=None,
+        base_url="http://localhost:3080",
+        seed_provider_settings=True,
+    ) as localhost_client:
+        response = localhost_client.get("/auth/google/start", follow_redirects=False)
+
+        assert response.status_code == 303
+        parsed = urlsplit(response.headers["location"])
+        query = parse_qs(parsed.query)
+        assert parsed.netloc == "accounts.google.com"
+        assert query["redirect_uri"] == ["http://localhost:3080/auth/google/callback"]
+        assert query["state"]
 
 
 def test_google_callback_persists_account_and_discovers_calendars(
-    localhost_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
-    start_response = localhost_client.get("/auth/google/start", follow_redirects=False)
-    assert start_response.status_code == 303
-    state = parse_qs(urlsplit(start_response.headers["location"]).query)["state"][0]
+    with _build_client(
+        tmp_path,
+        public_base_url=None,
+        google_client_id=None,
+        google_client_secret=None,
+        base_url="http://localhost:3080",
+        seed_provider_settings=True,
+    ) as localhost_client:
+        start_response = localhost_client.get("/auth/google/start", follow_redirects=False)
+        assert start_response.status_code == 303
+        state = parse_qs(urlsplit(start_response.headers["location"]).query)["state"][0]
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        if request.url == httpx.URL("https://oauth2.googleapis.com/token"):
-            return httpx.Response(
-                200,
-                json={
-                    "access_token": "access-token",
-                    "refresh_token": "refresh-token",
-                    "expires_in": 3600,
-                    "scope": "openid email profile https://www.googleapis.com/auth/calendar.readonly",
-                },
-                request=request,
-            )
-        if request.url == httpx.URL("https://openidconnect.googleapis.com/v1/userinfo"):
-            return httpx.Response(
-                200,
-                json={
-                    "sub": "google-sub",
-                    "email": "owner@example.com",
-                    "name": "Owner",
-                },
-                request=request,
-            )
-        if request.url.path == "/calendar/v3/users/me/calendarList":
-            return httpx.Response(
-                200,
-                json={
-                    "items": [
-                        {
-                            "id": "primary",
-                            "summary": "Primary",
-                            "timeZone": "America/Anchorage",
-                            "accessRole": "owner",
-                            "selected": True,
-                        }
-                    ],
-                    "nextSyncToken": "calendar-sync-token",
-                },
-                request=request,
-            )
-        raise AssertionError(f"Unexpected request: {request.method} {request.url}")
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url == httpx.URL("https://oauth2.googleapis.com/token"):
+                return httpx.Response(
+                    200,
+                    json={
+                        "access_token": "access-token",
+                        "refresh_token": "refresh-token",
+                        "expires_in": 3600,
+                        "scope": "openid email profile https://www.googleapis.com/auth/calendar.readonly",
+                    },
+                    request=request,
+                )
+            if request.url == httpx.URL("https://openidconnect.googleapis.com/v1/userinfo"):
+                return httpx.Response(
+                    200,
+                    json={
+                        "sub": "google-sub",
+                        "email": "owner@example.com",
+                        "name": "Owner",
+                    },
+                    request=request,
+                )
+            if request.url.path == "/calendar/v3/users/me/calendarList":
+                return httpx.Response(
+                    200,
+                    json={
+                        "items": [
+                            {
+                                "id": "primary",
+                                "summary": "Primary",
+                                "timeZone": "America/Anchorage",
+                                "accessRole": "owner",
+                                "selected": True,
+                            }
+                        ],
+                        "nextSyncToken": "calendar-sync-token",
+                    },
+                    request=request,
+                )
+            raise AssertionError(f"Unexpected request: {request.method} {request.url}")
 
-    monkeypatch.setattr(
-        "calsync.services.providers.google._build_http_client",
-        lambda: httpx.Client(transport=httpx.MockTransport(handler)),
-    )
-
-    callback_response = localhost_client.get(
-        f"/auth/google/callback?state={state}&code=google-code",
-        follow_redirects=False,
-    )
-
-    assert callback_response.status_code == 303
-    assert callback_response.headers["location"] == "/admin/accounts"
-
-    with _db_session(localhost_client) as session:
-        account = session.scalar(
-            select(ProviderAccount).where(ProviderAccount.provider_type == "google")
+        monkeypatch.setattr(
+            "calsync.services.providers.google._build_http_client",
+            lambda: httpx.Client(transport=httpx.MockTransport(handler)),
         )
-        assert account is not None
-        assert account.display_name == "owner@example.com"
-        assert account.provider_metadata is not None
-        calendar = session.scalar(
-            select(ProviderCalendar).where(
-                ProviderCalendar.provider_account_pk == account.id
-            )
+
+        callback_response = localhost_client.get(
+            f"/auth/google/callback?state={state}&code=google-code",
+            follow_redirects=False,
         )
-        assert calendar is not None
-        assert calendar.provider_calendar_id == "primary"
-        assert calendar.enabled is False
+
+        assert callback_response.status_code == 303
+        assert callback_response.headers["location"] == "/admin/accounts"
+
+        with _db_session(localhost_client) as session:
+            account = session.scalar(
+                select(ProviderAccount).where(ProviderAccount.provider_type == "google")
+            )
+            assert account is not None
+            assert account.display_name == "owner@example.com"
+            assert account.provider_metadata is not None
+            calendar = session.scalar(
+                select(ProviderCalendar).where(
+                    ProviderCalendar.provider_account_pk == account.id
+                )
+            )
+            assert calendar is not None
+            assert calendar.provider_calendar_id == "primary"
+            assert calendar.enabled is False
 
 
 def test_google_callback_reports_missing_refresh_token_for_new_account(
-    localhost_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
-    start_response = localhost_client.get("/auth/google/start", follow_redirects=False)
-    assert start_response.status_code == 303
-    state = parse_qs(urlsplit(start_response.headers["location"]).query)["state"][0]
+    with _build_client(
+        tmp_path,
+        public_base_url=None,
+        google_client_id=None,
+        google_client_secret=None,
+        base_url="http://localhost:3080",
+        seed_provider_settings=True,
+    ) as localhost_client:
+        start_response = localhost_client.get("/auth/google/start", follow_redirects=False)
+        assert start_response.status_code == 303
+        state = parse_qs(urlsplit(start_response.headers["location"]).query)["state"][0]
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        if request.url == httpx.URL("https://oauth2.googleapis.com/token"):
-            return httpx.Response(
-                200,
-                json={
-                    "access_token": "access-token",
-                    "expires_in": 3600,
-                    "scope": "openid email profile https://www.googleapis.com/auth/calendar.readonly",
-                },
-                request=request,
-            )
-        if request.url == httpx.URL("https://openidconnect.googleapis.com/v1/userinfo"):
-            return httpx.Response(
-                200,
-                json={"sub": "google-sub", "email": "owner@example.com"},
-                request=request,
-            )
-        raise AssertionError(f"Unexpected request: {request.method} {request.url}")
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url == httpx.URL("https://oauth2.googleapis.com/token"):
+                return httpx.Response(
+                    200,
+                    json={
+                        "access_token": "access-token",
+                        "expires_in": 3600,
+                        "scope": "openid email profile https://www.googleapis.com/auth/calendar.readonly",
+                    },
+                    request=request,
+                )
+            if request.url == httpx.URL("https://openidconnect.googleapis.com/v1/userinfo"):
+                return httpx.Response(
+                    200,
+                    json={"sub": "google-sub", "email": "owner@example.com"},
+                    request=request,
+                )
+            raise AssertionError(f"Unexpected request: {request.method} {request.url}")
 
-    monkeypatch.setattr(
-        "calsync.services.providers.google._build_http_client",
-        lambda: httpx.Client(transport=httpx.MockTransport(handler)),
-    )
+        monkeypatch.setattr(
+            "calsync.services.providers.google._build_http_client",
+            lambda: httpx.Client(transport=httpx.MockTransport(handler)),
+        )
 
-    callback_response = localhost_client.get(
-        f"/auth/google/callback?state={state}&code=google-code"
-    )
+        callback_response = localhost_client.get(
+            f"/auth/google/callback?state={state}&code=google-code"
+        )
 
-    assert callback_response.status_code == 400
-    assert "refresh token" in callback_response.text
+        assert callback_response.status_code == 400
+        assert "refresh token" in callback_response.text
 
 
 def _db_session(client: TestClient) -> Session:

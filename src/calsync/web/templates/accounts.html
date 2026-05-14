@@ -13,11 +13,17 @@
   {% endif %}
 
   <article class="panel">
-    <h2>Google Calendar</h2>
-    <p class="subtle">Read-only OAuth connection for Google Calendar accounts.</p>
+    <h2>Provider Settings</h2>
+    <p class="subtle">Configure the shared Google OAuth app before connecting Google accounts.</p>
+    <p><a href="{{ google_settings_url }}">Open Provider Settings</a></p>
+  </article>
+
+  <article class="panel">
+    <h2>Google Calendar Accounts</h2>
+    <p class="subtle">Read-only OAuth connection for one or more Google Calendar accounts.</p>
     <p><strong>Callback URL:</strong> {{ google_callback_url }}</p>
     {% if not google_configured %}
-    <p>Google OAuth is not configured yet. Set the server-side Google client ID and secret first.</p>
+    <p>Google OAuth is not configured yet. Add the Google client ID and secret on the Provider Settings page first.</p>
     {% elif google_callback_error %}
     <p>{{ google_callback_error }}</p>
     {% else %}
@@ -29,6 +35,26 @@
       <button type="submit">Reconnect Google With Consent</button>
     </form>
     {% endif %}
+  </article>
+
+  <article class="panel">
+    <h2>Add Apple/iCloud Account</h2>
+    <p class="subtle">Use your Apple ID username or email together with an app-specific password.</p>
+    <form method="post" action="/admin/accounts/icloud/connect" class="stack">
+      <label>
+        Account label
+        <input type="text" name="label" placeholder="Personal iCloud" />
+      </label>
+      <label>
+        Apple ID username or email
+        <input type="text" name="username" autocomplete="username" />
+      </label>
+      <label>
+        App-specific password
+        <input type="password" name="app_password" autocomplete="new-password" />
+      </label>
+      <button type="submit">Add Apple/iCloud Account</button>
+    </form>
   </article>
 
   <article class="panel">
@@ -51,17 +77,15 @@
         </tr>
       </thead>
       <tbody>
-        {% for account in accounts %}
-        {% set metadata = account.provider_metadata or {} %}
+        {% for account in account_rows %}
         <tr>
-          <td>{{ account.provider_type }}</td>
-          <td>{{ account.display_name or account.provider_account_id }}</td>
-          <td>{{ account.calendars|length }}</td>
+          <td>{{ account.provider_name }}</td>
+          <td>{{ account.account_name }}</td>
+          <td>{{ account.calendar_count }}</td>
           <td>
-            {% if metadata.get("google_reconnect_required") %}
-            Reconnect required
-            {% else %}
-            {{ metadata.get("google_auth_status") or "Connected" }}
+            {{ account.status }}
+            {% if account.last_error %}
+            <div class="subtle">{{ account.last_error }}</div>
             {% endif %}
           </td>
         </tr>

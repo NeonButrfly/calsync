@@ -35,7 +35,7 @@
 ## Interpreted Requirements
 
 - add Google account connection through a browser-based OAuth flow
-- keep Google OAuth client credentials in server configuration, not the admin UI
+- initially keep Google OAuth client credentials in server configuration before broader onboarding changes
 - preserve the existing Dockerized FastAPI/Postgres/worker foundation
 - import Google calendars and events read-only into the local normalized store
 - keep combined calendar views and ICS feeds powered from local normalized data
@@ -53,7 +53,7 @@
 
 - Google OAuth is Phase 2 and is tracked in issue `#2`
 - browser-based OAuth is supported in this phase; manual headless completion is deferred
-- server-configured credentials are the only supported credential source in this phase
+- server-configured credentials were the first supported credential source in this phase
 - localhost and HTTPS-hostname callbacks are valid; raw LAN IP callbacks are a documented Google limitation
 - the connected-accounts admin page now exposes mock and Google onboarding paths
 
@@ -81,3 +81,6 @@
 
 - issue `#3` supersedes the earlier server-config-only Google credential assumption for future onboarding work
 - the onboarding model is now provider settings -> connected accounts -> discovered calendars
+- issue `#3` is now implemented in the app
+- Google deployment credentials can be managed in the admin UI with environment fallback available for bootstrap
+- Apple/iCloud accounts can be added directly in the admin UI with app-specific passwords

@@ -4,7 +4,7 @@
 
 1. Copy `.env.example` to `.env`
 2. Set `SESSION_SECRET` and `ENCRYPTION_KEY`
-3. Review `APP_HOST`, `APP_PORT`, `PUBLIC_BASE_URL`, and any Google OAuth settings
+3. Review `APP_HOST`, `APP_PORT`, `PUBLIC_BASE_URL`, and the provider onboarding plan for Google and Apple accounts
 4. Run `docker compose up --build`
 
 For local rebuilds:
@@ -22,12 +22,20 @@ docker compose ps
 
 ## Google OAuth Operator Notes
 
-Set these values in `.env` before using Google account connection:
+Set these values in `.env` only if you want bootstrap fallback credentials before signing in to the admin UI:
 
 - `GOOGLE_OAUTH_CLIENT_ID`
 - `GOOGLE_OAUTH_CLIENT_SECRET`
 - optional `GOOGLE_OAUTH_SCOPES`
 - optional `GOOGLE_OAUTH_REDIRECT_PATH`
+
+Normal operator flow:
+
+1. sign in to CalSync
+2. open `/admin/providers`
+3. save the shared Google OAuth client ID and secret there
+4. open `/admin/accounts`
+5. connect one or more Google accounts
 
 Redirect URI examples:
 
@@ -39,6 +47,20 @@ Important limitation:
 - Google does not accept raw LAN IP callback URIs such as `http://192.168.50.232:3080/auth/google/callback`
 
 If operators need to connect Google from another device on the LAN, they should set `PUBLIC_BASE_URL` to an HTTPS hostname or domain that is registered in Google Cloud.
+
+## Apple / iCloud Operator Notes
+
+Apple/iCloud onboarding is account-based, not deployment-based.
+
+For each Apple account:
+
+1. open `/admin/accounts`
+2. enter an account label
+3. enter the Apple ID username or email
+4. enter an app-specific password
+5. submit the form to discover calendars
+
+The Apple credentials are encrypted at rest in the CalSync database.
 
 ## Backup
 
@@ -58,6 +80,7 @@ Recommended backup set:
 
 - PostgreSQL dump
 - `.env`
+- encrypted Google provider settings and encrypted Apple app-specific passwords inside the CalSync database
 - any local deployment notes or Compose overrides
 
 ## Restore
@@ -115,3 +138,4 @@ Current Phase 1 behavior:
 Current Phase 2 addition:
 
 - refreshes and syncs Google provider accounts through the same worker loop
+- refreshes and syncs Apple/iCloud CalDAV accounts through the same worker loop

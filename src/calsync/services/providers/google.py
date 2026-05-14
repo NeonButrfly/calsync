@@ -5,13 +5,12 @@ from typing import Any
 from urllib.parse import quote, urlencode
 
 import httpx
+from sqlalchemy.orm import Session
 
 from calsync.config import (
     Settings,
     build_google_callback_url_from_base,
-    get_google_oauth_scopes,
     get_settings,
-    has_google_oauth_config,
     validate_google_callback_url,
 )
 from calsync.crypto import decrypt_text, encrypt_text
@@ -19,6 +18,10 @@ from calsync.models import ProviderAccount, ProviderCalendar, utcnow
 from calsync.repos.providers import (
     get_provider_account_by_identity,
     upsert_provider_account,
+)
+from calsync.services.provider_config import (
+    GoogleOAuthConfiguration,
+    resolve_google_oauth_configuration,
 )
 from calsync.schemas.providers import DiscoveredCalendar, NormalizedEvent
 
@@ -53,8 +56,14 @@ class GoogleOAuthCompatibilityError(GoogleOAuthError):
 class GoogleProviderAdapter:
     provider_type = GOOGLE_PROVIDER_TYPE
 
-    def __init__(self, *, settings: Settings | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        settings: Settings | None = None,
+        session: Session | None = None,
+    ) -> None:
         self.settings = settings or get_settings()
+        self.session = session
 
     def discover_calendars(
         self,
@@ -206,7 +215,11 @@ class GoogleProviderAdapter:
         *,
         params: dict[str, Any],
     ) -> dict[str, object]:
-        access_token = ensure_google_access_token(account, settings=self.settings)
+        access_token = ensure_google_access_token(
+            account,
+            settings=self.settings,
+            session=self.session,
+        )
         with _build_http_client() as client:
             response = client.get(
                 url,
@@ -217,6 +230,7 @@ class GoogleProviderAdapter:
                 access_token = ensure_google_access_token(
                     account,
                     settings=self.settings,
+                    session=self.session,
                     force_refresh=True,
                 )
                 response = client.get(
@@ -236,19 +250,24 @@ def build_google_authorization_url(
     state: str,
     *,
     settings: Settings | None = None,
+    session: Session | None = None,
     force_consent: bool = False,
 ) -> str:
     resolved_settings = settings or get_settings()
-    _require_google_config(resolved_settings)
+    oauth_configuration = _require_google_config(
+        session=session,
+        settings=resolved_settings,
+        encryption_key=resolved_settings.encryption_key,
+    )
     compatibility_error = validate_google_callback_url(callback_url)
     if compatibility_error is not None:
         raise GoogleOAuthCompatibilityError(compatibility_error)
 
     query = {
-        "client_id": resolved_settings.google_oauth_client_id,
+        "client_id": oauth_configuration.client_id,
         "redirect_uri": callback_url,
         "response_type": "code",
-        "scope": " ".join(get_google_oauth_scopes(resolved_settings)),
+        "scope": " ".join(oauth_configuration.scopes),
         "access_type": "offline",
         "include_granted_scopes": "true",
         "state": state,
@@ -275,6 +294,7 @@ def connect_google_account_from_callback(
         code,
         callback_url,
         settings=resolved_settings,
+        session=session,
     )
     access_token = _required_str(token_payload.get("access_token"))
     user_info = fetch_google_user_info(access_token)
@@ -298,16 +318,21 @@ def exchange_google_code_for_tokens(
     callback_url: str,
     *,
     settings: Settings | None = None,
+    session: Session | None = None,
 ) -> dict[str, object]:
     resolved_settings = settings or get_settings()
-    _require_google_config(resolved_settings)
+    oauth_configuration = _require_google_config(
+        session=session,
+        settings=resolved_settings,
+        encryption_key=resolved_settings.encryption_key,
+    )
     with _build_http_client() as client:
         response = client.post(
             GOOGLE_OAUTH_TOKEN_URL,
             data={
                 "code": code,
-                "client_id": resolved_settings.google_oauth_client_id,
-                "client_secret": resolved_settings.google_oauth_client_secret,
+                "client_id": oauth_configuration.client_id,
+                "client_secret": oauth_configuration.client_secret,
                 "redirect_uri": callback_url,
                 "grant_type": "authorization_code",
             },
@@ -398,6 +423,7 @@ def ensure_google_access_token(
     account: ProviderAccount,
     *,
     settings: Settings | None = None,
+    session: Session | None = None,
     force_refresh: bool = False,
 ) -> str:
     resolved_settings = settings or get_settings()
@@ -422,6 +448,7 @@ def ensure_google_access_token(
         token_payload = refresh_google_access_token(
             refresh_token,
             settings=resolved_settings,
+            session=session,
         )
     except GoogleOAuthError as exc:
         _mark_google_reconnect_required(account, str(exc))
@@ -448,15 +475,20 @@ def refresh_google_access_token(
     refresh_token: str,
     *,
     settings: Settings | None = None,
+    session: Session | None = None,
 ) -> dict[str, object]:
     resolved_settings = settings or get_settings()
-    _require_google_config(resolved_settings)
+    oauth_configuration = _require_google_config(
+        session=session,
+        settings=resolved_settings,
+        encryption_key=resolved_settings.encryption_key,
+    )
     with _build_http_client() as client:
         response = client.post(
             GOOGLE_OAUTH_TOKEN_URL,
             data={
-                "client_id": resolved_settings.google_oauth_client_id,
-                "client_secret": resolved_settings.google_oauth_client_secret,
+                "client_id": oauth_configuration.client_id,
+                "client_secret": oauth_configuration.client_secret,
                 "refresh_token": refresh_token,
                 "grant_type": "refresh_token",
             },
@@ -473,11 +505,21 @@ def _build_http_client() -> httpx.Client:
     return httpx.Client(timeout=30)
 
 
-def _require_google_config(settings: Settings) -> None:
-    if has_google_oauth_config(settings):
-        return
+def _require_google_config(
+    *,
+    session: Session | None,
+    settings: Settings,
+    encryption_key: str | None,
+) -> GoogleOAuthConfiguration:
+    oauth_configuration = resolve_google_oauth_configuration(
+        session,
+        settings=settings,
+        encryption_key=encryption_key,
+    )
+    if oauth_configuration is not None:
+        return oauth_configuration
     raise GoogleOAuthError(
-        "Google OAuth is not configured. Set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET."
+        "Google OAuth is not configured. Add the Google client ID and secret on the Provider Settings page."
     )
 
 

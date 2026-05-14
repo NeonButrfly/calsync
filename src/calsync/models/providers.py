@@ -24,6 +24,7 @@ class ProviderAccount(Base):
     display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     access_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     refresh_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    credential_secret_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     provider_metadata: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

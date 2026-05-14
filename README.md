@@ -20,17 +20,19 @@ Implemented today:
 - password plus TOTP login for the admin UI
 - local break-glass commands for `reset-admin-password` and `reset-admin-mfa`
 - mock provider discovery and event import into the normalized event store
-- Google account connection through browser-based OAuth with server-configured credentials
+- Google provider settings in the admin UI for deployment-wide OAuth credentials
+- Google account connection through browser-based OAuth with multiple account support
 - Google calendar discovery with calendars disabled by default until explicitly enabled
 - Google read-only event sync into the normalized event store
+- Apple/iCloud CalDAV account onboarding with per-account app-specific passwords
+- Apple/iCloud calendar discovery with calendars disabled by default until explicitly enabled
 - combined read-only ICS feed publishing with stable tokens and token rotation
 - protected admin dashboard, calendars management, sync status, and ICS publishing pages
-- protected connected-accounts page for mock and Google provider onboarding
+- protected provider settings and connected-accounts pages for mock, Google, and Apple onboarding
 - separate `web`, `worker`, and `db` services for Docker deployment
 
 Not implemented yet:
 
-- Apple/iCloud CalDAV connection inside the app
 - production hardening such as TLS termination, rate limiting, email delivery, and advanced worker retry policy
 
 ## Docker Deployment
@@ -48,8 +50,8 @@ The default `.env.example` includes:
 - `PUBLIC_BASE_URL=`
 - `CALSYNC_DATABASE_URL=postgresql+psycopg://calsync:calsync@db:5432/calsync`
 - `SYNC_POLL_SECONDS=300`
-- `GOOGLE_OAUTH_CLIENT_ID`
-- `GOOGLE_OAUTH_CLIENT_SECRET`
+- optional `GOOGLE_OAUTH_CLIENT_ID`
+- optional `GOOGLE_OAUTH_CLIENT_SECRET`
 - `GOOGLE_OAUTH_SCOPES`
 - `GOOGLE_OAUTH_REDIRECT_PATH`
 
@@ -126,7 +128,8 @@ python -m calsync.cli reset-admin-mfa --identifier admin
 Current admin pages:
 
 - `/admin` for the dashboard, combined feed link, and last sync summary
-- `/admin/accounts` for mock and Google account connection
+- `/admin/providers` for deployment-wide Google OAuth app settings
+- `/admin/accounts` for mock, Google, and Apple/iCloud account connection
 - `/admin/calendars` for provider calendar enable or disable actions
 - `/admin/sync` for sync history and manual sync now actions
 - `/admin/feeds` for combined ICS publishing and token rotation
@@ -142,8 +145,13 @@ Google OAuth setup requires:
 - creating a Google Cloud project
 - enabling the Google Calendar API
 - creating OAuth web application client credentials
-- setting `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`
+- saving the Google client ID and secret in `Provider Settings` inside the admin UI
 - adding the CalSync callback URL derived from `PUBLIC_BASE_URL` or the request origin
+
+Optional bootstrap fallback:
+
+- operators may still set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`
+- if no database-backed Google provider settings exist yet, CalSync will use those environment values as a fallback
 
 Typical redirect URIs:
 
@@ -169,12 +177,18 @@ The Google integration is read-only and requests:
 
 ## Apple App-Specific Password
 
-Apple does not offer Google-style OAuth for iCloud Calendar. Phase 3 will use CalDAV with:
+Apple does not offer Google-style OAuth for iCloud Calendar. CalSync uses CalDAV with:
 
 - Apple ID username
 - Apple app-specific password
 
-Apple app-specific password support is not wired into the Phase 1 UI yet, but the final product direction is documented here to match issue `#1`.
+Apple/iCloud onboarding is available from `/admin/accounts`. Each Apple account is added individually with:
+
+- an account label
+- the Apple ID username or email
+- an Apple app-specific password
+
+The Apple integration remains read-only and uses CalDAV discovery before calendars can be enabled for aggregation.
 
 ## Port And Bind Configuration
 
@@ -226,5 +240,5 @@ Restore requires:
 
 - Google OAuth has a real upstream redirect restriction: raw LAN IP callback URIs are not accepted by Google, even though the CalSync app itself works on LAN IPs.
 - The worker loop is intentionally simple and will be expanded with richer retry and provider-specific error handling in later phases.
-- Apple/iCloud CalDAV connection is still a later phase.
+- Apple/iCloud sync currently uses straightforward CalDAV discovery and event retrieval and may need provider-specific hardening for broader production use.
 - Local HTTP mode is suitable for localhost and LAN use, but public internet exposure should add TLS and tighter network controls first.

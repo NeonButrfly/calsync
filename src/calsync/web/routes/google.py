@@ -48,6 +48,7 @@ def start_google_oauth(
             callback_url,
             state,
             settings=settings,
+            session=session,
             force_consent=force_consent,
         )
     except GoogleOAuthError as exc:
