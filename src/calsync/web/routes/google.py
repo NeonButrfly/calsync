@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 from secrets import token_urlsafe
+from urllib.parse import urlsplit, urlunsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from calsync.services.app_settings import (
-    build_google_callback_url,
-    resolve_public_base_url,
-)
+from calsync.services.app_settings import build_google_callback_url
 from calsync.services.providers.google import (
     GoogleOAuthError,
     build_google_authorization_url,
@@ -103,7 +101,7 @@ def google_oauth_callback(
             error_message="Google did not return an authorization code.",
         )
 
-    callback_base_url = resolve_public_base_url(
+    callback_url = build_google_callback_url(
         request,
         session=session,
         settings=request.app.state.settings,
@@ -113,7 +111,10 @@ def google_oauth_callback(
         account = connect_google_account_from_callback(
             session,
             code=code,
-            callback_base_url=callback_base_url,
+            callback_base_url=_callback_base_url_from_callback_url(
+                callback_url,
+                redirect_path=request.app.state.settings.google_oauth_redirect_path,
+            ),
             settings=request.app.state.settings,
             encryption_key=encryption_key,
         )
@@ -134,3 +135,15 @@ def google_oauth_callback(
 
     session.commit()
     return RedirectResponse(url="/admin/calendars", status_code=303)
+
+
+def _callback_base_url_from_callback_url(
+    callback_url: str,
+    *,
+    redirect_path: str,
+) -> str:
+    split = urlsplit(callback_url)
+    path = split.path
+    if redirect_path and path.endswith(redirect_path):
+        path = path[: -len(redirect_path)]
+    return urlunsplit((split.scheme, split.netloc, path, "", ""))

@@ -313,6 +313,76 @@ def test_google_callback_uses_saved_public_url_for_token_exchange_on_lan_origin(
     )
 
 
+def test_google_start_and_callback_fall_back_to_localhost_when_saved_public_url_is_invalid(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    token_redirect_uri: str | None = None
+
+    with _build_client(
+        tmp_path,
+        public_base_url=None,
+        google_client_id=None,
+        google_client_secret=None,
+        base_url="http://localhost:3080",
+        seed_provider_settings=True,
+        saved_public_base_url="http://192.168.50.232:3080",
+    ) as client:
+        start_response = client.get("/auth/google/start", follow_redirects=False)
+        assert start_response.status_code == 303
+        start_query = parse_qs(urlsplit(start_response.headers["location"]).query)
+        assert start_query["redirect_uri"] == [
+            "http://localhost:3080/auth/google/callback"
+        ]
+        state = start_query["state"][0]
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            nonlocal token_redirect_uri
+            if request.url == httpx.URL("https://oauth2.googleapis.com/token"):
+                form = dict(httpx.QueryParams(request.content.decode()))
+                token_redirect_uri = form.get("redirect_uri")
+                return httpx.Response(
+                    200,
+                    json={
+                        "access_token": "access-token",
+                        "refresh_token": "refresh-token",
+                        "expires_in": 3600,
+                        "scope": "openid email profile https://www.googleapis.com/auth/calendar.readonly",
+                    },
+                    request=request,
+                )
+            if request.url == httpx.URL("https://openidconnect.googleapis.com/v1/userinfo"):
+                return httpx.Response(
+                    200,
+                    json={
+                        "sub": "google-sub",
+                        "email": "owner@example.com",
+                        "name": "Owner",
+                    },
+                    request=request,
+                )
+            if request.url.path == "/calendar/v3/users/me/calendarList":
+                return httpx.Response(
+                    200,
+                    json={"items": [], "nextSyncToken": "calendar-sync-token"},
+                    request=request,
+                )
+            raise AssertionError(f"Unexpected request: {request.method} {request.url}")
+
+        monkeypatch.setattr(
+            "calsync.services.providers.google._build_http_client",
+            lambda: httpx.Client(transport=httpx.MockTransport(handler)),
+        )
+
+        callback_response = client.get(
+            f"/auth/google/callback?state={state}&code=google-code",
+            follow_redirects=False,
+        )
+
+    assert callback_response.status_code == 303
+    assert token_redirect_uri == "http://localhost:3080/auth/google/callback"
+
+
 def test_google_callback_persists_account_and_discovers_calendars(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
