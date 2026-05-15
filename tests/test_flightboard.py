@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -21,6 +22,7 @@ from calsync.services.auth import (
     store_totp_secret,
 )
 from calsync.services.sync import discover_calendars, sync_account
+from calsync.web.routes import flightboard as flightboard_routes
 
 
 ENCRYPTION_KEY = "phase1-flightboard-test-key"
@@ -152,10 +154,29 @@ def test_flightboard_shows_only_enabled_calendar_events(
 
 def test_flightboard_renders_calendar_name_location_and_status(
     authenticated_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(
+        flightboard_routes,
+        "_flightboard_now",
+        lambda: datetime(2026, 5, 15, 1, 30, tzinfo=UTC),
+    )
     response = authenticated_client.get("/admin/flightboard")
 
     assert response.status_code == 200
     assert "Mock Account" in response.text
     assert "Conference Room A" in response.text
-    assert "Now" in response.text or "Soon" in response.text
+    assert "Fri May 15 at 2:00 PM AKDT" in response.text
+    assert re.search(
+        r"Now\s*</span>\s*<p class=\"flightboard-time\">Thu May 14 at 9:00 AM AKDT</p>"
+        r"\s*<div class=\"flightboard-event\">\s*<strong>Sprint Planning</strong>"
+        r"\s*<span>Mock Account . Work</span>",
+        response.text,
+        re.DOTALL,
+    )
+    assert re.search(
+        r"Soon\s*</span>\s*<p class=\"flightboard-time\">Fri May 15 at 2:00 PM AKDT</p>"
+        r"\s*<div class=\"flightboard-event\">\s*<strong>Demo Review</strong>",
+        response.text,
+        re.DOTALL,
+    )

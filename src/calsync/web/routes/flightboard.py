@@ -20,24 +20,32 @@ def _flightboard_now() -> datetime:
     return datetime.now(UTC)
 
 
-def _status_for_event(starts_at: datetime, now: datetime) -> tuple[str, str]:
-    if starts_at < now and starts_at.date() < now.date():
+def _resolve_board_timezone(timezone_name: str | None) -> ZoneInfo:
+    if timezone_name:
+        try:
+            return ZoneInfo(timezone_name)
+        except ZoneInfoNotFoundError:
+            return ZoneInfo("UTC")
+    return ZoneInfo("UTC")
+
+
+def _status_for_event(
+    starts_at: datetime,
+    now: datetime,
+    timezone: ZoneInfo,
+) -> tuple[str, str]:
+    local_start = starts_at.astimezone(timezone)
+    local_now = now.astimezone(timezone)
+    if local_start < local_now and local_start.date() < local_now.date():
         return ("Complete", "complete")
-    if starts_at.date() == now.date():
+    if local_start.date() == local_now.date():
         return ("Now", "now")
-    if starts_at <= now + timedelta(days=2):
+    if local_start <= local_now + timedelta(days=2):
         return ("Soon", "soon")
     return ("Later", "later")
 
 
-def _format_board_time(starts_at: datetime, timezone_name: str | None) -> str:
-    timezone = UTC
-    if timezone_name:
-        try:
-            timezone = ZoneInfo(timezone_name)
-        except ZoneInfoNotFoundError:
-            timezone = UTC
-
+def _format_board_time(starts_at: datetime, timezone: ZoneInfo) -> str:
     local_start = starts_at.astimezone(timezone)
     time_text = local_start.strftime("%I:%M %p").lstrip("0") or "12:00 AM"
     timezone_label = local_start.tzname() or "UTC"
@@ -54,13 +62,14 @@ def _serialize_board_row(
     timezone_name: str | None,
     now: datetime,
 ) -> dict[str, str]:
-    status_label, status_tone = _status_for_event(event.starts_at, now)
+    timezone = _resolve_board_timezone(timezone_name)
+    status_label, status_tone = _status_for_event(event.starts_at, now, timezone)
     return {
         "title": event.title,
         "account_name": account_name or "Connected account",
         "calendar_name": calendar_name or "Unnamed calendar",
         "location": event.location or "Location pending",
-        "starts_at_label": _format_board_time(event.starts_at, timezone_name),
+        "starts_at_label": _format_board_time(event.starts_at, timezone),
         "status_label": status_label,
         "status_tone": status_tone,
     }
