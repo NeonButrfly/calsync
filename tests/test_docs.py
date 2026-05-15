@@ -52,3 +52,23 @@ def test_ops_and_prompt_docs_capture_phase1_scope() -> None:
     assert "mandatory mfa" in prompt_content
     assert "read-only" in prompt_content
     assert "mock provider" in prompt_content
+
+
+def test_docs_cover_public_app_url_and_private_flightboard() -> None:
+    readme_content = Path("README.md").read_text(encoding="utf-8")
+    ops_content = Path("docs/ops.md").read_text(encoding="utf-8")
+    prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8")
+
+    assert "Public App URL" in readme_content
+    assert "https://calsync.neonbutterfly.net" in readme_content
+    assert "Flightboard" in readme_content
+
+    assert "Public App URL" in ops_content
+    assert "https://calsync.neonbutterfly.net" in ops_content
+    assert "Connect Google Account" in ops_content
+    assert "/admin/flightboard" in ops_content
+    assert "Flightboard" in ops_content
+
+    assert "#4" in prompt_content
+    assert "https://calsync.neonbutterfly.net" in prompt_content
+    assert "flightboard" in prompt_content.lower()

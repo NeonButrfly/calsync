@@ -95,10 +95,13 @@
 ## Interpreted Requirements
 
 - admins should be able to save a canonical public app URL in the UI
+- that setting should be presented as `Public App URL` in `Provider Settings`
 - Google account connection should use that saved HTTPS hostname when present
+- the first real deployment target is `https://calsync.neonbutterfly.net`
 - Google connect should remain available even when the admin browses from LAN or localhost, as long as the saved public URL is valid
+- the Accounts page should continue to expose `Connect Google Account` when the saved public hostname satisfies the callback requirement
 - generated external links should prefer the saved public URL
-- the app should provide a private scrolling flightboard-style view of enabled calendars
+- the app should provide a private scrolling flightboard-style view of enabled calendars at `/admin/flightboard`
 
 ## Behavioral Boundaries
 
@@ -110,5 +113,8 @@
 ## Phase Notes
 
 - issue `#4` uses `https://calsync.neonbutterfly.net` as the first real target hostname
+- operator docs should tell admins to save that hostname in `Public App URL` before remote Google onboarding
 - Google callback messaging should explain the exact hostname that will be used
+- the Accounts page should clearly route operators from `Provider Settings` to `Connect Google Account`
 - the flightboard view should read from the normalized local event store and only include enabled calendars
+- the private Flightboard route is `/admin/flightboard`

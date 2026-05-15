@@ -128,6 +128,7 @@ python -m calsync.cli reset-admin-mfa --identifier admin
 Current admin pages:
 
 - `/admin` for the dashboard, combined feed link, and last sync summary
+- `/admin/flightboard` for the private Flightboard view of enabled calendar events
 - `/admin/providers` for deployment-wide Google OAuth app settings
 - `/admin/accounts` for mock, Google, and Apple/iCloud account connection
 - `/admin/calendars` for provider calendar enable or disable actions
@@ -135,6 +136,30 @@ Current admin pages:
 - `/admin/feeds` for combined ICS publishing and token rotation
 
 These pages require admin login plus MFA-backed session establishment.
+
+## Public App URL
+
+CalSync can store a canonical external origin in `Provider Settings` under `Public App URL`.
+
+Use this when:
+
+- the deployment is reached through an HTTPS hostname instead of localhost
+- Google OAuth should use a stable public callback URL even if the admin is browsing from a LAN IP or localhost
+- generated external links should prefer the saved hostname
+
+Real deployment example:
+
+- `https://calsync.neonbutterfly.net`
+
+Operator flow:
+
+1. Open `/admin/providers`.
+2. Save the canonical hostname in `Public App URL`.
+3. Save or review the Google OAuth client settings on the same page.
+4. Open `/admin/accounts`.
+5. Use `Connect Google Account`.
+
+When a valid `Public App URL` is saved, CalSync uses that hostname for the Google callback preview and consent flow instead of relying only on the current browser origin.
 
 ## Google OAuth Setup
 
@@ -146,7 +171,7 @@ Google OAuth setup requires:
 - enabling the Google Calendar API
 - creating OAuth web application client credentials
 - saving the Google client ID and secret in `Provider Settings` inside the admin UI
-- adding the CalSync callback URL derived from `PUBLIC_BASE_URL` or the request origin
+- adding the CalSync callback URL derived from the saved `Public App URL`, `PUBLIC_BASE_URL`, or the request origin
 
 Recommended Google Auth Platform setup:
 
@@ -164,6 +189,10 @@ Recommended Google Auth Platform setup:
 6. In `Clients`, create a `Web application` OAuth client.
 7. Add the CalSync redirect URI shown on the Provider Settings page.
 8. Save the client ID and client secret into CalSync at `/admin/providers`.
+
+Public hostname example for this deployment:
+
+- `https://calsync.neonbutterfly.net/auth/google/callback`
 
 How multiple Google accounts work:
 
@@ -190,7 +219,7 @@ Practical meaning:
 
 - The CalSync app itself still works on `http://SERVER-IP:3080` for normal LAN access.
 - Google account connection works on `http://localhost:3080` when you complete the OAuth flow on the server machine itself.
-- For remote browser-based Google account connection, configure `PUBLIC_BASE_URL` to an HTTPS hostname or domain that is registered with Google.
+- For remote browser-based Google account connection, save `Public App URL` in the admin UI or configure `PUBLIC_BASE_URL` to an HTTPS hostname or domain that is registered with Google.
 - If your Google app is still in testing mode and requests `calendar.readonly`, every Google account you want to connect must be added as a test user first.
 
 The Google integration is read-only and requests:
@@ -199,6 +228,17 @@ The Google integration is read-only and requests:
 - `email`
 - `profile`
 - `https://www.googleapis.com/auth/calendar.readonly`
+
+## Flightboard
+
+CalSync includes a private admin-only Flightboard at `/admin/flightboard`.
+
+The Flightboard:
+
+- is visible only after admin login
+- shows enabled calendar events from the normalized local event store
+- is intended as a scrolling operations-style board, not a public anonymous display
+- stays separate from ICS publishing and does not create a new public route
 
 ## Apple App-Specific Password
 
