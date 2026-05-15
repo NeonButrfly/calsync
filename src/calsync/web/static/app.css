@@ -208,6 +208,163 @@ code {
   vertical-align: top;
 }
 
+.flightboard-shell {
+  display: grid;
+}
+
+.flightboard-panel {
+  background:
+    linear-gradient(180deg, rgba(34, 29, 18, 0.98), rgba(17, 14, 8, 0.98)),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 196, 90, 0.03) 0,
+      rgba(255, 196, 90, 0.03) 2px,
+      transparent 2px,
+      transparent 24px
+    );
+  border: 1px solid #4d3a18;
+  border-radius: 1.5rem;
+  box-shadow: 0 24px 60px rgba(24, 17, 5, 0.28);
+  color: #f8e7a4;
+  overflow: hidden;
+  padding: 0;
+}
+
+.flightboard-hero {
+  align-items: end;
+  background:
+    radial-gradient(circle at top right, rgba(255, 203, 92, 0.18), transparent 35%),
+    linear-gradient(135deg, rgba(255, 205, 89, 0.08), rgba(255, 255, 255, 0));
+  border-bottom: 1px solid rgba(255, 212, 117, 0.18);
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  padding: 1.5rem;
+}
+
+.flightboard-kicker {
+  color: #caa545;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  margin: 0 0 0.45rem;
+  text-transform: uppercase;
+}
+
+.flightboard-hero h2 {
+  color: #fff1c6;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  letter-spacing: 0.05em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.flightboard-summary {
+  color: #dbc98a;
+  justify-self: end;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 28rem;
+  text-align: right;
+}
+
+.flightboard-scroll {
+  mask-image: linear-gradient(180deg, #000 0, #000 92%, transparent 100%);
+  max-height: min(68vh, 46rem);
+  overflow-y: auto;
+  padding: 1rem 1.25rem 1.35rem;
+}
+
+.flightboard-columns,
+.flightboard-row {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 6.5rem minmax(10rem, 13rem) minmax(16rem, 1.7fr) minmax(10rem, 1fr);
+}
+
+.flightboard-columns {
+  color: #b99843;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin-bottom: 0.75rem;
+  padding: 0 0.25rem;
+  position: sticky;
+  text-transform: uppercase;
+  top: 0;
+  z-index: 1;
+}
+
+.flightboard-list {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.flightboard-row {
+  align-items: center;
+  background: rgba(255, 205, 89, 0.06);
+  border: 1px solid rgba(255, 214, 123, 0.12);
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.flightboard-status {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 700;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  padding: 0.45rem 0.7rem;
+  text-transform: uppercase;
+}
+
+.flightboard-status--complete {
+  color: #9d9a90;
+}
+
+.flightboard-status--now {
+  color: #9dffbd;
+}
+
+.flightboard-status--soon {
+  color: #ffd978;
+}
+
+.flightboard-status--later {
+  color: #9dd5ff;
+}
+
+.flightboard-time,
+.flightboard-location {
+  color: #f4e4ab;
+  margin: 0;
+}
+
+.flightboard-event {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.flightboard-event strong {
+  color: #fff7d8;
+  font-size: 1.08rem;
+  letter-spacing: 0.03em;
+}
+
+.flightboard-event span {
+  color: #cdbb82;
+}
+
+.flightboard-empty {
+  color: #dbc98a;
+  padding: 1.5rem;
+}
+
 @media (max-width: 720px) {
   .shell-header {
     align-items: start;
@@ -240,5 +397,23 @@ code {
   .data-table tr {
     border-top: 1px solid var(--border);
     padding: 0.75rem 0;
+  }
+
+  .flightboard-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .flightboard-summary {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .flightboard-columns {
+    display: none;
+  }
+
+  .flightboard-row {
+    gap: 0.65rem;
+    grid-template-columns: 1fr;
   }
 }

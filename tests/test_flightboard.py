@@ -97,7 +97,7 @@ def _build_client(tmp_path: Path) -> TestClient:
         disabled_calendar = session.scalar(
             select(ProviderCalendar).where(
                 ProviderCalendar.provider_account_pk == account.id,
-                ProviderCalendar.provider_calendar_id == "work",
+                ProviderCalendar.provider_calendar_id == "shared",
             )
         )
         assert disabled_calendar is not None
@@ -148,3 +148,14 @@ def test_flightboard_shows_only_enabled_calendar_events(
     assert response.status_code == 200
     assert "Morning Standup" in response.text
     assert "Disabled Calendar Event" not in response.text
+
+
+def test_flightboard_renders_calendar_name_location_and_status(
+    authenticated_client: TestClient,
+) -> None:
+    response = authenticated_client.get("/admin/flightboard")
+
+    assert response.status_code == 200
+    assert "Mock Account" in response.text
+    assert "Conference Room A" in response.text
+    assert "Now" in response.text or "Soon" in response.text

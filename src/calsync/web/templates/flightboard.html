@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}CalSync Flightboard{% endblock %}
+{% block page_title %}Flightboard{% endblock %}
+
+{% block content %}
+<section class="flightboard-shell">
+  <div class="flightboard-panel">
+    <header class="flightboard-hero">
+      <div>
+        <p class="flightboard-kicker">Enabled calendars</p>
+        <h2>Operations board</h2>
+      </div>
+      <p class="flightboard-summary">
+        Live view of private admin calendar activity across connected accounts.
+      </p>
+    </header>
+
+    {% if board_rows %}
+    <div class="flightboard-scroll" role="region" aria-label="Enabled calendar flightboard">
+      <div class="flightboard-columns" aria-hidden="true">
+        <span>Status</span>
+        <span>When</span>
+        <span>Event</span>
+        <span>Location</span>
+      </div>
+
+      <ol class="flightboard-list">
+        {% for row in board_rows %}
+        <li class="flightboard-row">
+          <span class="flightboard-status flightboard-status--{{ row.status_tone }}">
+            {{ row.status_label }}
+          </span>
+          <p class="flightboard-time">{{ row.starts_at_label }}</p>
+          <div class="flightboard-event">
+            <strong>{{ row.title }}</strong>
+            <span>{{ row.account_name }} · {{ row.calendar_name }}</span>
+          </div>
+          <p class="flightboard-location">{{ row.location }}</p>
+        </li>
+        {% endfor %}
+      </ol>
+    </div>
+    {% else %}
+    <div class="flightboard-empty">
+      <p>No enabled calendar events available.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
