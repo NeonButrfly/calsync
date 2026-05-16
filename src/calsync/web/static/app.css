@@ -268,11 +268,52 @@ code {
   text-align: right;
 }
 
+.flightboard-toolbar {
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 212, 117, 0.12);
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem 1.25rem 0.5rem;
+}
+
+.flightboard-view-switch {
+  background: rgba(255, 220, 124, 0.08);
+  border: 1px solid rgba(255, 214, 123, 0.14);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.3rem;
+}
+
+.flightboard-view-toggle {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: #e5d49b;
+  font-size: 0.88rem;
+  padding: 0.55rem 0.85rem;
+  text-decoration: none;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.flightboard-view-toggle:hover {
+  background: rgba(255, 220, 124, 0.08);
+  color: #fff1c6;
+}
+
+.flightboard-view-toggle--active {
+  background: rgba(255, 220, 124, 0.18);
+  border-color: rgba(255, 214, 123, 0.2);
+  color: #fff7d8;
+}
+
 .flightboard-scroll {
   mask-image: linear-gradient(180deg, #000 0, #000 92%, transparent 100%);
   max-height: min(68vh, 46rem);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(255, 214, 123, 0.5) rgba(255, 205, 89, 0.08);
   padding: 1rem 1.25rem 1.35rem;
+  scroll-behavior: smooth;
 }
 
 .flightboard-columns,
@@ -329,6 +370,10 @@ code {
 
 .flightboard-status--now {
   color: #9dffbd;
+}
+
+.flightboard-status--today {
+  color: #ffe39b;
 }
 
 .flightboard-status--soon {
@@ -406,6 +451,10 @@ code {
   .flightboard-summary {
     justify-self: start;
     text-align: left;
+  }
+
+  .flightboard-toolbar {
+    justify-content: start;
   }
 
   .flightboard-columns {

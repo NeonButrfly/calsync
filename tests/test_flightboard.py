@@ -107,6 +107,14 @@ def _build_client(tmp_path: Path) -> TestClient:
         session.add(disabled_calendar)
         session.flush()
 
+        enabled_calendar = session.scalar(
+            select(ProviderCalendar).where(
+                ProviderCalendar.provider_account_pk == account.id,
+                ProviderCalendar.provider_calendar_id == "work",
+            )
+        )
+        assert enabled_calendar is not None
+
         disabled_event_start = datetime(2026, 5, 20, 12, 0, tzinfo=UTC)
         session.add(
             Event(
@@ -126,6 +134,90 @@ def _build_client(tmp_path: Path) -> TestClient:
                 source_payload={"calendar": "work", "seed": "disabled-local"},
             )
         )
+        session.add_all(
+            [
+                Event(
+                    provider_type=account.provider_type,
+                    provider_account_id=account.provider_account_id,
+                    provider_calendar_id=enabled_calendar.provider_calendar_id,
+                    provider_event_id="passed-local-event",
+                    provider_account_pk=account.id,
+                    provider_calendar_pk=enabled_calendar.id,
+                    title="Past Incident Review",
+                    description="Should stay hidden once it has ended.",
+                    location="Archive Room",
+                    starts_at=datetime(2026, 5, 14, 15, 0, tzinfo=UTC),
+                    ends_at=datetime(2026, 5, 14, 16, 0, tzinfo=UTC),
+                    all_day=False,
+                    status="confirmed",
+                    source_payload={"calendar": "work", "seed": "past-local"},
+                ),
+                Event(
+                    provider_type=account.provider_type,
+                    provider_account_id=account.provider_account_id,
+                    provider_calendar_id=enabled_calendar.provider_calendar_id,
+                    provider_event_id="day-local-event",
+                    provider_account_pk=account.id,
+                    provider_calendar_pk=enabled_calendar.id,
+                    title="Today Dispatch Briefing",
+                    description="Same-day event for the day board.",
+                    location="North Ramp",
+                    starts_at=datetime(2026, 5, 15, 18, 0, tzinfo=UTC),
+                    ends_at=datetime(2026, 5, 15, 19, 0, tzinfo=UTC),
+                    all_day=False,
+                    status="confirmed",
+                    source_payload={"calendar": "work", "seed": "day-local"},
+                ),
+                Event(
+                    provider_type=account.provider_type,
+                    provider_account_id=account.provider_account_id,
+                    provider_calendar_id=enabled_calendar.provider_calendar_id,
+                    provider_event_id="week-local-event",
+                    provider_account_pk=account.id,
+                    provider_calendar_pk=enabled_calendar.id,
+                    title="Week Planning Window",
+                    description="Inside the weekly horizon.",
+                    location="Hangar West",
+                    starts_at=datetime(2026, 5, 20, 18, 0, tzinfo=UTC),
+                    ends_at=datetime(2026, 5, 20, 19, 0, tzinfo=UTC),
+                    all_day=False,
+                    status="confirmed",
+                    source_payload={"calendar": "work", "seed": "week-local"},
+                ),
+                Event(
+                    provider_type=account.provider_type,
+                    provider_account_id=account.provider_account_id,
+                    provider_calendar_id=enabled_calendar.provider_calendar_id,
+                    provider_event_id="month-local-event",
+                    provider_account_pk=account.id,
+                    provider_calendar_pk=enabled_calendar.id,
+                    title="Month Launch Rehearsal",
+                    description="Inside the monthly horizon.",
+                    location="South Deck",
+                    starts_at=datetime(2026, 6, 5, 18, 0, tzinfo=UTC),
+                    ends_at=datetime(2026, 6, 5, 19, 0, tzinfo=UTC),
+                    all_day=False,
+                    status="confirmed",
+                    source_payload={"calendar": "work", "seed": "month-local"},
+                ),
+                Event(
+                    provider_type=account.provider_type,
+                    provider_account_id=account.provider_account_id,
+                    provider_calendar_id=enabled_calendar.provider_calendar_id,
+                    provider_event_id="far-local-event",
+                    provider_account_pk=account.id,
+                    provider_calendar_pk=enabled_calendar.id,
+                    title="Far Future Checkpoint",
+                    description="Outside the monthly horizon.",
+                    location="Remote Dock",
+                    starts_at=datetime(2026, 7, 1, 18, 0, tzinfo=UTC),
+                    ends_at=datetime(2026, 7, 1, 19, 0, tzinfo=UTC),
+                    all_day=False,
+                    status="confirmed",
+                    source_payload={"calendar": "work", "seed": "far-local"},
+                ),
+            ]
+        )
         session.commit()
 
     app = create_app(settings)
@@ -144,11 +236,17 @@ def test_flightboard_requires_authenticated_admin(client: TestClient) -> None:
 
 def test_flightboard_shows_only_enabled_calendar_events(
     authenticated_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(
+        flightboard_routes,
+        "_flightboard_now",
+        lambda: datetime(2026, 5, 15, 12, 0, tzinfo=UTC),
+    )
     response = authenticated_client.get("/admin/flightboard")
 
     assert response.status_code == 200
-    assert "Morning Standup" in response.text
+    assert "Today Dispatch Briefing" in response.text
     assert "Disabled Calendar Event" not in response.text
 
 
@@ -165,18 +263,86 @@ def test_flightboard_renders_calendar_name_location_and_status(
 
     assert response.status_code == 200
     assert "Mock Account" in response.text
-    assert "Conference Room A" in response.text
-    assert "Fri May 15 at 2:00 PM AKDT" in response.text
+    assert "North Ramp" in response.text
+    assert "Fri May 15 at 10:00 AM AKDT" in response.text
     assert re.search(
-        r"Now\s*</span>\s*<p class=\"flightboard-time\">Thu May 14 at 9:00 AM AKDT</p>"
-        r"\s*<div class=\"flightboard-event\">\s*<strong>Sprint Planning</strong>"
+        r"Soon\s*</span>\s*<p class=\"flightboard-time\">Fri May 15 at 10:00 AM AKDT</p>"
+        r"\s*<div class=\"flightboard-event\">\s*<strong>Today Dispatch Briefing</strong>"
         r"\s*<span>Mock Account . Work</span>",
         response.text,
         re.DOTALL,
     )
     assert re.search(
-        r"Soon\s*</span>\s*<p class=\"flightboard-time\">Fri May 15 at 2:00 PM AKDT</p>"
-        r"\s*<div class=\"flightboard-event\">\s*<strong>Demo Review</strong>",
+        r"Later\s*</span>\s*<p class=\"flightboard-time\">Wed May 20 at 10:00 AM AKDT</p>"
+        r"\s*<div class=\"flightboard-event\">\s*<strong>Week Planning Window</strong>",
         response.text,
         re.DOTALL,
     )
+
+
+def test_flightboard_excludes_events_that_have_already_ended(
+    authenticated_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        flightboard_routes,
+        "_flightboard_now",
+        lambda: datetime(2026, 5, 15, 12, 0, tzinfo=UTC),
+    )
+
+    response = authenticated_client.get("/admin/flightboard")
+
+    assert response.status_code == 200
+    assert "Past Incident Review" not in response.text
+    assert "Today Dispatch Briefing" in response.text
+
+
+def test_flightboard_day_week_and_month_views_filter_the_horizon(
+    authenticated_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        flightboard_routes,
+        "_flightboard_now",
+        lambda: datetime(2026, 5, 15, 12, 0, tzinfo=UTC),
+    )
+
+    day_response = authenticated_client.get("/admin/flightboard?view=day")
+    week_response = authenticated_client.get("/admin/flightboard?view=week")
+    month_response = authenticated_client.get("/admin/flightboard?view=month")
+
+    assert day_response.status_code == 200
+    assert "Today Dispatch Briefing" in day_response.text
+    assert "Week Planning Window" not in day_response.text
+    assert "Month Launch Rehearsal" not in day_response.text
+
+    assert week_response.status_code == 200
+    assert "Today Dispatch Briefing" in week_response.text
+    assert "Week Planning Window" in week_response.text
+    assert "Month Launch Rehearsal" not in week_response.text
+
+    assert month_response.status_code == 200
+    assert "Today Dispatch Briefing" in month_response.text
+    assert "Week Planning Window" in month_response.text
+    assert "Month Launch Rehearsal" in month_response.text
+    assert "Far Future Checkpoint" not in month_response.text
+
+
+def test_flightboard_renders_view_controls_and_autoscroll_hook(
+    authenticated_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        flightboard_routes,
+        "_flightboard_now",
+        lambda: datetime(2026, 5, 15, 12, 0, tzinfo=UTC),
+    )
+
+    response = authenticated_client.get("/admin/flightboard?view=month")
+
+    assert response.status_code == 200
+    assert 'href="/admin/flightboard?view=day"' in response.text
+    assert 'href="/admin/flightboard?view=week"' in response.text
+    assert 'href="/admin/flightboard?view=month"' in response.text
+    assert 'flightboard-view-toggle--active' in response.text
+    assert 'data-flightboard-autoscroll="true"' in response.text

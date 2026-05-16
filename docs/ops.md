@@ -93,13 +93,17 @@ The private Flightboard is available at:
 Behavior:
 
 - requires an authenticated admin session
-- shows enabled calendar events only
+- shows only current and upcoming enabled calendar events
+- offers `Day`, `Week`, and `Month` range controls inside the page
+- scrolls automatically for unattended viewing and pauses on hover
 - is intended for private operations viewing, not anonymous public display
 
 Practical verification points:
 
 - the top navigation includes `Flightboard`
 - opening `/admin/flightboard` after login renders the private board
+- the board excludes events whose end time has already passed
+- the selected range changes which upcoming events are shown
 - unauthenticated access should redirect to login instead of exposing events
 
 ## Apple / iCloud Operator Notes

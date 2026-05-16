@@ -118,3 +118,27 @@
 - the Accounts page should clearly route operators from `Provider Settings` to `Connect Google Account`
 - the flightboard view should read from the normalized local event store and only include enabled calendars
 - the private Flightboard route is `/admin/flightboard`
+
+---
+
+- GitHub issue: `#5`
+- Scope: private Flightboard auto-scroll and current/upcoming day-week-month views
+
+## Interpreted Requirements
+
+- the private Flightboard should scroll automatically for operations viewing
+- the Flightboard should support `Day`, `Week`, and `Month` display ranges
+- the Flightboard should only show current and upcoming events
+- the Flightboard should never show events that have already ended
+
+## Behavioral Boundaries
+
+- the Flightboard remains private and admin-only
+- the Flightboard continues to read from normalized local event data only
+- no public anonymous signage route is introduced
+
+## Phase Notes
+
+- issue `#5` extends the existing private Flightboard from issue `#4`
+- the default board should emphasize current and upcoming activity rather than historical events
+- range switching should stay inside `/admin/flightboard`

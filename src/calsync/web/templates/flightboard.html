@@ -12,12 +12,31 @@
         <h2>Operations board</h2>
       </div>
       <p class="flightboard-summary">
-        Live view of private admin calendar activity across connected accounts.
+        {{ view_summary }}
       </p>
     </header>
 
+    <div class="flightboard-toolbar" aria-label="Flightboard display range">
+      <div class="flightboard-view-switch">
+        {% for option in view_options %}
+        <a
+          href="{{ option.href }}"
+          class="flightboard-view-toggle{{ option.active_class }}"
+          {% if option.aria_current %}aria-current="{{ option.aria_current }}"{% endif %}
+        >
+          {{ option.label }}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+
     {% if board_rows %}
-    <div class="flightboard-scroll" role="region" aria-label="Enabled calendar flightboard">
+    <div
+      class="flightboard-scroll"
+      role="region"
+      aria-label="Enabled calendar flightboard"
+      data-flightboard-autoscroll="true"
+    >
       <div class="flightboard-columns" aria-hidden="true">
         <span>Status</span>
         <span>When</span>
@@ -43,9 +62,58 @@
     </div>
     {% else %}
     <div class="flightboard-empty">
-      <p>No enabled calendar events available.</p>
+      <p>No upcoming enabled calendar events in the selected range.</p>
     </div>
     {% endif %}
   </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (() => {
+    const board = document.querySelector('[data-flightboard-autoscroll="true"]');
+    if (!board || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
+    let paused = false;
+    let direction = 1;
+    let pauseUntil = 0;
+    const speed = 0.35;
+    const endPauseMs = 1800;
+
+    board.addEventListener('mouseenter', () => {
+      paused = true;
+    });
+    board.addEventListener('mouseleave', () => {
+      paused = false;
+    });
+
+    const step = (timestamp) => {
+      if (!paused && board.scrollHeight > board.clientHeight) {
+        if (pauseUntil > timestamp) {
+          window.requestAnimationFrame(step);
+          return;
+        }
+
+        board.scrollTop += speed * direction;
+        const maxScroll = board.scrollHeight - board.clientHeight;
+        if (board.scrollTop >= maxScroll) {
+          board.scrollTop = maxScroll;
+          direction = -1;
+          pauseUntil = timestamp + endPauseMs;
+        } else if (board.scrollTop <= 0) {
+          board.scrollTop = 0;
+          direction = 1;
+          pauseUntil = timestamp + endPauseMs;
+        }
+      }
+
+      window.requestAnimationFrame(step);
+    };
+
+    window.requestAnimationFrame(step);
+  })();
+</script>
 {% endblock %}

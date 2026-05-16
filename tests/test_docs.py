@@ -72,3 +72,21 @@ def test_docs_cover_public_app_url_and_private_flightboard() -> None:
     assert "#4" in prompt_content
     assert "https://calsync.neonbutterfly.net" in prompt_content
     assert "flightboard" in prompt_content.lower()
+
+
+def test_docs_cover_flightboard_current_upcoming_ranges() -> None:
+    readme_content = Path("README.md").read_text(encoding="utf-8").lower()
+    ops_content = Path("docs/ops.md").read_text(encoding="utf-8").lower()
+    prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()
+
+    assert "current and upcoming" in readme_content
+    assert "day" in readme_content and "week" in readme_content and "month" in readme_content
+    assert "never shows events that have already ended" in readme_content
+
+    assert "current and upcoming enabled calendar events" in ops_content
+    assert "day" in ops_content and "week" in ops_content and "month" in ops_content
+    assert "excludes events whose end time has already passed" in ops_content
+
+    assert "#5" in prompt_content
+    assert "current and upcoming" in prompt_content
+    assert "day" in prompt_content and "week" in prompt_content and "month" in prompt_content

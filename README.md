@@ -236,7 +236,10 @@ CalSync includes a private admin-only Flightboard at `/admin/flightboard`.
 The Flightboard:
 
 - is visible only after admin login
-- shows enabled calendar events from the normalized local event store
+- shows only current and upcoming enabled calendar events from the normalized local event store
+- supports `Day`, `Week`, and `Month` ranges inside the private admin page
+- scrolls automatically for operations-style viewing while still allowing manual pause on hover
+- never shows events that have already ended
 - is intended as a scrolling operations-style board, not a public anonymous display
 - stays separate from ICS publishing and does not create a new public route
 
