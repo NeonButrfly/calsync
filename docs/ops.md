@@ -97,6 +97,8 @@ Behavior:
 - shows only current and upcoming enabled calendar events
 - offers `Day`, `Week`, and `Month` range controls inside the page
 - converts UTC-backed event displays into Alaska local time with a consistent `AKST` label
+- keeps the column header fixed above the rows instead of letting it overlap event content
+- provides an explicit auto-scroll toggle and remembers that preference in the browser
 - scrolls automatically for unattended viewing and pauses on hover
 - duplicates visible rows client-side when needed so shorter schedules still auto-scroll instead of appearing static
 - is intended for private operations viewing, not anonymous public display

@@ -239,6 +239,8 @@ The Flightboard:
 - shows only current and upcoming enabled calendar events from the normalized local event store
 - supports `Day`, `Week`, and `Month` ranges inside the private admin page
 - converts UTC-backed event times into Alaska display time for the admin UI
+- keeps the `Status`, `When`, `Event`, and `Location` header fixed above the scrolling rows
+- provides an `Auto-scroll` on or off toggle in the toolbar and remembers that choice in the browser
 - scrolls automatically for operations-style viewing while still allowing manual pause on hover
 - never shows events that have already ended
 - is intended as a scrolling operations-style board, not a public anonymous display

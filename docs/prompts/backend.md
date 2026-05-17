@@ -152,6 +152,9 @@
 
 - the private Flightboard auto-scroll should still move when only a short list of current or upcoming events is available
 - the board should remain useful for unattended operations viewing even before many events are enabled
+- the Flightboard should keep the column header static above the scrolling rows without overlapping event content
+- the Flightboard should provide an explicit enable or disable auto-scroll button
+- the chosen auto-scroll setting should be remembered in the browser for later visits
 
 ## Behavioral Boundaries
 

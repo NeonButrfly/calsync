@@ -17,6 +17,14 @@
     </header>
 
     <div class="flightboard-toolbar" aria-label="Flightboard display range">
+      <button
+        type="button"
+        class="flightboard-scroll-toggle"
+        data-flightboard-scroll-toggle="true"
+        aria-pressed="true"
+      >
+        Auto-scroll On
+      </button>
       <div class="flightboard-view-switch">
         {% for option in view_options %}
         <a
@@ -31,19 +39,18 @@
     </div>
 
     {% if board_rows %}
+    <div class="flightboard-columns" aria-hidden="true">
+      <span>Status</span>
+      <span>When</span>
+      <span>Event</span>
+      <span>Location</span>
+    </div>
     <div
       class="flightboard-scroll"
       role="region"
       aria-label="Enabled calendar flightboard"
       data-flightboard-autoscroll="true"
     >
-      <div class="flightboard-columns" aria-hidden="true">
-        <span>Status</span>
-        <span>When</span>
-        <span>Event</span>
-        <span>Location</span>
-      </div>
-
       <ol class="flightboard-list">
         {% for row in board_rows %}
         <li class="flightboard-row">
@@ -72,18 +79,38 @@
 {% block scripts %}
 <script>
   (() => {
+    const storageKey = "calsync.flightboard.autoscroll.enabled";
     const board = document.querySelector('[data-flightboard-autoscroll="true"]');
     const list = board?.querySelector('.flightboard-list');
-    if (!board || !list) {
+    const toggle = document.querySelector('[data-flightboard-scroll-toggle="true"]');
+    if (!board || !list || !toggle) {
       return;
     }
 
     let paused = false;
+    let autoScrollEnabled = true;
     let direction = 1;
     let pauseUntil = 0;
-    const speed = 0.35;
+    let scrollPosition = 0;
+    const speed = 0.8;
     const endPauseMs = 1800;
     const fillGap = 32;
+
+    const updateToggleLabel = () => {
+      toggle.textContent = autoScrollEnabled ? "Auto-scroll On" : "Auto-scroll Off";
+      toggle.setAttribute("aria-pressed", autoScrollEnabled ? "true" : "false");
+      toggle.classList.toggle("flightboard-scroll-toggle--active", autoScrollEnabled);
+    };
+
+    const loadPreference = () => {
+      const saved = window.localStorage.getItem(storageKey);
+      autoScrollEnabled = saved !== "off";
+      updateToggleLabel();
+    };
+
+    const savePreference = () => {
+      window.localStorage.setItem(storageKey, autoScrollEnabled ? "on" : "off");
+    };
 
     const removeClones = () => {
       board.querySelectorAll('[data-flightboard-clone="true"]').forEach((row) => row.remove());
@@ -110,6 +137,7 @@
 
     ensureScrollableRows();
     window.addEventListener('resize', ensureScrollableRows);
+    loadPreference();
 
     board.addEventListener('mouseenter', () => {
       paused = true;
@@ -118,29 +146,44 @@
       paused = false;
     });
 
+    board.addEventListener('scroll', () => {
+      scrollPosition = board.scrollTop;
+    });
+
+    toggle.addEventListener('click', () => {
+      autoScrollEnabled = !autoScrollEnabled;
+      savePreference();
+      updateToggleLabel();
+    });
+
     const step = (timestamp) => {
-      if (!paused && board.scrollHeight > board.clientHeight) {
+      if (autoScrollEnabled && !paused && board.scrollHeight > board.clientHeight) {
         if (pauseUntil > timestamp) {
           window.requestAnimationFrame(step);
           return;
         }
 
-        board.scrollTop += speed * direction;
+        scrollPosition += speed * direction;
         const maxScroll = board.scrollHeight - board.clientHeight;
-        if (board.scrollTop >= maxScroll) {
+        if (scrollPosition >= maxScroll) {
+          scrollPosition = maxScroll;
           board.scrollTop = maxScroll;
           direction = -1;
           pauseUntil = timestamp + endPauseMs;
-        } else if (board.scrollTop <= 0) {
+        } else if (scrollPosition <= 0) {
+          scrollPosition = 0;
           board.scrollTop = 0;
           direction = 1;
           pauseUntil = timestamp + endPauseMs;
+        } else {
+          board.scrollTop = Math.round(scrollPosition);
         }
       }
 
       window.requestAnimationFrame(step);
     };
 
+    updateToggleLabel();
     window.requestAnimationFrame(step);
   })();
 </script>

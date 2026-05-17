@@ -272,8 +272,27 @@ code {
   align-items: center;
   border-bottom: 1px solid rgba(255, 212, 117, 0.12);
   display: flex;
-  justify-content: flex-end;
+  gap: 1rem;
+  justify-content: space-between;
   padding: 1rem 1.25rem 0.5rem;
+}
+
+.flightboard-scroll-toggle {
+  background: rgba(255, 220, 124, 0.08);
+  border: 1px solid rgba(255, 214, 123, 0.14);
+  color: #e5d49b;
+  padding: 0.55rem 0.95rem;
+}
+
+.flightboard-scroll-toggle:hover {
+  background: rgba(255, 220, 124, 0.12);
+  color: #fff1c6;
+}
+
+.flightboard-scroll-toggle--active {
+  background: rgba(255, 220, 124, 0.18);
+  border-color: rgba(255, 214, 123, 0.24);
+  color: #fff7d8;
 }
 
 .flightboard-view-switch {
@@ -324,16 +343,14 @@ code {
 }
 
 .flightboard-columns {
+  background: rgba(24, 19, 10, 0.98);
+  border-bottom: 1px solid rgba(255, 212, 117, 0.12);
   color: #b99843;
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.14em;
-  margin-bottom: 0.75rem;
-  padding: 0 0.25rem;
-  position: sticky;
+  padding: 0.9rem 1.5rem 0.8rem;
   text-transform: uppercase;
-  top: 0;
-  z-index: 1;
 }
 
 .flightboard-list {
@@ -455,6 +472,7 @@ code {
 
   .flightboard-toolbar {
     justify-content: start;
+    flex-wrap: wrap;
   }
 
   .flightboard-columns {
