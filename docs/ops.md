@@ -70,6 +70,7 @@ Operational note:
 - one Google OAuth web client is enough for multiple connected Google accounts in the same CalSync deployment
 - each Google account still has to complete its own consent flow
 - if Google shows a testing or unverified-app restriction, check the Google Auth Platform `Audience` and `Test users` settings first
+- after you explicitly enable Google calendars in `/admin/calendars`, later incremental sync cycles should preserve those enabled selections instead of turning them off again when Google reports no calendar-list changes
 
 Redirect URI examples:
 
@@ -96,6 +97,7 @@ Behavior:
 - shows only current and upcoming enabled calendar events
 - offers `Day`, `Week`, and `Month` range controls inside the page
 - scrolls automatically for unattended viewing and pauses on hover
+- duplicates visible rows client-side when needed so shorter schedules still auto-scroll instead of appearing static
 - is intended for private operations viewing, not anonymous public display
 
 Practical verification points:

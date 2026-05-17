@@ -64,11 +64,17 @@ class GoogleProviderAdapter:
     ) -> None:
         self.settings = settings or get_settings()
         self.session = session
+        self.last_calendar_discovery_was_incremental = False
 
     def discover_calendars(
         self,
         account: ProviderAccount,
     ) -> list[DiscoveredCalendar]:
+        metadata = _account_metadata(account)
+        self.last_calendar_discovery_was_incremental = bool(
+            isinstance(metadata.get(ACCOUNT_DISCOVERY_SYNC_TOKEN_KEY), str)
+            and metadata.get(ACCOUNT_DISCOVERY_SYNC_TOKEN_KEY)
+        )
         response_payload = self._get_calendar_list(account)
         metadata = _account_metadata(account)
         next_sync_token = response_payload.get("nextSyncToken")
@@ -80,18 +86,21 @@ class GoogleProviderAdapter:
         for item in response_payload.get("items", []):
             if not isinstance(item, dict) or not item.get("id"):
                 continue
+            deleted = bool(item.get("deleted", False))
             calendars.append(
                 DiscoveredCalendar(
                     external_id=str(item["id"]),
                     name=str(item.get("summary") or item["id"]),
                     timezone=_optional_str(item.get("timeZone")),
                     default_enabled=False,
+                    deleted=deleted,
                     metadata={
                         "color": item.get("backgroundColor"),
                         "access_role": item.get("accessRole"),
                         "hidden": bool(item.get("hidden", False)),
                         "selected": bool(item.get("selected", True)),
                         "primary": bool(item.get("primary", False)),
+                        "deleted": deleted,
                     },
                 )
             )

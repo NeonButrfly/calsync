@@ -142,3 +142,44 @@
 - issue `#5` extends the existing private Flightboard from issue `#4`
 - the default board should emphasize current and upcoming activity rather than historical events
 - range switching should stay inside `/admin/flightboard`
+
+---
+
+- GitHub issue: `#6`
+- Scope: restore private Flightboard auto-scroll for short event lists
+
+## Interpreted Requirements
+
+- the private Flightboard auto-scroll should still move when only a short list of current or upcoming events is available
+- the board should remain useful for unattended operations viewing even before many events are enabled
+
+## Behavioral Boundaries
+
+- the Flightboard remains private and admin-only
+- the board still pauses on hover
+- historical events remain excluded
+
+## Phase Notes
+
+- issue `#6` hardens the existing Flightboard auto-scroll behavior from issue `#5`
+- the client can duplicate visible rows for scrolling only when the rendered list is too short to overflow naturally
+
+---
+
+- GitHub issue: `#7`
+- Scope: preserve enabled Google calendars across incremental discovery so new events continue syncing
+
+## Interpreted Requirements
+
+- enabled Google calendars must stay enabled after later incremental discovery cycles that return no changed calendar items
+- newly created events on already-enabled Google calendars should continue importing without the account silently losing its calendar selections
+
+## Behavioral Boundaries
+
+- Google access remains read-only
+- incremental Google discovery must not treat an empty change set as a full replacement of the account calendar list
+
+## Phase Notes
+
+- issue `#7` fixes a regression where empty incremental Google calendar-list responses disabled all discovered Google calendars
+- explicit deleted calendars can still be disabled through discovery metadata without treating unchanged calendars as removed

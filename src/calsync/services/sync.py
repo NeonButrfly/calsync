@@ -24,22 +24,29 @@ def discover_calendars(
     account = require_provider_account(session, account_pk)
     adapter = get_provider_adapter(account.provider_type, settings=settings, session=session)
     discovered_calendars = adapter.discover_calendars(account)
+    was_incremental_discovery = bool(
+        getattr(adapter, "last_calendar_discovery_was_incremental", False)
+    )
 
-    calendars = [
-        upsert_provider_calendar(
+    calendars: list[ProviderCalendar] = []
+    for discovered_calendar in discovered_calendars:
+        calendar = upsert_provider_calendar(
             session,
             account=account,
             discovered_calendar=discovered_calendar,
         )
-        for discovered_calendar in discovered_calendars
-    ]
-    reconcile_provider_calendars(
-        session,
-        account=account,
-        discovered_external_ids={
-            discovered_calendar.external_id for discovered_calendar in discovered_calendars
-        },
-    )
+        if discovered_calendar.deleted:
+            calendar.enabled = False
+        calendars.append(calendar)
+
+    if not was_incremental_discovery:
+        reconcile_provider_calendars(
+            session,
+            account=account,
+            discovered_external_ids={
+                discovered_calendar.external_id for discovered_calendar in discovered_calendars
+            },
+        )
     session.flush()
     return calendars
 

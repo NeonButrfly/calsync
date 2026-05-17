@@ -346,3 +346,4 @@ def test_flightboard_renders_view_controls_and_autoscroll_hook(
     assert 'href="/admin/flightboard?view=month"' in response.text
     assert 'flightboard-view-toggle--active' in response.text
     assert 'data-flightboard-autoscroll="true"' in response.text
+    assert 'data-flightboard-clone="true"' in response.text

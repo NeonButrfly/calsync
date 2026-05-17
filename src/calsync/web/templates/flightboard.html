@@ -73,7 +73,8 @@
 <script>
   (() => {
     const board = document.querySelector('[data-flightboard-autoscroll="true"]');
-    if (!board || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const list = board?.querySelector('.flightboard-list');
+    if (!board || !list || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return;
     }
 
@@ -82,6 +83,33 @@
     let pauseUntil = 0;
     const speed = 0.35;
     const endPauseMs = 1800;
+    const fillGap = 32;
+
+    const removeClones = () => {
+      board.querySelectorAll('[data-flightboard-clone="true"]').forEach((row) => row.remove());
+    };
+
+    const ensureScrollableRows = () => {
+      removeClones();
+      const originals = Array.from(list.children);
+      if (!originals.length) {
+        return;
+      }
+
+      let safety = 0;
+      while (board.scrollHeight <= board.clientHeight + fillGap && safety < 8) {
+        originals.forEach((row) => {
+          const clone = row.cloneNode(true);
+          clone.setAttribute("data-flightboard-clone", "true");
+          clone.setAttribute("aria-hidden", "true");
+          list.appendChild(clone);
+        });
+        safety += 1;
+      }
+    };
+
+    ensureScrollableRows();
+    window.addEventListener('resize', ensureScrollableRows);
 
     board.addEventListener('mouseenter', () => {
       paused = true;

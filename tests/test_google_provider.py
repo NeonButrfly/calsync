@@ -13,6 +13,7 @@ from calsync.config import Settings
 from calsync.crypto import decrypt_text, encrypt_text
 from calsync.models import Base, ProviderAccount, ProviderCalendar
 from calsync.repos.providers import upsert_provider_account
+from calsync.services.sync import discover_calendars
 from calsync.services.providers.google import (
     ACCOUNT_DISCOVERY_SYNC_TOKEN_KEY,
     ACCOUNT_EMAIL_KEY,
@@ -310,6 +311,58 @@ def test_google_event_sync_recovers_from_expired_sync_token(
     assert [event.title for event in events] == ["Recovered Full Sync"]
     assert calendar.provider_metadata is not None
     assert calendar.provider_metadata[CALENDAR_EVENTS_SYNC_TOKEN_KEY] == "fresh-token"
+
+
+def test_google_incremental_discovery_preserves_enabled_calendars_when_no_changes_return(
+    session: Session,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    account = _seed_google_account(session)
+    account.provider_metadata = {
+        ACCOUNT_DISCOVERY_SYNC_TOKEN_KEY: "stale-calendar-sync-token",
+        "google_access_token_expires_at": (
+            datetime.now(UTC) + timedelta(hours=1)
+        ).isoformat(),
+    }
+    calendar = ProviderCalendar(
+        provider_account_pk=account.id,
+        provider_calendar_id="primary",
+        name="Primary",
+        enabled=True,
+        provider_metadata={"primary": True},
+    )
+    session.add(calendar)
+    session.flush()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/calendar/v3/users/me/calendarList"
+        assert request.url.params["syncToken"] == "stale-calendar-sync-token"
+        return httpx.Response(
+            200,
+            json={
+                "items": [],
+                "nextSyncToken": "fresh-calendar-sync-token",
+            },
+            request=request,
+        )
+
+    monkeypatch.setattr(
+        "calsync.services.providers.google._build_http_client",
+        lambda: httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    discover_calendars(session, account.id, settings=settings)
+
+    refreshed_calendar = session.scalar(
+        select(ProviderCalendar).where(ProviderCalendar.id == calendar.id)
+    )
+    assert refreshed_calendar is not None
+    assert refreshed_calendar.enabled is True
+    assert account.provider_metadata is not None
+    assert account.provider_metadata[ACCOUNT_DISCOVERY_SYNC_TOKEN_KEY] == (
+        "fresh-calendar-sync-token"
+    )
 
 
 def test_ensure_google_access_token_marks_reconnect_when_refresh_fails(
