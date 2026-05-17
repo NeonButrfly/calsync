@@ -155,7 +155,7 @@ def test_dashboard_renders_sync_and_event_times_in_alaska_time(
     response = authenticated_client.get("/admin")
 
     assert response.status_code == 200
-    assert "Fri May 15 at 10:00 AM AKDT" in response.text
+    assert "Fri May 15 at 10:00 AM AKST" in response.text
     assert "+00:00" not in response.text
 
 
@@ -237,7 +237,7 @@ def test_sync_status_page_renders_last_sync_in_alaska_time(
     response = authenticated_client.get("/admin/sync")
 
     assert response.status_code == 200
-    assert "Fri May 15 at 5:30 PM AKDT" in response.text
+    assert "Fri May 15 at 5:30 PM AKST" in response.text
     assert "+00:00" not in response.text
 
 

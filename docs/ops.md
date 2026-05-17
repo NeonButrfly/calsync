@@ -96,7 +96,7 @@ Behavior:
 - requires an authenticated admin session
 - shows only current and upcoming enabled calendar events
 - offers `Day`, `Week`, and `Month` range controls inside the page
-- converts UTC-backed event displays into Alaska time with `AKST` or `AKDT` labels
+- converts UTC-backed event displays into Alaska local time with a consistent `AKST` label
 - scrolls automatically for unattended viewing and pauses on hover
 - duplicates visible rows client-side when needed so shorter schedules still auto-scroll instead of appearing static
 - is intended for private operations viewing, not anonymous public display

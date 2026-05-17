@@ -264,16 +264,16 @@ def test_flightboard_renders_calendar_name_location_and_status(
     assert response.status_code == 200
     assert "Mock Account" in response.text
     assert "North Ramp" in response.text
-    assert "Fri May 15 at 10:00 AM AKDT" in response.text
+    assert "Fri May 15 at 10:00 AM AKST" in response.text
     assert re.search(
-        r"Soon\s*</span>\s*<p class=\"flightboard-time\">Fri May 15 at 10:00 AM AKDT</p>"
+        r"Soon\s*</span>\s*<p class=\"flightboard-time\">Fri May 15 at 10:00 AM AKST</p>"
         r"\s*<div class=\"flightboard-event\">\s*<strong>Today Dispatch Briefing</strong>"
         r"\s*<span>Mock Account . Work</span>",
         response.text,
         re.DOTALL,
     )
     assert re.search(
-        r"Later\s*</span>\s*<p class=\"flightboard-time\">Wed May 20 at 10:00 AM AKDT</p>"
+        r"Later\s*</span>\s*<p class=\"flightboard-time\">Wed May 20 at 10:00 AM AKST</p>"
         r"\s*<div class=\"flightboard-event\">\s*<strong>Week Planning Window</strong>",
         response.text,
         re.DOTALL,
@@ -327,7 +327,7 @@ def test_flightboard_converts_utc_calendar_times_to_alaska_display(
 
     assert response.status_code == 200
     assert "Community Game Night" in response.text
-    assert "Fri May 15 at 6:00 PM AKDT" in response.text
+    assert "Fri May 15 at 6:00 PM AKST" in response.text
     assert "UTC" not in response.text
 
 
@@ -381,3 +381,4 @@ def test_flightboard_renders_view_controls_and_autoscroll_hook(
     assert 'flightboard-view-toggle--active' in response.text
     assert 'data-flightboard-autoscroll="true"' in response.text
     assert 'data-flightboard-clone="true"' in response.text
+    assert "prefers-reduced-motion" not in response.text

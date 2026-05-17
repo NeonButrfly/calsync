@@ -74,7 +74,7 @@
   (() => {
     const board = document.querySelector('[data-flightboard-autoscroll="true"]');
     const list = board?.querySelector('.flightboard-list');
-    if (!board || !list || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (!board || !list) {
       return;
     }
 

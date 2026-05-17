@@ -244,7 +244,7 @@ The Flightboard:
 - is intended as a scrolling operations-style board, not a public anonymous display
 - stays separate from ICS publishing and does not create a new public route
 
-Other admin-facing timestamp displays, including the dashboard and sync status page, also render event and sync times in Alaska time with `AKST` or `AKDT` labels instead of raw UTC values.
+Other admin-facing timestamp displays, including the dashboard and sync status page, also render event and sync times in Alaska local time with a consistent `AKST` label instead of raw UTC values.
 
 ## Apple App-Specific Password
 

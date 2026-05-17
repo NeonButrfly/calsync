@@ -199,7 +199,7 @@
 
 - provider and database storage remain UTC-backed and unchanged
 - only display formatting changes for the admin UI
-- the UI should render `AKST` or `AKDT` labels as appropriate for the date being shown
+- the UI should render Alaska-local display times with a consistent `AKST` label
 
 ## Phase Notes
 

@@ -28,7 +28,9 @@ def format_display_datetime(
 
     local_value = value.astimezone(resolve_display_timezone(timezone_name))
     time_text = local_value.strftime("%I:%M %p").lstrip("0") or "12:00 AM"
-    timezone_label = local_value.tzname() or "AKST"
+    # Keep the displayed clock adjusted to Alaska local time while using one
+    # stable operator-facing label instead of mixing seasonal abbreviations.
+    timezone_label = "AKST"
     return (
         f"{local_value.strftime('%a')} {local_value.strftime('%b')} "
         f"{local_value.day} at {time_text} {timezone_label}"
