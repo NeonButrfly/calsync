@@ -213,6 +213,12 @@ code {
 }
 
 .flightboard-panel {
+  --flightboard-scrollbar-width: 0px;
+  --flightboard-scroll-inline-padding: 1.25rem;
+  --flightboard-row-inline-padding: 1rem;
+  --flightboard-columns-inline-padding: calc(
+    var(--flightboard-scroll-inline-padding) + var(--flightboard-row-inline-padding)
+  );
   background:
     linear-gradient(180deg, rgba(34, 29, 18, 0.98), rgba(17, 14, 8, 0.98)),
     repeating-linear-gradient(
@@ -331,7 +337,7 @@ code {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-color: rgba(255, 214, 123, 0.5) rgba(255, 205, 89, 0.08);
-  padding: 1rem 1.25rem 1.35rem;
+  padding: 1rem var(--flightboard-scroll-inline-padding) 1.35rem;
   scroll-behavior: smooth;
 }
 
@@ -349,7 +355,11 @@ code {
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.14em;
-  padding: 0.9rem 1.5rem 0.8rem;
+  padding:
+    0.9rem
+    calc(var(--flightboard-columns-inline-padding) + var(--flightboard-scrollbar-width))
+    0.8rem
+    var(--flightboard-columns-inline-padding);
   text-transform: uppercase;
 }
 

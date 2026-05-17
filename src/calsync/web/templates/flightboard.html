@@ -5,7 +5,7 @@
 
 {% block content %}
 <section class="flightboard-shell">
-  <div class="flightboard-panel">
+  <div class="flightboard-panel" data-flightboard-panel="true">
     <header class="flightboard-hero">
       <div>
         <p class="flightboard-kicker">Enabled calendars</p>
@@ -80,10 +80,11 @@
 <script>
   (() => {
     const storageKey = "calsync.flightboard.autoscroll.enabled";
+    const panel = document.querySelector('[data-flightboard-panel="true"]');
     const board = document.querySelector('[data-flightboard-autoscroll="true"]');
     const list = board?.querySelector('.flightboard-list');
     const toggle = document.querySelector('[data-flightboard-scroll-toggle="true"]');
-    if (!board || !list || !toggle) {
+    if (!panel || !board || !list || !toggle) {
       return;
     }
 
@@ -112,6 +113,11 @@
       window.localStorage.setItem(storageKey, autoScrollEnabled ? "on" : "off");
     };
 
+    const syncColumnAlignment = () => {
+      const scrollbarWidth = Math.max(0, board.offsetWidth - board.clientWidth);
+      panel.style.setProperty("--flightboard-scrollbar-width", `${scrollbarWidth}px`);
+    };
+
     const removeClones = () => {
       board.querySelectorAll('[data-flightboard-clone="true"]').forEach((row) => row.remove());
     };
@@ -136,7 +142,11 @@
     };
 
     ensureScrollableRows();
-    window.addEventListener('resize', ensureScrollableRows);
+    syncColumnAlignment();
+    window.addEventListener('resize', () => {
+      ensureScrollableRows();
+      syncColumnAlignment();
+    });
     loadPreference();
 
     board.addEventListener('mouseenter', () => {

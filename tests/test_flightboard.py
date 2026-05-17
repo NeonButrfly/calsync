@@ -385,6 +385,8 @@ def test_flightboard_renders_view_controls_and_autoscroll_hook(
     assert 'data-flightboard-scroll-toggle="true"' in response.text
     assert 'aria-pressed="true"' in response.text
     assert "calsync.flightboard.autoscroll.enabled" in response.text
+    assert "--flightboard-scrollbar-width" in response.text
+    assert 'data-flightboard-panel="true"' in response.text
     assert response.text.index('class="flightboard-columns"') < response.text.index(
         'data-flightboard-autoscroll="true"'
     )
