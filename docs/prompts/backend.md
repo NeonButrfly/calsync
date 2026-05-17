@@ -183,3 +183,25 @@
 
 - issue `#7` fixes a regression where empty incremental Google calendar-list responses disabled all discovered Google calendars
 - explicit deleted calendars can still be disabled through discovery metadata without treating unchanged calendars as removed
+
+---
+
+- GitHub issue: `#8`
+- Scope: convert UI-facing UTC timestamps into Alaska time
+
+## Interpreted Requirements
+
+- dashboard, sync-status, and other admin-facing timestamp displays should render in Alaska time
+- UTC-backed event and sync timestamps should not leak raw UTC values into the UI
+- the flightboard should convert UTC-backed calendar events into Alaska display time as well
+
+## Behavioral Boundaries
+
+- provider and database storage remain UTC-backed and unchanged
+- only display formatting changes for the admin UI
+- the UI should render `AKST` or `AKDT` labels as appropriate for the date being shown
+
+## Phase Notes
+
+- issue `#8` introduces a shared Alaska display formatter for Jinja-rendered admin pages
+- UTC or timezone-missing datetimes should be treated as UTC before converting for display

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pyotp
@@ -10,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from calsync.config import Settings
 from calsync.main import create_app
-from calsync.models import Base, ProviderAccount, ProviderCalendar, PublishedFeed, SyncLog
+from calsync.models import Base, Event, ProviderAccount, ProviderCalendar, PublishedFeed, SyncLog
 from calsync.repos.state import set_app_state
 from calsync.repos.users import create_admin_user
 from calsync.services.auth import (
@@ -134,6 +135,30 @@ def test_dashboard_shows_feed_links_and_sync_summary(
     assert "Morning Standup" in response.text
 
 
+def test_dashboard_renders_sync_and_event_times_in_alaska_time(
+    authenticated_client: TestClient,
+) -> None:
+    with _db_session(authenticated_client) as session:
+        latest_sync = session.scalar(
+            select(SyncLog).order_by(SyncLog.started_at.desc(), SyncLog.id.desc())
+        )
+        assert latest_sync is not None
+        latest_sync.started_at = datetime(2026, 5, 15, 18, 0, tzinfo=UTC)
+
+        upcoming_event = session.scalar(
+            select(Event).order_by(Event.starts_at, Event.id)
+        )
+        assert upcoming_event is not None
+        upcoming_event.starts_at = datetime(2026, 5, 15, 18, 0, tzinfo=UTC)
+        session.commit()
+
+    response = authenticated_client.get("/admin")
+
+    assert response.status_code == 200
+    assert "Fri May 15 at 10:00 AM AKDT" in response.text
+    assert "+00:00" not in response.text
+
+
 @pytest.fixture()
 def authenticated_empty_client(empty_client: TestClient) -> TestClient:
     password_step = empty_client.post(
@@ -196,6 +221,24 @@ def test_manual_sync_action_records_new_sync_log(
         logs = session.scalars(select(SyncLog).order_by(SyncLog.started_at)).all()
         assert len(logs) == before_count + 1
         assert logs[-1].status == "success"
+
+
+def test_sync_status_page_renders_last_sync_in_alaska_time(
+    authenticated_client: TestClient,
+) -> None:
+    with _db_session(authenticated_client) as session:
+        latest_log = session.scalar(
+            select(SyncLog).order_by(SyncLog.started_at.desc(), SyncLog.id.desc())
+        )
+        assert latest_log is not None
+        latest_log.finished_at = datetime(2026, 5, 16, 1, 30, tzinfo=UTC)
+        session.commit()
+
+    response = authenticated_client.get("/admin/sync")
+
+    assert response.status_code == 200
+    assert "Fri May 15 at 5:30 PM AKDT" in response.text
+    assert "+00:00" not in response.text
 
 
 def test_rotating_combined_feed_changes_token(

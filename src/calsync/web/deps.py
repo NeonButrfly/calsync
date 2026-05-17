@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from calsync.models import AdminUser
 from calsync.db import get_db_session
+from calsync.web.timezones import format_display_datetime
 
 
 SESSION_COOKIE_NAME = "calsync_session"
@@ -24,6 +25,7 @@ ADMIN_SESSION_KEY = "admin_session"
 
 _TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
 _templates = Jinja2Templates(directory=str(_TEMPLATE_DIR))
+_templates.env.filters["alaska_datetime"] = format_display_datetime
 
 
 def get_templates() -> Jinja2Templates:

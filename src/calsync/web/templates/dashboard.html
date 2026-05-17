@@ -34,7 +34,7 @@
       <div><dt>Status</dt><dd>{{ latest_sync.status }}</dd></div>
       <div><dt>Trigger</dt><dd>{{ latest_sync.trigger }}</dd></div>
       <div><dt>Events imported</dt><dd>{{ latest_sync.events_upserted }}</dd></div>
-      <div><dt>Started</dt><dd>{{ latest_sync.started_at }}</dd></div>
+      <div><dt>Started</dt><dd>{{ latest_sync.started_at | alaska_datetime }}</dd></div>
     </dl>
     {% else %}
     <p>No syncs have run yet.</p>
@@ -51,7 +51,7 @@
       {% for event in upcoming_events %}
       <li>
         <strong>{{ event.title }}</strong>
-        <span>{{ event.starts_at }}</span>
+        <span>{{ event.starts_at | alaska_datetime }}</span>
       </li>
       {% endfor %}
     </ul>

@@ -297,6 +297,40 @@ def test_flightboard_excludes_events_that_have_already_ended(
     assert "Today Dispatch Briefing" in response.text
 
 
+def test_flightboard_converts_utc_calendar_times_to_alaska_display(
+    authenticated_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with Session(
+        create_engine(
+            authenticated_client.app.state.settings.database_url,
+            future=True,
+            connect_args={"check_same_thread": False},
+        )
+    ) as session:
+        shared_calendar = session.scalar(
+            select(ProviderCalendar).where(
+                ProviderCalendar.provider_calendar_id == "shared",
+            )
+        )
+        assert shared_calendar is not None
+        shared_calendar.enabled = True
+        session.commit()
+
+    monkeypatch.setattr(
+        flightboard_routes,
+        "_flightboard_now",
+        lambda: datetime(2026, 5, 15, 12, 0, tzinfo=UTC),
+    )
+
+    response = authenticated_client.get("/admin/flightboard?view=week")
+
+    assert response.status_code == 200
+    assert "Community Game Night" in response.text
+    assert "Fri May 15 at 6:00 PM AKDT" in response.text
+    assert "UTC" not in response.text
+
+
 def test_flightboard_day_week_and_month_views_filter_the_horizon(
     authenticated_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

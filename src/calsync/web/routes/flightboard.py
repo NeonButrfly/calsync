@@ -7,10 +7,11 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo
 
 from calsync.models import AdminUser, Event, ProviderAccount, ProviderCalendar
 from calsync.web.deps import get_db, get_templates, require_admin
+from calsync.web.timezones import format_display_datetime, resolve_display_timezone
 
 
 router = APIRouter(prefix="/admin")
@@ -22,12 +23,7 @@ def _flightboard_now() -> datetime:
 
 
 def _resolve_board_timezone(timezone_name: str | None) -> ZoneInfo:
-    if timezone_name:
-        try:
-            return ZoneInfo(timezone_name)
-        except ZoneInfoNotFoundError:
-            return ZoneInfo("UTC")
-    return ZoneInfo("UTC")
+    return resolve_display_timezone(timezone_name)
 
 
 def _status_for_event(
@@ -49,13 +45,7 @@ def _status_for_event(
 
 
 def _format_board_time(starts_at: datetime, timezone: ZoneInfo) -> str:
-    local_start = starts_at.astimezone(timezone)
-    time_text = local_start.strftime("%I:%M %p").lstrip("0") or "12:00 AM"
-    timezone_label = local_start.tzname() or "UTC"
-    return (
-        f"{local_start.strftime('%a')} {local_start.strftime('%b')} "
-        f"{local_start.day} at {time_text} {timezone_label}"
-    )
+    return format_display_datetime(starts_at, str(timezone.key))
 
 
 def _serialize_board_row(

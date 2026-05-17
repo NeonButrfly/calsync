@@ -20,7 +20,7 @@
 
     {% if latest_log %}
     <dl class="detail-list">
-      <div><dt>Last sync</dt><dd>{{ latest_log.finished_at or latest_log.started_at }}</dd></div>
+      <div><dt>Last sync</dt><dd>{{ (latest_log.finished_at or latest_log.started_at) | alaska_datetime }}</dd></div>
       <div><dt>Status</dt><dd>{{ latest_log.status }}</dd></div>
       <div><dt>Events seen</dt><dd>{{ latest_log.events_seen }}</dd></div>
       <div><dt>Events imported</dt><dd>{{ latest_log.events_upserted }}</dd></div>

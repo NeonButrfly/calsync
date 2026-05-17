@@ -96,6 +96,7 @@ Behavior:
 - requires an authenticated admin session
 - shows only current and upcoming enabled calendar events
 - offers `Day`, `Week`, and `Month` range controls inside the page
+- converts UTC-backed event displays into Alaska time with `AKST` or `AKDT` labels
 - scrolls automatically for unattended viewing and pauses on hover
 - duplicates visible rows client-side when needed so shorter schedules still auto-scroll instead of appearing static
 - is intended for private operations viewing, not anonymous public display
@@ -105,8 +106,11 @@ Practical verification points:
 - the top navigation includes `Flightboard`
 - opening `/admin/flightboard` after login renders the private board
 - the board excludes events whose end time has already passed
+- UTC-backed event times render in Alaska time instead of showing raw UTC labels
 - the selected range changes which upcoming events are shown
 - unauthenticated access should redirect to login instead of exposing events
+
+Dashboard and sync-status timestamps should follow the same Alaska display convention.
 
 ## Apple / iCloud Operator Notes
 
