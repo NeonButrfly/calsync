@@ -258,3 +258,30 @@
 - the first recommended implementation slice is event trust and cleanup
 - Athena-style portal work should be treated as a gated future adapter requiring a real supported auth path
 - reminder or message-derived appointment capture should enter through a generalized source adapter model rather than through direct backup parsing
+- active views now suppress `deleted_upstream`, `cancelled`, and hidden duplicate copies
+- full discovery can retire events from calendars that disappear upstream instead of leaving zombie active items behind
+- duplicate cleanup is now exposed through `/admin/review`
+
+---
+
+- GitHub issue: `#12`
+- Scope: make duplicate and trust state intuitive and operator-fixable
+
+## Interpreted Requirements
+
+- the app should make common calendar mistakes easy to understand and fix
+- the operator should be able to see likely duplicate appointments from one obvious page
+- the operator should be able to keep the right copy when the same appointment was added twice
+- the dashboard should surface trust state instead of hiding all cleanup logic in the backend
+
+## Behavioral Boundaries
+
+- duplicate handling remains conservative and read-only
+- raw provider events are preserved internally even when extra copies are hidden from active views
+- restore actions should be available when both copies should remain visible
+
+## Phase Notes
+
+- issue `#12` builds on the lifecycle foundation from issue `#11`
+- `/admin/review` is the operator-facing trust and duplicate cleanup page
+- hidden duplicate decisions persist across normal refreshes

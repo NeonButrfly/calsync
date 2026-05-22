@@ -136,6 +136,7 @@ python -m calsync.cli reset-admin-mfa --identifier admin
 Current admin pages:
 
 - `/admin` for the dashboard, combined feed link, and last sync summary
+- `/admin/review` for trust review, duplicate cleanup, and hidden-copy recovery
 - `/admin/flightboard` for the private Flightboard view of enabled calendar events
 - `/admin/providers` for deployment-wide Google OAuth app settings
 - `/admin/accounts` for mock, Google, and Apple/iCloud account connection
@@ -144,6 +145,25 @@ Current admin pages:
 - `/admin/feeds` for combined ICS publishing and token rotation
 
 These pages require admin login plus MFA-backed session establishment.
+
+## Event Trust And Cleanup
+
+CalSync now includes a first trust-and-cleanup layer so the combined schedule feels safer to rely on.
+
+Current behavior:
+
+- events missing from a full upstream sync are marked `deleted_upstream`
+- cancelled upstream events are kept out of active dashboard, flightboard, and ICS views
+- events from disabled calendars stay out of active dashboard and publishing views
+- conservative duplicate grouping spots obvious same-title same-time appointments across providers
+- the review page lets you keep the right copy and hide the extra one when you accidentally add the same appointment twice
+- hidden duplicate decisions survive later refreshes instead of being lost on the next sync
+
+Current limits:
+
+- duplicate grouping is intentionally conservative and focuses on obvious same-title same-time matches
+- CalSync preserves raw source events internally even when one duplicate copy is hidden from active views
+- more advanced conflict resolution and non-calendar appointment ingestion remain future work under issue `#11`
 
 ## Public App URL
 

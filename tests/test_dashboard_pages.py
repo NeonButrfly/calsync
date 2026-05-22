@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from calsync.config import Settings
 from calsync.main import create_app
 from calsync.models import Base, Event, ProviderAccount, ProviderCalendar, PublishedFeed, SyncLog
+from calsync.repos.events import upsert_event
 from calsync.repos.state import set_app_state
 from calsync.repos.users import create_admin_user
 from calsync.services.auth import (
@@ -21,6 +22,7 @@ from calsync.services.auth import (
     store_totp_secret,
 )
 from calsync.services.publishing import ensure_combined_feed
+from calsync.services.reconciliation import rebuild_duplicate_groups
 from calsync.services.sync import discover_calendars, sync_account
 
 
@@ -142,6 +144,61 @@ def test_dashboard_shows_feed_links_and_sync_summary(
     assert "Last sync" in response.text
     assert "/feeds/" in response.text
     assert "Morning Standup" not in response.text
+
+
+def test_dashboard_hides_events_from_disabled_calendars(
+    authenticated_client: TestClient,
+) -> None:
+    with _db_session(authenticated_client) as session:
+        calendar = session.scalar(
+            select(ProviderCalendar).where(
+                ProviderCalendar.provider_calendar_id == "home",
+            )
+        )
+        event = session.scalar(select(Event).where(Event.provider_event_id == "home-standup"))
+        assert calendar is not None
+        assert event is not None
+        calendar.enabled = False
+        session.commit()
+
+    response = authenticated_client.get("/admin")
+
+    assert response.status_code == 200
+    assert "Morning Standup" not in response.text
+
+
+def test_dashboard_shows_trust_review_summary_for_duplicate_groups(
+    authenticated_client: TestClient,
+) -> None:
+    with _db_session(authenticated_client) as session:
+        source_event = session.scalar(select(Event).where(Event.provider_event_id == "home-standup"))
+        assert source_event is not None
+
+        upsert_event(
+            session,
+            {
+                "provider_type": "google",
+                "provider_account_id": "google-acct-1",
+                "provider_calendar_id": "google-primary",
+                "provider_event_id": "duplicate-standup",
+                "title": source_event.title,
+                "starts_at": source_event.starts_at,
+                "ends_at": source_event.ends_at,
+                "all_day": source_event.all_day,
+                "status": "confirmed",
+                "location": source_event.location,
+                "source_payload": {"seed": "dashboard-duplicate"},
+            },
+        )
+        rebuild_duplicate_groups(session)
+        session.commit()
+
+    response = authenticated_client.get("/admin")
+
+    assert response.status_code == 200
+    assert "Trust review" in response.text
+    assert "Possible duplicates" in response.text
+    assert "Open trust review" in response.text
 
 
 def test_dashboard_renders_sync_and_event_times_in_alaska_time(

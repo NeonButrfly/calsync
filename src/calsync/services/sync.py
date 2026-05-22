@@ -13,6 +13,7 @@ from calsync.repos.providers import (
     upsert_provider_calendar,
 )
 from calsync.services.providers import get_provider_adapter
+from calsync.services.reconciliation import rebuild_duplicate_groups
 
 
 def discover_calendars(
@@ -27,6 +28,7 @@ def discover_calendars(
     was_incremental_discovery = bool(
         getattr(adapter, "last_calendar_discovery_was_incremental", False)
     )
+    disabled_calendars: list[ProviderCalendar] = []
 
     calendars: list[ProviderCalendar] = []
     for discovered_calendar in discovered_calendars:
@@ -40,13 +42,21 @@ def discover_calendars(
         calendars.append(calendar)
 
     if not was_incremental_discovery:
-        reconcile_provider_calendars(
+        disabled_calendars = reconcile_provider_calendars(
             session,
             account=account,
             discovered_external_ids={
                 discovered_calendar.external_id for discovered_calendar in discovered_calendars
             },
         )
+        for disabled_calendar in disabled_calendars:
+            mark_events_missing_from_sync(
+                session,
+                provider_type=account.provider_type,
+                provider_account_id=account.provider_account_id,
+                provider_calendar_id=disabled_calendar.provider_calendar_id,
+                seen_provider_event_ids=set(),
+            )
     session.flush()
     return calendars
 
@@ -85,6 +95,7 @@ def sync_account(
                     seen_provider_event_ids=seen_provider_event_ids,
                 )
 
+        rebuild_duplicate_groups(session)
         sync_run.mark_success()
 
     session.flush()

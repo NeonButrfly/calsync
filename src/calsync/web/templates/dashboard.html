@@ -28,6 +28,17 @@
   </article>
 
   <article class="panel">
+    <h2>Trust review</h2>
+    <dl class="detail-list">
+      <div><dt>Possible duplicates</dt><dd>{{ trust_metrics.duplicate_groups }}</dd></div>
+      <div><dt>Hidden duplicates</dt><dd>{{ trust_metrics.hidden_duplicates }}</dd></div>
+      <div><dt>Upstream removed</dt><dd>{{ trust_metrics.deleted_upstream }}</dd></div>
+      <div><dt>Upstream cancelled</dt><dd>{{ trust_metrics.cancelled }}</dd></div>
+    </dl>
+    <p><a href="/admin/review">Open trust review</a></p>
+  </article>
+
+  <article class="panel">
     <h2>Last sync</h2>
     {% if latest_sync %}
     <dl class="detail-list">

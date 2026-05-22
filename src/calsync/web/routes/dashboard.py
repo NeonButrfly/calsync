@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from fastapi import APIRouter, Depends, Request
@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 from calsync.config import build_external_url
 from calsync.models import AdminUser, Event, ProviderAccount, ProviderCalendar, SyncLog
 from calsync.services.publishing import ensure_combined_feed, rotate_combined_feed_token
+from calsync.services.reconciliation import collect_trust_metrics, rebuild_duplicate_groups
 from calsync.web.deps import get_db, get_templates, require_admin
 
 
@@ -23,7 +24,9 @@ def dashboard_page(
     templates: Jinja2Templates = Depends(get_templates),
     current_admin: AdminUser = Depends(require_admin),
 ):
+    rebuild_duplicate_groups(session)
     combined_feed = ensure_combined_feed(session)
+    trust_metrics = collect_trust_metrics(session)
     session.commit()
 
     account_count = session.scalar(select(func.count(ProviderAccount.id))) or 0
@@ -32,7 +35,14 @@ def dashboard_page(
     )
     upcoming_events = session.scalars(
         select(Event)
-        .where(Event.event_visibility_state == "active")
+        .outerjoin(ProviderCalendar, Event.provider_calendar_pk == ProviderCalendar.id)
+        .where(
+            Event.event_visibility_state == "active",
+            or_(
+                Event.provider_calendar_pk.is_(None),
+                ProviderCalendar.enabled.is_(True),
+            ),
+        )
         .order_by(Event.starts_at, Event.id)
         .limit(8)
     ).all()
@@ -46,6 +56,7 @@ def dashboard_page(
             f"/feeds/{combined_feed.token}.ics",
             settings=request.app.state.settings,
         ),
+        "trust_metrics": trust_metrics,
         "latest_sync": latest_sync,
         "upcoming_events": upcoming_events,
     }

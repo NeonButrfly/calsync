@@ -267,3 +267,49 @@ def test_discovery_preserves_manual_disabled_state_on_rediscovery(
         "work",
     ]
     assert [calendar.enabled for calendar in calendars] == [True, True, False]
+
+
+def test_sync_marks_events_deleted_when_calendar_disappears_from_full_discovery(
+    migrated_session: Session,
+    mock_account: ProviderAccount,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sync_account(migrated_session, mock_account.id, trigger="manual")
+    migrated_session.commit()
+
+    class ReducedAdapter:
+        provider_type = "mock"
+        last_calendar_discovery_was_incremental = False
+        last_events_fetch_was_incremental = False
+
+        def discover_calendars(
+            self,
+            account: ProviderAccount,
+        ) -> list[DiscoveredCalendar]:
+            return [
+                DiscoveredCalendar(external_id="home", name="Home", timezone="America/Anchorage"),
+                DiscoveredCalendar(external_id="work", name="Work", timezone="America/Anchorage"),
+            ]
+
+        def fetch_events(
+            self,
+            account: ProviderAccount,
+            calendar: ProviderCalendar,
+        ) -> list[NormalizedEvent]:
+            return []
+
+    monkeypatch.setattr(
+        "calsync.services.sync.get_provider_adapter",
+        lambda provider_type, **kwargs: ReducedAdapter(),
+    )
+
+    sync_account(migrated_session, mock_account.id, trigger="manual")
+    migrated_session.commit()
+
+    shared_event = migrated_session.scalar(
+        select(Event).where(Event.provider_event_id == "shared-game-night")
+    )
+
+    assert shared_event is not None
+    assert shared_event.event_visibility_state == "deleted_upstream"
+    assert shared_event.removed_upstream_at is not None

@@ -116,6 +116,30 @@ Practical verification points:
 
 Dashboard and sync-status timestamps should follow the same Alaska display convention.
 
+## Trust Review Operator Notes
+
+The trust review page is available at:
+
+- `/admin/review`
+
+Behavior:
+
+- requires an authenticated admin session
+- groups obvious duplicate appointments using conservative same-title same-time matching
+- shows which copy CalSync currently prefers
+- lets the operator choose `Keep this copy` when the same appointment was added twice
+- lets the operator restore a hidden duplicate if both copies should stay visible
+- keeps hidden-duplicate decisions across later sync refreshes
+- removes events from active views when the upstream provider cancels them, deletes them, or removes their calendar during a full discovery pass
+
+Practical verification points:
+
+- the top navigation includes `Review`
+- the dashboard shows a `Trust review` summary card
+- `/admin/review` shows `Possible duplicates` when matching copies exist
+- choosing `Keep this copy` hides the extra copy from active dashboard, flightboard, and ICS surfaces
+- if a calendar disappears from provider discovery, its old events become `deleted_upstream` instead of staying active forever
+
 ## Apple / iCloud Operator Notes
 
 Apple/iCloud onboarding is account-based, not deployment-based.

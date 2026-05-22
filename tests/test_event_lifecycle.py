@@ -367,6 +367,35 @@ def test_sync_account_marks_provider_cancelled_event_non_active(
         assert event.removed_upstream_at is None
 
 
+def test_upsert_event_preserves_hidden_duplicate_state_on_active_refresh(
+    migrated_session_factory: sessionmaker[Session],
+) -> None:
+    with migrated_session_factory() as session:
+        event = upsert_event(
+            session,
+            _make_event(
+                provider_event_id="evt-duplicate",
+                event_visibility_state="hidden_duplicate",
+            ),
+        )
+        session.commit()
+        event_id = event.id
+
+    with migrated_session_factory() as session:
+        refreshed = upsert_event(
+            session,
+            _make_event(
+                provider_event_id="evt-duplicate",
+                status="confirmed",
+            ),
+        )
+        session.commit()
+
+        assert refreshed.id == event_id
+        assert refreshed.event_visibility_state == "hidden_duplicate"
+        assert refreshed.removed_upstream_at is None
+
+
 def test_upsert_event_rejects_unknown_event_visibility_state(
     migrated_session_factory: sessionmaker[Session],
 ) -> None:

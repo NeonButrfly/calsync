@@ -102,18 +102,21 @@ def reconcile_provider_calendars(
     *,
     account: ProviderAccount,
     discovered_external_ids: set[str],
-) -> None:
+) -> list[ProviderCalendar]:
     calendars = session.scalars(
         select(ProviderCalendar).where(
             ProviderCalendar.provider_account_pk == account.id,
         )
     ).all()
 
+    disabled_calendars: list[ProviderCalendar] = []
     for calendar in calendars:
         if calendar.provider_calendar_id not in discovered_external_ids:
             calendar.enabled = False
+            disabled_calendars.append(calendar)
 
     session.flush()
+    return disabled_calendars
 
 
 def list_enabled_provider_calendars(
@@ -128,6 +131,20 @@ def list_enabled_provider_calendars(
                 ProviderCalendar.provider_account_pk == account.id,
                 ProviderCalendar.enabled.is_(True),
             )
+            .order_by(ProviderCalendar.provider_calendar_id)
+        )
+    )
+
+
+def list_provider_calendars(
+    session: Session,
+    *,
+    account: ProviderAccount,
+) -> list[ProviderCalendar]:
+    return list(
+        session.scalars(
+            select(ProviderCalendar)
+            .where(ProviderCalendar.provider_account_pk == account.id)
             .order_by(ProviderCalendar.provider_calendar_id)
         )
     )

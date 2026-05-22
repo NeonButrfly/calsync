@@ -43,6 +43,16 @@ button:hover {
   background: var(--accent-strong);
 }
 
+.secondary-button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--accent-strong);
+}
+
+.secondary-button:hover {
+  background: rgba(14, 107, 80, 0.08);
+}
+
 code {
   background: #f2eadb;
   border-radius: 0.35rem;
@@ -206,6 +216,72 @@ code {
   padding: 0.8rem 0.5rem;
   text-align: left;
   vertical-align: top;
+}
+
+.review-group-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.review-group-card {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.review-group-header {
+  align-items: start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+}
+
+.review-group-header h3 {
+  margin: 0 0 0.25rem;
+}
+
+.review-event-list {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.review-event-card {
+  align-items: start;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding-top: 0.75rem;
+}
+
+.review-event-main {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.review-event-actions {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: end;
+}
+
+.review-chip {
+  background: rgba(14, 107, 80, 0.08);
+  border: 1px solid rgba(14, 107, 80, 0.18);
+  border-radius: 999px;
+  color: var(--accent-strong);
+  display: inline-flex;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+}
+
+.review-chip--preferred {
+  background: rgba(14, 107, 80, 0.14);
 }
 
 .flightboard-shell {

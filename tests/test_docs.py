@@ -90,3 +90,24 @@ def test_docs_cover_flightboard_current_upcoming_ranges() -> None:
     assert "#5" in prompt_content
     assert "current and upcoming" in prompt_content
     assert "day" in prompt_content and "week" in prompt_content and "month" in prompt_content
+
+
+def test_docs_cover_trust_review_and_duplicate_cleanup() -> None:
+    readme_content = Path("README.md").read_text(encoding="utf-8").lower()
+    ops_content = Path("docs/ops.md").read_text(encoding="utf-8").lower()
+    prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()
+
+    assert "/admin/review" in readme_content
+    assert "deleted_upstream" in readme_content
+    assert "duplicate grouping" in readme_content
+    assert "same appointment twice" in readme_content
+
+    assert "/admin/review" in ops_content
+    assert "possible duplicates" in ops_content
+    assert "keep this copy" in ops_content
+    assert "deleted_upstream" in ops_content
+
+    assert "#11" in prompt_content
+    assert "#12" in prompt_content
+    assert "/admin/review" in prompt_content
+    assert "hidden duplicate" in prompt_content

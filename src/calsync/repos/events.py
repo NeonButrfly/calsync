@@ -82,19 +82,6 @@ def upsert_event(session: Session, normalized_event: Mapping[str, Any]) -> Event
     starts_at = _required_datetime(normalized_event["starts_at"])
     ends_at = _required_datetime(normalized_event["ends_at"])
     status = str(normalized_event.get("status", "confirmed"))
-    event_visibility_state = _resolved_event_visibility_state(
-        normalized_event=normalized_event,
-        status=status,
-    )
-    last_seen_upstream_at = _resolved_last_seen_upstream_at(normalized_event)
-    removed_upstream_at = _resolved_removed_upstream_at(
-        normalized_event=normalized_event,
-    )
-    _validate_lifecycle_consistency(
-        event_visibility_state=event_visibility_state,
-        removed_upstream_at=removed_upstream_at,
-    )
-
     account = _get_or_create_provider_account(
         session,
         provider_type=provider_type,
@@ -112,6 +99,21 @@ def upsert_event(session: Session, normalized_event: Mapping[str, Any]) -> Event
         provider_account_id=provider_account_id,
         provider_calendar_id=provider_calendar_id,
         provider_event_id=provider_event_id,
+    )
+    event_visibility_state = _resolved_event_visibility_state(
+        normalized_event=normalized_event,
+        status=status,
+        existing_event=event,
+    )
+    last_seen_upstream_at = _resolved_last_seen_upstream_at(normalized_event)
+    removed_upstream_at = _resolved_removed_upstream_at(
+        normalized_event=normalized_event,
+        existing_event=event,
+        event_visibility_state=event_visibility_state,
+    )
+    _validate_lifecycle_consistency(
+        event_visibility_state=event_visibility_state,
+        removed_upstream_at=removed_upstream_at,
     )
 
     if event is None:
@@ -202,11 +204,17 @@ def _resolved_event_visibility_state(
     *,
     normalized_event: Mapping[str, Any],
     status: str,
+    existing_event: Event | None,
 ) -> str:
     if "event_visibility_state" in normalized_event:
         return _validated_event_visibility_state(normalized_event["event_visibility_state"])
     if status.lower() == "cancelled":
         return "cancelled"
+    if existing_event is not None and existing_event.event_visibility_state in {
+        "hidden_duplicate",
+        "stale_unverified",
+    }:
+        return existing_event.event_visibility_state
     return "active"
 
 
@@ -219,9 +227,20 @@ def _resolved_last_seen_upstream_at(normalized_event: Mapping[str, Any]) -> date
 def _resolved_removed_upstream_at(
     *,
     normalized_event: Mapping[str, Any],
+    existing_event: Event | None,
+    event_visibility_state: str,
 ) -> datetime | None:
     if "removed_upstream_at" in normalized_event:
         return _optional_datetime(normalized_event.get("removed_upstream_at"))
+    explicit_visibility_state = normalized_event.get("event_visibility_state")
+    if explicit_visibility_state == "deleted_upstream":
+        if existing_event is not None:
+            return existing_event.removed_upstream_at
+        return None
+    if event_visibility_state == "deleted_upstream":
+        if existing_event is not None and existing_event.removed_upstream_at is not None:
+            return existing_event.removed_upstream_at
+        return utcnow()
     return None
 
 
