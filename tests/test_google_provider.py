@@ -13,6 +13,7 @@ from calsync.config import Settings
 from calsync.crypto import decrypt_text, encrypt_text
 from calsync.models import Base, ProviderAccount, ProviderCalendar
 from calsync.repos.providers import upsert_provider_account
+from calsync.repos.events import upsert_event
 from calsync.services.sync import discover_calendars
 from calsync.services.providers.google import (
     ACCOUNT_DISCOVERY_SYNC_TOKEN_KEY,
@@ -311,6 +312,72 @@ def test_google_event_sync_recovers_from_expired_sync_token(
     assert [event.title for event in events] == ["Recovered Full Sync"]
     assert calendar.provider_metadata is not None
     assert calendar.provider_metadata[CALENDAR_EVENTS_SYNC_TOKEN_KEY] == "fresh-token"
+
+
+def test_google_event_sync_preserves_existing_shape_for_cancelled_tombstones(
+    session: Session,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    account = _seed_google_account(session)
+    calendar = ProviderCalendar(
+        provider_account_pk=account.id,
+        provider_calendar_id="primary",
+        name="Primary",
+        enabled=True,
+        provider_metadata={CALENDAR_EVENTS_SYNC_TOKEN_KEY: "existing-token"},
+    )
+    session.add(calendar)
+    session.flush()
+
+    upsert_event(
+        session,
+        {
+            "provider_type": "google",
+            "provider_account_id": account.provider_account_id,
+            "provider_calendar_id": "primary",
+            "provider_event_id": "evt-cancelled",
+            "title": "Follow-up Visit",
+            "description": "Existing event shape",
+            "location": "Clinic",
+            "starts_at": datetime(2026, 5, 13, 18, 0, tzinfo=UTC),
+            "ends_at": datetime(2026, 5, 13, 19, 0, tzinfo=UTC),
+            "all_day": False,
+            "status": "confirmed",
+            "source_payload": {"seed": "existing-google-event"},
+        },
+    )
+    session.commit()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "items": [
+                    {
+                        "id": "evt-cancelled",
+                        "status": "cancelled",
+                    }
+                ],
+                "nextSyncToken": "fresh-events-token",
+            },
+            request=request,
+        )
+
+    monkeypatch.setattr(
+        "calsync.services.providers.google._build_http_client",
+        lambda: httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    adapter = GoogleProviderAdapter(settings=settings, session=session)
+    events = adapter.fetch_events(account, calendar)
+
+    assert len(events) == 1
+    assert events[0].provider_event_id == "evt-cancelled"
+    assert events[0].status == "cancelled"
+    assert events[0].title == "Follow-up Visit"
+    assert events[0].starts_at == datetime(2026, 5, 13, 18, 0, tzinfo=UTC)
+    assert events[0].ends_at == datetime(2026, 5, 13, 19, 0, tzinfo=UTC)
 
 
 def test_google_incremental_discovery_preserves_enabled_calendars_when_no_changes_return(

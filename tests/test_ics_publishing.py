@@ -67,6 +67,23 @@ def test_combined_feed_returns_calendar_payload(
     client: TestClient,
 ) -> None:
     _seed_normalized_events(migrated_session)
+    upsert_event(
+        migrated_session,
+        {
+            "provider_type": "mock",
+            "provider_account_id": "mock-acct-1",
+            "provider_calendar_id": "home",
+            "provider_event_id": "home-cancelled",
+            "title": "Cancelled Standup",
+            "description": "Should be hidden from the feed",
+            "location": "Desk",
+            "starts_at": datetime(2026, 5, 13, 17, 0, tzinfo=UTC),
+            "ends_at": datetime(2026, 5, 13, 17, 15, tzinfo=UTC),
+            "all_day": False,
+            "status": "cancelled",
+            "source_payload": {"seed": "phase-a-hidden"},
+        },
+    )
     feed = ensure_combined_feed(migrated_session)
     migrated_session.commit()
 
@@ -78,6 +95,7 @@ def test_combined_feed_returns_calendar_payload(
     assert "BEGIN:VEVENT" in response.text
     assert "SUMMARY:Morning Standup" in response.text
     assert "SUMMARY:Roadmap Review" in response.text
+    assert "SUMMARY:Cancelled Standup" not in response.text
 
 
 def test_combined_feed_uses_collision_safe_uids(

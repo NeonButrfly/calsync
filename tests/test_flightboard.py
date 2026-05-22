@@ -172,6 +172,23 @@ def _build_client(tmp_path: Path) -> TestClient:
                     provider_type=account.provider_type,
                     provider_account_id=account.provider_account_id,
                     provider_calendar_id=enabled_calendar.provider_calendar_id,
+                    provider_event_id="cancelled-local-event",
+                    provider_account_pk=account.id,
+                    provider_calendar_pk=enabled_calendar.id,
+                    title="Cancelled Dispatch Briefing",
+                    description="Should be hidden by lifecycle state.",
+                    location="North Ramp",
+                    starts_at=datetime(2026, 5, 15, 18, 30, tzinfo=UTC),
+                    ends_at=datetime(2026, 5, 15, 19, 30, tzinfo=UTC),
+                    all_day=False,
+                    status="cancelled",
+                    event_visibility_state="cancelled",
+                    source_payload={"calendar": "work", "seed": "cancelled-local"},
+                ),
+                Event(
+                    provider_type=account.provider_type,
+                    provider_account_id=account.provider_account_id,
+                    provider_calendar_id=enabled_calendar.provider_calendar_id,
                     provider_event_id="week-local-event",
                     provider_account_pk=account.id,
                     provider_calendar_pk=enabled_calendar.id,
@@ -248,6 +265,7 @@ def test_flightboard_shows_only_enabled_calendar_events(
     assert response.status_code == 200
     assert "Today Dispatch Briefing" in response.text
     assert "Disabled Calendar Event" not in response.text
+    assert "Cancelled Dispatch Briefing" not in response.text
 
 
 def test_flightboard_renders_calendar_name_location_and_status(

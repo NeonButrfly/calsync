@@ -91,7 +91,8 @@ def _list_combined_feed_events(session: Session) -> list[Event]:
                 or_(
                     Event.provider_calendar_pk.is_(None),
                     ProviderCalendar.enabled.is_(True),
-                )
+                ),
+                Event.event_visibility_state == "active",
             )
             .order_by(Event.starts_at, Event.id)
         )

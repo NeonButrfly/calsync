@@ -31,7 +31,10 @@ def dashboard_page(
         select(SyncLog).order_by(SyncLog.started_at.desc(), SyncLog.id.desc())
     )
     upcoming_events = session.scalars(
-        select(Event).order_by(Event.starts_at, Event.id).limit(8)
+        select(Event)
+        .where(Event.event_visibility_state == "active")
+        .order_by(Event.starts_at, Event.id)
+        .limit(8)
     ).all()
     context = {
         "current_admin": current_admin,
@@ -81,4 +84,3 @@ def rotate_combined_feed(
     rotate_combined_feed_token(session)
     session.commit()
     return RedirectResponse(url="/admin/feeds", status_code=303)
-

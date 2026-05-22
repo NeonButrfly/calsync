@@ -125,7 +125,12 @@ def flightboard_page(
         )
         .join(ProviderAccount, Event.provider_account_pk == ProviderAccount.id)
         .join(ProviderCalendar, Event.provider_calendar_pk == ProviderCalendar.id)
-        .where(ProviderCalendar.enabled.is_(True), Event.ends_at > now, Event.starts_at < horizon_end)
+        .where(
+            ProviderCalendar.enabled.is_(True),
+            Event.event_visibility_state == "active",
+            Event.ends_at > now,
+            Event.starts_at < horizon_end,
+        )
         .order_by(Event.starts_at, Event.id)
     ).all()
 

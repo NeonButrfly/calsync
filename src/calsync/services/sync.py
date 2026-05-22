@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from calsync.config import Settings
 from calsync.models import ProviderCalendar, SyncLog
-from calsync.repos.events import upsert_event
+from calsync.repos.events import mark_events_missing_from_sync, upsert_event
 from calsync.repos.providers import (
     begin_sync_run,
     list_enabled_provider_calendars,
@@ -66,10 +66,24 @@ def sync_account(
         calendars = list_enabled_provider_calendars(session, account=account)
 
         for calendar in calendars:
-            for event in adapter.fetch_events(account, calendar):
+            fetched_events = adapter.fetch_events(account, calendar)
+            seen_provider_event_ids: set[str] = set()
+
+            for event in fetched_events:
                 sync_run.record_seen()
-                upsert_event(session, event.model_dump(mode="python"))
+                payload = event.model_dump(mode="python")
+                seen_provider_event_ids.add(str(payload["provider_event_id"]))
+                upsert_event(session, payload)
                 sync_run.record_upserted()
+
+            if not getattr(adapter, "last_events_fetch_was_incremental", False):
+                mark_events_missing_from_sync(
+                    session,
+                    provider_type=account.provider_type,
+                    provider_account_id=account.provider_account_id,
+                    provider_calendar_id=calendar.provider_calendar_id,
+                    seen_provider_event_ids=seen_provider_event_ids,
+                )
 
         sync_run.mark_success()
 

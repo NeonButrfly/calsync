@@ -19,6 +19,7 @@ from calsync.repos.providers import (
     get_provider_account_by_identity,
     upsert_provider_account,
 )
+from calsync.repos.events import get_event_by_provider_identity
 from calsync.services.provider_config import (
     GoogleOAuthConfiguration,
     resolve_google_oauth_configuration,
@@ -65,6 +66,7 @@ class GoogleProviderAdapter:
         self.settings = settings or get_settings()
         self.session = session
         self.last_calendar_discovery_was_incremental = False
+        self.last_events_fetch_was_incremental = False
 
     def discover_calendars(
         self,
@@ -122,9 +124,17 @@ class GoogleProviderAdapter:
         for item in response_payload.get("items", []):
             if not isinstance(item, dict):
                 continue
-            if not item.get("id") or not item.get("start") or not item.get("end"):
+            if not item.get("id"):
                 continue
-            events.append(_normalize_google_event(account, calendar, item))
+            normalized = _normalize_google_event(
+                account,
+                calendar,
+                item,
+                session=self.session,
+            )
+            if normalized is None:
+                continue
+            events.append(normalized)
         return events
 
     def _get_calendar_list(self, account: ProviderAccount) -> dict[str, object]:
@@ -162,6 +172,9 @@ class GoogleProviderAdapter:
             "showDeleted": "true",
         }
         sync_token = metadata.get(CALENDAR_EVENTS_SYNC_TOKEN_KEY)
+        self.last_events_fetch_was_incremental = bool(
+            isinstance(sync_token, str) and sync_token
+        )
         if isinstance(sync_token, str) and sync_token:
             params["syncToken"] = sync_token
 
@@ -175,6 +188,7 @@ class GoogleProviderAdapter:
                 raise
             metadata.pop(CALENDAR_EVENTS_SYNC_TOKEN_KEY, None)
             calendar.provider_metadata = metadata
+            self.last_events_fetch_was_incremental = False
             return self._get_paginated_json(
                 account,
                 url,
@@ -566,11 +580,39 @@ def _normalize_google_event(
     account: ProviderAccount,
     calendar: ProviderCalendar,
     payload: dict[str, object],
-) -> NormalizedEvent:
-    start_info = payload["start"]
-    end_info = payload["end"]
-    assert isinstance(start_info, dict)
-    assert isinstance(end_info, dict)
+    *,
+    session: Session | None = None,
+) -> NormalizedEvent | None:
+    start_info = payload.get("start")
+    end_info = payload.get("end")
+    status = _optional_str(payload.get("status")) or "confirmed"
+
+    if not isinstance(start_info, dict) or not isinstance(end_info, dict):
+        if status.lower() != "cancelled" or session is None:
+            return None
+        existing_event = get_event_by_provider_identity(
+            session,
+            provider_type=GOOGLE_PROVIDER_TYPE,
+            provider_account_id=account.provider_account_id,
+            provider_calendar_id=calendar.provider_calendar_id,
+            provider_event_id=str(payload["id"]),
+        )
+        if existing_event is None:
+            return None
+        return NormalizedEvent(
+            provider_type=GOOGLE_PROVIDER_TYPE,
+            provider_account_id=account.provider_account_id,
+            provider_calendar_id=calendar.provider_calendar_id,
+            provider_event_id=str(payload["id"]),
+            title=existing_event.title,
+            description=existing_event.description,
+            location=existing_event.location,
+            starts_at=existing_event.starts_at,
+            ends_at=existing_event.ends_at,
+            all_day=existing_event.all_day,
+            status=status,
+            source_payload=dict(payload),
+        )
 
     starts_at, all_day = _parse_google_event_datetime(start_info)
     ends_at, _ = _parse_google_event_datetime(end_info)
@@ -585,7 +627,7 @@ def _normalize_google_event(
         starts_at=starts_at,
         ends_at=ends_at,
         all_day=all_day,
-        status=_optional_str(payload.get("status")) or "confirmed",
+        status=status,
         source_payload=dict(payload),
     )
 

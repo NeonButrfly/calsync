@@ -4,11 +4,16 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
+from types import SimpleNamespace
 
 from calsync.config import get_settings
+from calsync.models import Event, ProviderAccount, ProviderCalendar
+from calsync.repos.events import upsert_event
+from calsync.schemas.providers import NormalizedEvent
+from calsync.services.sync import sync_account
 
 
 @pytest.fixture()
@@ -118,6 +123,248 @@ def test_event_lifecycle_defaults_for_fresh_event(
         assert reloaded.last_seen_upstream_at is not None
         assert reloaded.last_seen_upstream_at.tzinfo is not None
         assert reloaded.last_seen_upstream_at.utcoffset() == UTC.utcoffset(None)
+
+
+def test_sync_marks_provider_missing_events_removed(
+    migrated_session_factory: sessionmaker[Session],
+) -> None:
+    from calsync.models import Event
+    from calsync.repos.events import mark_events_missing_from_sync, upsert_event
+
+    with migrated_session_factory() as session:
+        stale = upsert_event(session, _make_event(provider_event_id="evt-stale"))
+        current = upsert_event(session, _make_event(provider_event_id="evt-current"))
+        session.commit()
+        stale_id = stale.id
+        current_id = current.id
+
+    with migrated_session_factory() as session:
+        mark_events_missing_from_sync(
+            session,
+            provider_type="mock",
+            provider_account_id="acct-1",
+            provider_calendar_id="cal-1",
+            seen_provider_event_ids={"evt-current"},
+        )
+        session.commit()
+
+    with migrated_session_factory() as session:
+        stale = session.get(Event, stale_id)
+        current = session.get(Event, current_id)
+
+        assert stale is not None
+        assert current is not None
+        assert stale.event_visibility_state == "deleted_upstream"
+        assert stale.removed_upstream_at is not None
+        assert current.event_visibility_state == "active"
+        assert current.removed_upstream_at is None
+
+
+def test_cancelled_events_are_not_left_active(
+    migrated_session_factory: sessionmaker[Session],
+) -> None:
+    from calsync.models import Event
+    from calsync.repos.events import upsert_event
+
+    with migrated_session_factory() as session:
+        event = upsert_event(session, _make_event(status="cancelled"))
+        session.commit()
+        event_id = event.id
+
+    with migrated_session_factory() as session:
+        reloaded = session.get(Event, event_id)
+
+        assert reloaded is not None
+        assert reloaded.status == "cancelled"
+        assert reloaded.event_visibility_state == "cancelled"
+        assert reloaded.removed_upstream_at is None
+
+
+def test_sync_account_full_fetch_marks_missing_events_deleted_upstream(
+    migrated_session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with migrated_session_factory() as session:
+        account = ProviderAccount(
+            provider_type="mock",
+            provider_account_id="acct-sync-full",
+            display_name="Mock Sync Full",
+            provider_metadata={},
+        )
+        session.add(account)
+        session.flush()
+        calendar = ProviderCalendar(
+            provider_account_pk=account.id,
+            provider_calendar_id="cal-sync-full",
+            name="Full Sync Calendar",
+            enabled=True,
+        )
+        session.add(calendar)
+        session.flush()
+        stale = upsert_event(
+            session,
+            _make_event(
+                provider_account_id=account.provider_account_id,
+                provider_calendar_id=calendar.provider_calendar_id,
+                provider_event_id="evt-stale",
+            ),
+        )
+        current = upsert_event(
+            session,
+            _make_event(
+                provider_account_id=account.provider_account_id,
+                provider_calendar_id=calendar.provider_calendar_id,
+                provider_event_id="evt-current",
+            ),
+        )
+        session.commit()
+        account_id = account.id
+        stale_id = stale.id
+        current_id = current.id
+
+    adapter = SimpleNamespace(
+        last_events_fetch_was_incremental=False,
+        fetch_events=lambda account, calendar: [
+            NormalizedEvent(
+                **_make_event(
+                    provider_type="mock",
+                    provider_account_id="acct-sync-full",
+                    provider_calendar_id="cal-sync-full",
+                    provider_event_id="evt-current",
+                )
+            )
+        ],
+    )
+
+    monkeypatch.setattr("calsync.services.sync.get_provider_adapter", lambda *args, **kwargs: adapter)
+    monkeypatch.setattr("calsync.services.sync.discover_calendars", lambda *args, **kwargs: [])
+
+    with migrated_session_factory() as session:
+        sync_account(session, account_id, trigger="manual")
+        session.commit()
+
+    with migrated_session_factory() as session:
+        stale = session.get(Event, stale_id)
+        current = session.get(Event, current_id)
+
+        assert stale is not None
+        assert current is not None
+        assert stale.event_visibility_state == "deleted_upstream"
+        assert stale.removed_upstream_at is not None
+        assert current.event_visibility_state == "active"
+
+
+def test_sync_account_incremental_fetch_keeps_missing_events_active(
+    migrated_session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with migrated_session_factory() as session:
+        account = ProviderAccount(
+            provider_type="mock",
+            provider_account_id="acct-sync-incremental",
+            display_name="Mock Sync Incremental",
+            provider_metadata={},
+        )
+        session.add(account)
+        session.flush()
+        calendar = ProviderCalendar(
+            provider_account_pk=account.id,
+            provider_calendar_id="cal-sync-incremental",
+            name="Incremental Sync Calendar",
+            enabled=True,
+        )
+        session.add(calendar)
+        session.flush()
+        stale = upsert_event(
+            session,
+            _make_event(
+                provider_account_id=account.provider_account_id,
+                provider_calendar_id=calendar.provider_calendar_id,
+                provider_event_id="evt-stale",
+            ),
+        )
+        session.commit()
+        account_id = account.id
+        stale_id = stale.id
+
+    adapter = SimpleNamespace(
+        last_events_fetch_was_incremental=True,
+        fetch_events=lambda account, calendar: [],
+    )
+
+    monkeypatch.setattr("calsync.services.sync.get_provider_adapter", lambda *args, **kwargs: adapter)
+    monkeypatch.setattr("calsync.services.sync.discover_calendars", lambda *args, **kwargs: [])
+
+    with migrated_session_factory() as session:
+        sync_account(session, account_id, trigger="manual")
+        session.commit()
+
+    with migrated_session_factory() as session:
+        reloaded = session.get(Event, stale_id)
+
+        assert reloaded is not None
+        assert reloaded.event_visibility_state == "active"
+        assert reloaded.removed_upstream_at is None
+
+
+def test_sync_account_marks_provider_cancelled_event_non_active(
+    migrated_session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with migrated_session_factory() as session:
+        account = ProviderAccount(
+            provider_type="mock",
+            provider_account_id="acct-sync-cancelled",
+            display_name="Mock Sync Cancelled",
+            provider_metadata={},
+        )
+        session.add(account)
+        session.flush()
+        calendar = ProviderCalendar(
+            provider_account_pk=account.id,
+            provider_calendar_id="cal-sync-cancelled",
+            name="Cancelled Sync Calendar",
+            enabled=True,
+        )
+        session.add(calendar)
+        session.flush()
+        account_id = account.id
+        session.commit()
+
+    adapter = SimpleNamespace(
+        last_events_fetch_was_incremental=False,
+        fetch_events=lambda account, calendar: [
+            NormalizedEvent(
+                **_make_event(
+                    provider_type="mock",
+                    provider_account_id="acct-sync-cancelled",
+                    provider_calendar_id="cal-sync-cancelled",
+                    provider_event_id="evt-cancelled",
+                    status="cancelled",
+                )
+            )
+        ],
+    )
+
+    monkeypatch.setattr("calsync.services.sync.get_provider_adapter", lambda *args, **kwargs: adapter)
+    monkeypatch.setattr("calsync.services.sync.discover_calendars", lambda *args, **kwargs: [])
+
+    with migrated_session_factory() as session:
+        sync_account(session, account_id, trigger="manual")
+        session.commit()
+
+    with migrated_session_factory() as session:
+        event = session.scalar(
+            select(Event).where(
+                Event.provider_account_id == "acct-sync-cancelled",
+                Event.provider_event_id == "evt-cancelled",
+            )
+        )
+
+        assert event is not None
+        assert event.status == "cancelled"
+        assert event.event_visibility_state == "cancelled"
+        assert event.removed_upstream_at is None
 
 
 def test_upsert_event_rejects_unknown_event_visibility_state(
@@ -294,3 +541,20 @@ def test_upgrade_backfills_last_seen_upstream_at_for_existing_events(
             assert str(row.last_seen_upstream_at).startswith("2026-05-21 18:30:00")
     finally:
         get_settings.cache_clear()
+
+
+def _make_event(**overrides: object) -> dict[str, object]:
+    payload = {
+        "provider_type": "mock",
+        "provider_account_id": "acct-1",
+        "provider_calendar_id": "cal-1",
+        "provider_event_id": "evt-1",
+        "title": "Planning session",
+        "starts_at": datetime(2026, 5, 24, 15, 0, tzinfo=UTC),
+        "ends_at": datetime(2026, 5, 24, 16, 0, tzinfo=UTC),
+        "all_day": False,
+        "status": "confirmed",
+        "source_payload": {"provider": "mock"},
+    }
+    payload.update(overrides)
+    return payload

@@ -36,6 +36,7 @@ class ICloudCalDAVProviderAdapter:
 
     def __init__(self, *, settings: Settings | None = None) -> None:
         self.settings = settings or get_settings()
+        self.last_events_fetch_was_incremental = False
 
     def discover_calendars(
         self,

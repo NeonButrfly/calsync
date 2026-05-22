@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from calsync.models import Event, ProviderAccount, ProviderCalendar
+from calsync.models import Event, ProviderAccount, ProviderCalendar, utcnow
 from calsync.models.events import EVENT_VISIBILITY_STATES
 
 
@@ -55,6 +55,24 @@ def _get_or_create_provider_calendar(
     return calendar
 
 
+def get_event_by_provider_identity(
+    session: Session,
+    *,
+    provider_type: str,
+    provider_account_id: str,
+    provider_calendar_id: str,
+    provider_event_id: str,
+) -> Event | None:
+    return session.scalar(
+        select(Event).where(
+            Event.provider_type == provider_type,
+            Event.provider_account_id == provider_account_id,
+            Event.provider_calendar_id == provider_calendar_id,
+            Event.provider_event_id == provider_event_id,
+        )
+    )
+
+
 def upsert_event(session: Session, normalized_event: Mapping[str, Any]) -> Event:
     provider_type = str(normalized_event["provider_type"])
     provider_account_id = str(normalized_event["provider_account_id"])
@@ -63,11 +81,15 @@ def upsert_event(session: Session, normalized_event: Mapping[str, Any]) -> Event
     all_day = _required_bool(normalized_event.get("all_day", False))
     starts_at = _required_datetime(normalized_event["starts_at"])
     ends_at = _required_datetime(normalized_event["ends_at"])
-    event_visibility_state = _validated_event_visibility_state(
-        normalized_event.get("event_visibility_state", "active")
+    status = str(normalized_event.get("status", "confirmed"))
+    event_visibility_state = _resolved_event_visibility_state(
+        normalized_event=normalized_event,
+        status=status,
     )
-    last_seen_upstream_at = _optional_datetime(normalized_event.get("last_seen_upstream_at"))
-    removed_upstream_at = _optional_datetime(normalized_event.get("removed_upstream_at"))
+    last_seen_upstream_at = _resolved_last_seen_upstream_at(normalized_event)
+    removed_upstream_at = _resolved_removed_upstream_at(
+        normalized_event=normalized_event,
+    )
     _validate_lifecycle_consistency(
         event_visibility_state=event_visibility_state,
         removed_upstream_at=removed_upstream_at,
@@ -84,13 +106,12 @@ def upsert_event(session: Session, normalized_event: Mapping[str, Any]) -> Event
         provider_calendar_id=provider_calendar_id,
     )
 
-    event = session.scalar(
-        select(Event).where(
-            Event.provider_type == provider_type,
-            Event.provider_account_id == provider_account_id,
-            Event.provider_calendar_id == provider_calendar_id,
-            Event.provider_event_id == provider_event_id,
-        )
+    event = get_event_by_provider_identity(
+        session,
+        provider_type=provider_type,
+        provider_account_id=provider_account_id,
+        provider_calendar_id=provider_calendar_id,
+        provider_event_id=provider_event_id,
     )
 
     if event is None:
@@ -107,7 +128,7 @@ def upsert_event(session: Session, normalized_event: Mapping[str, Any]) -> Event
             starts_at=starts_at,
             ends_at=ends_at,
             all_day=all_day,
-            status=str(normalized_event.get("status", "confirmed")),
+            status=status,
             event_visibility_state=event_visibility_state,
             last_seen_upstream_at=last_seen_upstream_at,
             removed_upstream_at=removed_upstream_at,
@@ -124,19 +145,47 @@ def upsert_event(session: Session, normalized_event: Mapping[str, Any]) -> Event
         event.starts_at = starts_at
         event.ends_at = ends_at
         event.all_day = all_day
-        event.status = str(normalized_event.get("status", "confirmed"))
-        if "event_visibility_state" in normalized_event:
-            event.event_visibility_state = event_visibility_state
-        if "last_seen_upstream_at" in normalized_event:
-            event.last_seen_upstream_at = last_seen_upstream_at
-        if "removed_upstream_at" in normalized_event:
-            event.removed_upstream_at = removed_upstream_at
+        event.status = status
+        event.event_visibility_state = event_visibility_state
+        event.last_seen_upstream_at = last_seen_upstream_at
+        event.removed_upstream_at = removed_upstream_at
         if "canonical_group_id" in normalized_event:
             event.canonical_group_id = _optional_str(normalized_event.get("canonical_group_id"))
         event.source_payload = _optional_dict(normalized_event.get("source_payload"))
 
     session.flush()
     return event
+
+
+def mark_events_missing_from_sync(
+    session: Session,
+    *,
+    provider_type: str,
+    provider_account_id: str,
+    provider_calendar_id: str,
+    seen_provider_event_ids: set[str],
+) -> int:
+    removed_at = utcnow()
+    events = session.scalars(
+        select(Event).where(
+            Event.provider_type == provider_type,
+            Event.provider_account_id == provider_account_id,
+            Event.provider_calendar_id == provider_calendar_id,
+        )
+    ).all()
+
+    updated_count = 0
+    for event in events:
+        if event.provider_event_id in seen_provider_event_ids:
+            continue
+        if event.event_visibility_state == "deleted_upstream":
+            continue
+        event.event_visibility_state = "deleted_upstream"
+        event.removed_upstream_at = removed_at
+        updated_count += 1
+
+    session.flush()
+    return updated_count
 
 
 def _validated_event_visibility_state(value: Any) -> str:
@@ -147,6 +196,33 @@ def _validated_event_visibility_state(value: Any) -> str:
             f"Unknown event visibility state '{visibility_state}'. Expected one of: {allowed_values}"
         )
     return visibility_state
+
+
+def _resolved_event_visibility_state(
+    *,
+    normalized_event: Mapping[str, Any],
+    status: str,
+) -> str:
+    if "event_visibility_state" in normalized_event:
+        return _validated_event_visibility_state(normalized_event["event_visibility_state"])
+    if status.lower() == "cancelled":
+        return "cancelled"
+    return "active"
+
+
+def _resolved_last_seen_upstream_at(normalized_event: Mapping[str, Any]) -> datetime | None:
+    if "last_seen_upstream_at" in normalized_event:
+        return _optional_datetime(normalized_event.get("last_seen_upstream_at"))
+    return utcnow()
+
+
+def _resolved_removed_upstream_at(
+    *,
+    normalized_event: Mapping[str, Any],
+) -> datetime | None:
+    if "removed_upstream_at" in normalized_event:
+        return _optional_datetime(normalized_event.get("removed_upstream_at"))
+    return None
 
 
 def _validate_lifecycle_consistency(

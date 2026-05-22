@@ -126,13 +126,22 @@ def test_dashboard_requires_authenticated_admin(client: TestClient) -> None:
 def test_dashboard_shows_feed_links_and_sync_summary(
     authenticated_client: TestClient,
 ) -> None:
+    with _db_session(authenticated_client) as session:
+        hidden_event = session.scalar(
+            select(Event).where(Event.provider_event_id == "home-standup")
+        )
+        assert hidden_event is not None
+        hidden_event.event_visibility_state = "deleted_upstream"
+        hidden_event.removed_upstream_at = datetime.now(UTC)
+        session.commit()
+
     response = authenticated_client.get("/admin")
 
     assert response.status_code == 200
     assert "Combined feed" in response.text
     assert "Last sync" in response.text
     assert "/feeds/" in response.text
-    assert "Morning Standup" in response.text
+    assert "Morning Standup" not in response.text
 
 
 def test_dashboard_renders_sync_and_event_times_in_alaska_time(
