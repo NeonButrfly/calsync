@@ -2,11 +2,31 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, JSON, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    JSON,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import TypeDecorator
 
 from calsync.models import Base, new_uuid, utcnow
+
+
+EVENT_VISIBILITY_STATES = frozenset(
+    {
+        "active",
+        "cancelled",
+        "deleted_upstream",
+        "hidden_duplicate",
+        "stale_unverified",
+    }
+)
 
 
 class UtcDateTime(TypeDecorator[datetime]):
@@ -46,6 +66,18 @@ class Event(Base):
             "provider_event_id",
             name="uq_events_provider_identity",
         ),
+        CheckConstraint(
+            "event_visibility_state IN ('active', 'cancelled', 'deleted_upstream', 'hidden_duplicate', 'stale_unverified')",
+            name="ck_events_visibility_state",
+        ),
+        CheckConstraint(
+            "event_visibility_state != 'active' OR removed_upstream_at IS NULL",
+            name="ck_events_active_not_removed",
+        ),
+        CheckConstraint(
+            "event_visibility_state != 'deleted_upstream' OR removed_upstream_at IS NOT NULL",
+            name="ck_events_deleted_requires_removed_at",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
@@ -70,6 +102,26 @@ class Event(Base):
     ends_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
     all_day: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="confirmed")
+    event_visibility_state: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default="active",
+        server_default="active",
+    )
+    last_seen_upstream_at: Mapped[datetime | None] = mapped_column(
+        UtcDateTime(),
+        nullable=True,
+        default=utcnow,
+    )
+    removed_upstream_at: Mapped[datetime | None] = mapped_column(
+        UtcDateTime(),
+        nullable=True,
+    )
+    canonical_group_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("event_groups.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     source_payload: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

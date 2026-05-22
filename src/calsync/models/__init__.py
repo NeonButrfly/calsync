@@ -24,12 +24,14 @@ from .events import Event
 from .provider_configurations import ProviderConfiguration
 from .providers import ProviderAccount, ProviderCalendar, SyncLog
 from .publishing import PublishedFeed
+from .reconciliation import EventGroup
 
 __all__ = [
     "AdminUser",
     "AppState",
     "Base",
     "Event",
+    "EventGroup",
     "ProviderConfiguration",
     "ProviderAccount",
     "ProviderCalendar",

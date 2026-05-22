@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from calsync.models import Event, ProviderAccount, ProviderCalendar
+from calsync.models.events import EVENT_VISIBILITY_STATES
 
 
 def _get_or_create_provider_account(
@@ -62,6 +63,15 @@ def upsert_event(session: Session, normalized_event: Mapping[str, Any]) -> Event
     all_day = _required_bool(normalized_event.get("all_day", False))
     starts_at = _required_datetime(normalized_event["starts_at"])
     ends_at = _required_datetime(normalized_event["ends_at"])
+    event_visibility_state = _validated_event_visibility_state(
+        normalized_event.get("event_visibility_state", "active")
+    )
+    last_seen_upstream_at = _optional_datetime(normalized_event.get("last_seen_upstream_at"))
+    removed_upstream_at = _optional_datetime(normalized_event.get("removed_upstream_at"))
+    _validate_lifecycle_consistency(
+        event_visibility_state=event_visibility_state,
+        removed_upstream_at=removed_upstream_at,
+    )
 
     account = _get_or_create_provider_account(
         session,
@@ -98,6 +108,10 @@ def upsert_event(session: Session, normalized_event: Mapping[str, Any]) -> Event
             ends_at=ends_at,
             all_day=all_day,
             status=str(normalized_event.get("status", "confirmed")),
+            event_visibility_state=event_visibility_state,
+            last_seen_upstream_at=last_seen_upstream_at,
+            removed_upstream_at=removed_upstream_at,
+            canonical_group_id=_optional_str(normalized_event.get("canonical_group_id")),
             source_payload=_optional_dict(normalized_event.get("source_payload")),
         )
         session.add(event)
@@ -111,10 +125,39 @@ def upsert_event(session: Session, normalized_event: Mapping[str, Any]) -> Event
         event.ends_at = ends_at
         event.all_day = all_day
         event.status = str(normalized_event.get("status", "confirmed"))
+        if "event_visibility_state" in normalized_event:
+            event.event_visibility_state = event_visibility_state
+        if "last_seen_upstream_at" in normalized_event:
+            event.last_seen_upstream_at = last_seen_upstream_at
+        if "removed_upstream_at" in normalized_event:
+            event.removed_upstream_at = removed_upstream_at
+        if "canonical_group_id" in normalized_event:
+            event.canonical_group_id = _optional_str(normalized_event.get("canonical_group_id"))
         event.source_payload = _optional_dict(normalized_event.get("source_payload"))
 
     session.flush()
     return event
+
+
+def _validated_event_visibility_state(value: Any) -> str:
+    visibility_state = str(value)
+    if visibility_state not in EVENT_VISIBILITY_STATES:
+        allowed_values = ", ".join(sorted(EVENT_VISIBILITY_STATES))
+        raise ValueError(
+            f"Unknown event visibility state '{visibility_state}'. Expected one of: {allowed_values}"
+        )
+    return visibility_state
+
+
+def _validate_lifecycle_consistency(
+    *,
+    event_visibility_state: str,
+    removed_upstream_at: datetime | None,
+) -> None:
+    if event_visibility_state == "active" and removed_upstream_at is not None:
+        raise ValueError("Active events cannot have removed_upstream_at set.")
+    if event_visibility_state == "deleted_upstream" and removed_upstream_at is None:
+        raise ValueError("Deleted-upstream events require removed_upstream_at.")
 
 
 def _optional_str(value: Any) -> str | None:
@@ -129,6 +172,12 @@ def _required_datetime(value: Any) -> datetime:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError("Expected timezone-aware datetime value")
     return value
+
+
+def _optional_datetime(value: Any) -> datetime | None:
+    if value is None:
+        return None
+    return _required_datetime(value)
 
 
 def _required_bool(value: Any) -> bool:
