@@ -309,3 +309,27 @@
 - issue `#13` builds on the trust-review foundation from issue `#12`
 - the dashboard combined view now shows one row per active canonical appointment and adds a source-count badge when multiple provider copies are grouped
 - `/admin/review` now exposes `Needs attention` language for the duplicate cleanup queue
+
+---
+
+- GitHub issue: `#14`
+- Scope: add a single problem-to-fix inbox so CalSync clearly shows what looks wrong and how to resolve it
+
+## Interpreted Requirements
+
+- the operator should have one obvious page that answers "what needs attention right now?"
+- duplicate cleanup, sync retry problems, and account reconnect problems should be surfaced in one normalized list
+- the dashboard should summarize open problems and link into the inbox
+- where a safe action already exists, the inbox should offer it directly instead of forcing the operator to hunt through the app
+
+## Behavioral Boundaries
+
+- the inbox is an operator workflow layer over existing trust and sync state, not a destructive reconciliation engine
+- duplicate items should link into the trust review flow for final operator choice
+- sync retry actions may run directly from the inbox because they are already supported, non-destructive operations
+
+## Phase Notes
+
+- issue `#14` builds on issues `#12` and `#13`
+- `/admin/problems` is the new problem-to-fix inbox
+- `/admin` now includes a `Problems to fix` summary card

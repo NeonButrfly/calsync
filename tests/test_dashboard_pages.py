@@ -201,6 +201,48 @@ def test_dashboard_shows_trust_review_summary_for_duplicate_groups(
     assert "Open trust review" in response.text
 
 
+def test_dashboard_shows_problem_to_fix_summary(
+    authenticated_client: TestClient,
+) -> None:
+    with _db_session(authenticated_client) as session:
+        source_event = session.scalar(select(Event).where(Event.provider_event_id == "home-standup"))
+        account = session.scalar(select(ProviderAccount).where(ProviderAccount.provider_type == "mock"))
+        assert source_event is not None
+        assert account is not None
+
+        upsert_event(
+            session,
+            {
+                "provider_type": "google",
+                "provider_account_id": "google-acct-1",
+                "provider_calendar_id": "google-primary",
+                "provider_event_id": "duplicate-standup-problem-summary",
+                "title": source_event.title,
+                "starts_at": source_event.starts_at,
+                "ends_at": source_event.ends_at,
+                "all_day": source_event.all_day,
+                "status": "confirmed",
+                "location": source_event.location,
+                "source_payload": {"seed": "dashboard-problem-summary"},
+            },
+        )
+        latest_log = session.scalar(
+            select(SyncLog).where(SyncLog.provider_account_pk == account.id).order_by(SyncLog.started_at.desc(), SyncLog.id.desc())
+        )
+        assert latest_log is not None
+        latest_log.status = "error"
+        latest_log.error_text = "Mock sync stalled."
+        rebuild_duplicate_groups(session)
+        session.commit()
+
+    response = authenticated_client.get("/admin")
+
+    assert response.status_code == 200
+    assert "Problems to fix" in response.text
+    assert "Open problem-to-fix list" in response.text
+    assert "Sync or auth issues" in response.text
+
+
 def test_dashboard_combined_view_prefers_one_canonical_row_with_source_count(
     authenticated_client: TestClient,
 ) -> None:

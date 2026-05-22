@@ -142,6 +142,27 @@ Practical verification points:
 - choosing `Keep this copy` hides the extra copy from active dashboard, flightboard, and ICS surfaces
 - if a calendar disappears from provider discovery, its old events become `deleted_upstream` instead of staying active forever
 
+## Problem To Fix Inbox
+
+The operator problem inbox is available at:
+
+- `/admin/problems`
+
+Behavior:
+
+- gathers duplicate cleanup, sync retry, and account authentication problems into one list
+- sorts higher-risk sync and auth items ahead of lower-risk cleanup items
+- offers the safest next action for each problem, such as `Review duplicates`, `Sync now`, or `Reconnect in accounts`
+- returns `Sync now` actions back to the problem inbox so the operator can keep working from one page
+
+Practical verification points:
+
+- the top navigation includes `Problems`
+- the dashboard shows a `Problems to fix` summary card
+- `/admin/problems` shows `Problem to fix list`
+- duplicate items link into `/admin/review`
+- sync retry items can run directly from the inbox and redirect back to `/admin/problems`
+
 ## Apple / iCloud Operator Notes
 
 Apple/iCloud onboarding is account-based, not deployment-based.

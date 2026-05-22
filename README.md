@@ -136,6 +136,7 @@ python -m calsync.cli reset-admin-mfa --identifier admin
 Current admin pages:
 
 - `/admin` for the dashboard, combined feed link, and last sync summary
+- `/admin/problems` for the problem-to-fix inbox that gathers duplicate, sync, and account issues in one place
 - `/admin/review` for trust review, duplicate cleanup, and hidden-copy recovery
 - `/admin/flightboard` for the private Flightboard view of enabled calendar events
 - `/admin/providers` for deployment-wide Google OAuth app settings
@@ -157,6 +158,7 @@ Current behavior:
 - events from disabled calendars stay out of active dashboard and publishing views
 - conservative duplicate grouping now also catches small title drift and small time drift for obvious cross-provider copies of the same appointment
 - the dashboard combined view keeps one visible row for a trusted appointment and shows when that row comes from multiple synced sources
+- the problem-to-fix inbox gives you one obvious list of duplicate, sync, and account issues with the safest next action
 - the review page acts as a `Needs attention` queue so you can keep the right copy and hide the extra one when you accidentally add the same appointment twice
 - hidden duplicate decisions survive later refreshes instead of being lost on the next sync
 

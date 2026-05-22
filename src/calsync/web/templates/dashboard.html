@@ -21,6 +21,16 @@
 
 <section class="grid dashboard-grid">
   <article class="panel">
+    <h2>Problems to fix</h2>
+    <dl class="detail-list">
+      <div><dt>Open problems</dt><dd>{{ problem_summary.problem_count }}</dd></div>
+      <div><dt>Duplicate cleanup</dt><dd>{{ problem_summary.duplicate_count }}</dd></div>
+      <div><dt>Sync or auth issues</dt><dd>{{ problem_summary.sync_problem_count }}</dd></div>
+    </dl>
+    <p><a href="/admin/problems">Open problem-to-fix list</a></p>
+  </article>
+
+  <article class="panel">
     <h2>ICS publishing</h2>
     <p>Combined feed</p>
     <p><a class="feed-link" href="{{ combined_feed_url }}">{{ combined_feed_url }}</a></p>

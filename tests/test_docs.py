@@ -111,3 +111,21 @@ def test_docs_cover_trust_review_and_duplicate_cleanup() -> None:
     assert "#12" in prompt_content
     assert "/admin/review" in prompt_content
     assert "hidden duplicate" in prompt_content
+
+
+def test_docs_cover_problem_to_fix_inbox() -> None:
+    readme_content = Path("README.md").read_text(encoding="utf-8").lower()
+    ops_content = Path("docs/ops.md").read_text(encoding="utf-8").lower()
+    prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()
+
+    assert "/admin/problems" in readme_content
+    assert "problem-to-fix inbox" in readme_content
+
+    assert "/admin/problems" in ops_content
+    assert "problem to fix list" in ops_content
+    assert "problems to fix" in ops_content
+    assert "sync now" in ops_content
+
+    assert "#14" in prompt_content
+    assert "/admin/problems" in prompt_content
+    assert "problem-to-fix inbox" in prompt_content

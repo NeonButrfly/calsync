@@ -43,6 +43,33 @@ button:hover {
   background: var(--accent-strong);
 }
 
+.button-link {
+  background: var(--accent);
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  padding: 0.7rem 1rem;
+  text-decoration: none;
+}
+
+.button-link:hover {
+  background: var(--accent-strong);
+  color: #fff;
+}
+
+.button-link--secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--accent-strong);
+}
+
+.button-link--secondary:hover {
+  background: rgba(14, 107, 80, 0.08);
+  color: var(--accent-strong);
+}
+
 .secondary-button {
   background: transparent;
   border: 1px solid var(--border);
@@ -289,6 +316,57 @@ code {
 
 .review-chip--preferred {
   background: rgba(14, 107, 80, 0.14);
+}
+
+.review-chip--severity-high {
+  background: rgba(167, 42, 42, 0.12);
+  border-color: rgba(167, 42, 42, 0.22);
+  color: #8c2727;
+}
+
+.review-chip--severity-medium {
+  background: rgba(163, 111, 12, 0.12);
+  border-color: rgba(163, 111, 12, 0.22);
+  color: #8b5e08;
+}
+
+.review-chip--severity-low {
+  background: rgba(63, 96, 126, 0.12);
+  border-color: rgba(63, 96, 126, 0.22);
+  color: #335b80;
+}
+
+.problem-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.problem-card {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+}
+
+.problem-card h3 {
+  margin: 0.35rem 0 0.2rem;
+}
+
+.problem-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.problem-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.problem-card__actions form {
+  margin: 0;
 }
 
 .flightboard-shell {

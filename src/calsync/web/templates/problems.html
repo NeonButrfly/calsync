@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}CalSync Problems{% endblock %}
+{% block page_title %}Problem To Fix{% endblock %}
+
+{% block content %}
+<section class="grid dashboard-grid">
+  <article class="panel metric-panel">
+    <h2>Open problems</h2>
+    <p class="metric">{{ problem_summary.problem_count }}</p>
+    <p class="subtle">Everything CalSync thinks needs operator attention right now.</p>
+  </article>
+  <article class="panel metric-panel">
+    <h2>Duplicate cleanup</h2>
+    <p class="metric">{{ problem_summary.duplicate_count }}</p>
+    <p class="subtle">Appointments that look like accidental double entries.</p>
+  </article>
+  <article class="panel metric-panel">
+    <h2>Sync or auth issues</h2>
+    <p class="metric">{{ problem_summary.sync_problem_count }}</p>
+    <p class="subtle">Accounts that need a sync retry or reconnection.</p>
+  </article>
+</section>
+
+<section class="stack">
+  <article class="panel">
+    <div class="panel-heading">
+      <div>
+        <h2>Problem to fix list</h2>
+        <p class="subtle">Start here when something feels off. Each item explains the problem and offers the safest next action.</p>
+      </div>
+    </div>
+
+    {% if problems %}
+    <div class="problem-list">
+      {% for problem in problems %}
+      <article class="problem-card" id="{{ problem.id }}">
+        <div class="problem-card__header">
+          <div>
+            <div class="problem-card__chips">
+              <span class="review-chip review-chip--severity-{{ problem.severity }}">{{ problem.severity | title }}</span>
+              <span class="review-chip">{{ problem.category | replace("_", " ") | title }}</span>
+            </div>
+            <h3>{{ problem.title }}</h3>
+            <p class="subtle">{{ problem.source_label }}</p>
+          </div>
+        </div>
+        <p>{{ problem.summary }}</p>
+        <div class="problem-card__actions">
+          {% if problem.primary_action.method == "post" %}
+          <form method="post" action="{{ problem.primary_action.target }}">
+            <button type="submit">{{ problem.primary_action.label }}</button>
+          </form>
+          {% else %}
+          <a class="button-link" href="{{ problem.primary_action.target }}">{{ problem.primary_action.label }}</a>
+          {% endif %}
+
+          {% if problem.secondary_action %}
+            {% if problem.secondary_action.method == "post" %}
+            <form method="post" action="{{ problem.secondary_action.target }}">
+              <button type="submit" class="secondary-button">{{ problem.secondary_action.label }}</button>
+            </form>
+            {% else %}
+            <a class="button-link button-link--secondary" href="{{ problem.secondary_action.target }}">{{ problem.secondary_action.label }}</a>
+            {% endif %}
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p>No open problems right now. CalSync does not see any duplicate cleanup or sync/account issues that need attention.</p>
+    {% endif %}
+  </article>
+</section>
+{% endblock %}

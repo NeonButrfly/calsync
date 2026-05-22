@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 from calsync.config import build_external_url
 from calsync.models import AdminUser, Event, ProviderAccount, ProviderCalendar, SyncLog
 from calsync.services.publishing import ensure_combined_feed, rotate_combined_feed_token
+from calsync.services.problems import build_problem_summary
 from calsync.services.reconciliation import collect_trust_metrics, list_canonical_events, rebuild_duplicate_groups
 from calsync.web.deps import get_db, get_templates, require_admin
 
@@ -27,6 +28,7 @@ def dashboard_page(
     rebuild_duplicate_groups(session)
     combined_feed = ensure_combined_feed(session)
     trust_metrics = collect_trust_metrics(session)
+    problem_summary = build_problem_summary(session)
     session.commit()
 
     account_count = session.scalar(select(func.count(ProviderAccount.id))) or 0
@@ -44,6 +46,7 @@ def dashboard_page(
             f"/feeds/{combined_feed.token}.ics",
             settings=request.app.state.settings,
         ),
+        "problem_summary": problem_summary,
         "trust_metrics": trust_metrics,
         "latest_sync": latest_sync,
         "upcoming_events": upcoming_events,
