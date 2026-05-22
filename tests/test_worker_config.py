@@ -58,6 +58,15 @@ def test_docker_compose_uses_configurable_port_mapping() -> None:
     assert '- head' in content
 
 
+def test_docker_compose_restarts_long_running_services_unless_stopped() -> None:
+    content = Path("docker-compose.yml").read_text(encoding="utf-8")
+
+    assert "db:\n" in content
+    assert "web:\n" in content
+    assert "worker:\n" in content
+    assert content.count("restart: unless-stopped") >= 3
+
+
 def test_dockerfile_installs_editable_source_tree() -> None:
     content = Path("Dockerfile").read_text(encoding="utf-8")
 

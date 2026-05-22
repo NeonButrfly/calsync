@@ -20,6 +20,8 @@ docker compose up --build -d
 docker compose ps
 ```
 
+The long-running `db`, `web`, and `worker` services use `restart: unless-stopped`, so a normal host reboot or Docker daemon restart should bring the stack back without a manual `docker compose up -d`.
+
 ## Google OAuth Operator Notes
 
 Before connecting Google from a non-local browser, open `Provider Settings` and save the canonical external hostname in `Public App URL`.
@@ -190,6 +192,13 @@ After `docker compose up --build -d`, verify:
 3. `/admin/providers` shows or supports `Public App URL` with `https://calsync.neonbutterfly.net`
 4. `/admin/accounts` shows `Connect Google Account` once Google settings and public hostname requirements are satisfied
 5. `/admin/flightboard` is present in the nav and remains private behind admin auth
+
+Reboot recovery check:
+
+1. after a host reboot or Docker restart, run `docker compose ps`
+2. confirm `db`, `web`, and `worker` return automatically
+3. confirm `GET /healthz` returns `ok`
+4. if the stack was intentionally stopped with `docker compose down` or `docker compose stop`, bring it back with `docker compose up -d`
 
 ## Local Emergency Procedures
 

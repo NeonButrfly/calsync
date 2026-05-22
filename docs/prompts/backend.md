@@ -208,3 +208,25 @@
 
 - issue `#8` introduces a shared Alaska display formatter for Jinja-rendered admin pages
 - UTC or timezone-missing datetimes should be treated as UTC before converting for display
+
+---
+
+- GitHub issue: `#10`
+- Scope: deployment self-recovery after host reboot or Docker restart
+
+## Interpreted Requirements
+
+- the long-running deployment services should come back automatically after a host reboot or Docker daemon restart
+- operators should not need to manually run `docker compose up -d` after every unplanned host restart
+- the one-shot migration service should remain a normal run-once step rather than a continuously restarting service
+
+## Behavioral Boundaries
+
+- automatic restart applies to `db`, `web`, and `worker`
+- the migration service remains a run-once container
+- operator-initiated stops should still remain stopped until the operator starts the stack again
+
+## Phase Notes
+
+- issue `#10` adds `restart: unless-stopped` to the long-running Compose services
+- README and ops docs should describe the reboot-recovery expectation and verification flow

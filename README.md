@@ -43,6 +43,8 @@ Not implemented yet:
 4. Run `docker compose up --build`.
 5. Open `http://localhost:3080` or `http://SERVER-IP:3080`.
 
+For normal deployments, the long-running `db`, `web`, and `worker` services use Docker restart policies so the stack comes back automatically after a host reboot or Docker daemon restart unless it was intentionally stopped by an operator.
+
 The default `.env.example` includes:
 
 - `APP_HOST=0.0.0.0`
@@ -62,6 +64,12 @@ Changing the published web port:
 3. Restart with `docker compose up --build`
 
 The Compose file publishes `${APP_PORT:-3080}:${APP_PORT:-3080}`, so the host port follows the value in `.env`.
+
+Automatic recovery after reboot:
+
+1. Leave the stack in its normal running state.
+2. If the host reboots or Docker restarts, Docker should bring back `db`, `web`, and `worker` automatically.
+3. Verify recovery with `docker compose ps` and `GET /healthz`.
 
 ## First-Run Admin Setup
 
