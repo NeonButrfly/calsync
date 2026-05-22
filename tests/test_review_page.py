@@ -124,6 +124,7 @@ def test_review_page_lists_duplicate_groups_and_resolution_actions(tmp_path: Pat
         response = client.get("/admin/review")
 
     assert response.status_code == 200
+    assert "Needs attention" in response.text
     assert "Possible duplicates" in response.text
     assert "Orthodontist Appointment" in response.text
     assert "Keep this copy" in response.text

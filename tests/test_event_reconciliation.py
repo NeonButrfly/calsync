@@ -85,6 +85,55 @@ def test_rebuild_duplicate_groups_creates_group_for_matching_events(
         assert stored_icloud is not None
         assert stored_google.canonical_group_id == stored_group.id
         assert stored_icloud.canonical_group_id == stored_group.id
+        assert stored_google.event_visibility_state == "active"
+        assert stored_icloud.event_visibility_state == "hidden_duplicate"
+
+
+def test_rebuild_duplicate_groups_matches_small_time_and_title_drift(
+    migrated_session_factory: sessionmaker[Session],
+) -> None:
+    with migrated_session_factory() as session:
+        first = upsert_event(
+            session,
+            _make_event(
+                provider_type="google",
+                provider_account_id="g-1",
+                provider_calendar_id="cal-a",
+                provider_event_id="evt-google",
+                title="Dentist Appointment",
+                starts_at=datetime(2026, 5, 24, 15, 0, tzinfo=UTC),
+                ends_at=datetime(2026, 5, 24, 16, 0, tzinfo=UTC),
+            ),
+        )
+        second = upsert_event(
+            session,
+            _make_event(
+                provider_type="icloud_caldav",
+                provider_account_id="i-1",
+                provider_calendar_id="cal-b",
+                provider_event_id="evt-icloud",
+                title="Dentist Appt.",
+                starts_at=datetime(2026, 5, 24, 15, 10, tzinfo=UTC),
+                ends_at=datetime(2026, 5, 24, 16, 10, tzinfo=UTC),
+            ),
+        )
+
+        groups = rebuild_duplicate_groups(session)
+        session.commit()
+
+        assert len(groups) == 1
+
+    with migrated_session_factory() as session:
+        stored_first = session.get(Event, first.id)
+        stored_second = session.get(Event, second.id)
+
+        assert stored_first is not None
+        assert stored_second is not None
+        assert stored_first.canonical_group_id == stored_second.canonical_group_id
+        assert {stored_first.event_visibility_state, stored_second.event_visibility_state} == {
+            "active",
+            "hidden_duplicate",
+        }
 
 
 def test_rebuild_duplicate_groups_promotes_hidden_duplicate_when_it_is_alone(

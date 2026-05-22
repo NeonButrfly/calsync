@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from fastapi import APIRouter, Depends, Request
@@ -10,7 +10,7 @@ from fastapi.templating import Jinja2Templates
 from calsync.config import build_external_url
 from calsync.models import AdminUser, Event, ProviderAccount, ProviderCalendar, SyncLog
 from calsync.services.publishing import ensure_combined_feed, rotate_combined_feed_token
-from calsync.services.reconciliation import collect_trust_metrics, rebuild_duplicate_groups
+from calsync.services.reconciliation import collect_trust_metrics, list_canonical_events, rebuild_duplicate_groups
 from calsync.web.deps import get_db, get_templates, require_admin
 
 
@@ -33,19 +33,7 @@ def dashboard_page(
     latest_sync = session.scalar(
         select(SyncLog).order_by(SyncLog.started_at.desc(), SyncLog.id.desc())
     )
-    upcoming_events = session.scalars(
-        select(Event)
-        .outerjoin(ProviderCalendar, Event.provider_calendar_pk == ProviderCalendar.id)
-        .where(
-            Event.event_visibility_state == "active",
-            or_(
-                Event.provider_calendar_pk.is_(None),
-                ProviderCalendar.enabled.is_(True),
-            ),
-        )
-        .order_by(Event.starts_at, Event.id)
-        .limit(8)
-    ).all()
+    upcoming_events = list_canonical_events(session, limit=8)
     context = {
         "current_admin": current_admin,
         "account_count": account_count,

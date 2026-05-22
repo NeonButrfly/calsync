@@ -155,13 +155,14 @@ Current behavior:
 - events missing from a full upstream sync are marked `deleted_upstream`
 - cancelled upstream events are kept out of active dashboard, flightboard, and ICS views
 - events from disabled calendars stay out of active dashboard and publishing views
-- conservative duplicate grouping spots obvious same-title same-time appointments across providers
-- the review page lets you keep the right copy and hide the extra one when you accidentally add the same appointment twice
+- conservative duplicate grouping now also catches small title drift and small time drift for obvious cross-provider copies of the same appointment
+- the dashboard combined view keeps one visible row for a trusted appointment and shows when that row comes from multiple synced sources
+- the review page acts as a `Needs attention` queue so you can keep the right copy and hide the extra one when you accidentally add the same appointment twice
 - hidden duplicate decisions survive later refreshes instead of being lost on the next sync
 
 Current limits:
 
-- duplicate grouping is intentionally conservative and focuses on obvious same-title same-time matches
+- duplicate grouping is intentionally conservative and focuses on obvious near-matches rather than broad fuzzy merging
 - CalSync preserves raw source events internally even when one duplicate copy is hidden from active views
 - more advanced conflict resolution and non-calendar appointment ingestion remain future work under issue `#11`
 

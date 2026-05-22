@@ -201,6 +201,39 @@ def test_dashboard_shows_trust_review_summary_for_duplicate_groups(
     assert "Open trust review" in response.text
 
 
+def test_dashboard_combined_view_prefers_one_canonical_row_with_source_count(
+    authenticated_client: TestClient,
+) -> None:
+    with _db_session(authenticated_client) as session:
+        source_event = session.scalar(select(Event).where(Event.provider_event_id == "home-standup"))
+        assert source_event is not None
+
+        upsert_event(
+            session,
+            {
+                "provider_type": "google",
+                "provider_account_id": "google-acct-1",
+                "provider_calendar_id": "google-primary",
+                "provider_event_id": "duplicate-standup-source-badge",
+                "title": f"{source_event.title} Appointment",
+                "starts_at": source_event.starts_at,
+                "ends_at": source_event.ends_at,
+                "all_day": source_event.all_day,
+                "status": "confirmed",
+                "location": source_event.location,
+                "source_payload": {"seed": "dashboard-source-badge"},
+            },
+        )
+        rebuild_duplicate_groups(session)
+        session.commit()
+
+    response = authenticated_client.get("/admin")
+
+    assert response.status_code == 200
+    assert "2 sources" in response.text
+    assert response.text.count("Morning Standup") == 1
+
+
 def test_dashboard_renders_sync_and_event_times_in_alaska_time(
     authenticated_client: TestClient,
 ) -> None:

@@ -285,3 +285,27 @@
 - issue `#12` builds on the lifecycle foundation from issue `#11`
 - `/admin/review` is the operator-facing trust and duplicate cleanup page
 - hidden duplicate decisions persist across normal refreshes
+
+---
+
+- GitHub issue: `#13`
+- Scope: broaden trust cleanup so CalSync feels smarter and easier to use during normal calendar review
+
+## Interpreted Requirements
+
+- the app should catch obvious duplicate appointments even when one copy has small title drift or small time drift
+- the main dashboard should show one canonical appointment row instead of listing every provider copy separately
+- the operator should be able to see when one appointment is backed by multiple synced sources
+- duplicate cleanup should feel like a visible `Needs attention` queue rather than a hidden backend heuristic
+
+## Behavioral Boundaries
+
+- duplicate grouping stays conservative and read-only
+- the system hides extra copies from active views instead of deleting source records
+- a preferred copy remains operator-overridable through `/admin/review`
+
+## Phase Notes
+
+- issue `#13` builds on the trust-review foundation from issue `#12`
+- the dashboard combined view now shows one row per active canonical appointment and adds a source-count badge when multiple provider copies are grouped
+- `/admin/review` now exposes `Needs attention` language for the duplicate cleanup queue

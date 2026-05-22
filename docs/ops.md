@@ -125,18 +125,20 @@ The trust review page is available at:
 Behavior:
 
 - requires an authenticated admin session
-- groups obvious duplicate appointments using conservative same-title same-time matching
+- groups obvious duplicate appointments using conservative near-match rules, including small title drift and small time drift
 - shows which copy CalSync currently prefers
 - lets the operator choose `Keep this copy` when the same appointment was added twice
 - lets the operator restore a hidden duplicate if both copies should stay visible
 - keeps hidden-duplicate decisions across later sync refreshes
 - removes events from active views when the upstream provider cancels them, deletes them, or removes their calendar during a full discovery pass
+- surfaces a `Needs attention` queue so duplicate cleanup is easier to find during normal admin use
 
 Practical verification points:
 
 - the top navigation includes `Review`
 - the dashboard shows a `Trust review` summary card
-- `/admin/review` shows `Possible duplicates` when matching copies exist
+- the dashboard combined calendar collapses duplicate copies into one row and shows a multi-source badge when more than one provider copy exists
+- `/admin/review` shows `Needs attention` and `Possible duplicates` when matching copies exist
 - choosing `Keep this copy` hides the extra copy from active dashboard, flightboard, and ICS surfaces
 - if a calendar disappears from provider discovery, its old events become `deleted_upstream` instead of staying active forever
 

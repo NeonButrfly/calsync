@@ -179,6 +179,13 @@ code {
   padding-top: 0.8rem;
 }
 
+.event-list-main {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
 .subtle {
   color: var(--muted);
 }

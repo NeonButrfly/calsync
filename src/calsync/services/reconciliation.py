@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import timedelta
 import re
 
 from sqlalchemy import delete, or_, select
@@ -10,12 +11,32 @@ from calsync.models import Event, EventGroup, ProviderCalendar
 
 
 VISIBLE_RECONCILIATION_STATES = frozenset({"active", "hidden_duplicate"})
+GENERIC_TITLE_TOKENS = frozenset(
+    {
+        "appointment",
+        "appt",
+        "event",
+        "calendar",
+        "copy",
+    }
+)
+TITLE_TOKEN_ALIASES = {
+    "appt": "appointment",
+    "appts": "appointment",
+}
+NEAR_DUPLICATE_TIME_DRIFT = timedelta(minutes=15)
 
 
 @dataclass
 class DuplicateGroupView:
     group: EventGroup
     events: list[Event]
+
+
+@dataclass
+class CanonicalEventView:
+    event: Event
+    source_count: int
 
 
 def rebuild_duplicate_groups(session: Session) -> list[EventGroup]:
@@ -27,18 +48,10 @@ def rebuild_duplicate_groups(session: Session) -> list[EventGroup]:
     session.execute(delete(EventGroup))
     session.flush()
 
-    grouped_events: dict[tuple[str, bool, object, object], list[Event]] = {}
-    for event in candidate_events:
-        key = (
-            _normalize_title(event.title),
-            event.all_day,
-            event.starts_at,
-            event.ends_at,
-        )
-        grouped_events.setdefault(key, []).append(event)
+    grouped_events = _cluster_candidate_events(candidate_events)
 
     created_groups: list[EventGroup] = []
-    for events in grouped_events.values():
+    for events in grouped_events:
         ordered_events = sorted(events, key=_event_sort_key)
         if len(ordered_events) == 1:
             lone_event = ordered_events[0]
@@ -59,12 +72,131 @@ def rebuild_duplicate_groups(session: Session) -> list[EventGroup]:
         group.preferred_event_id = preferred_event.id
         for event in ordered_events:
             event.canonical_group_id = group.id
-            if event.id == preferred_event.id and event.event_visibility_state == "hidden_duplicate":
-                event.event_visibility_state = "active"
+            if event.id == preferred_event.id:
+                if event.event_visibility_state == "hidden_duplicate":
+                    event.event_visibility_state = "active"
+            elif event.event_visibility_state in VISIBLE_RECONCILIATION_STATES:
+                event.event_visibility_state = "hidden_duplicate"
         created_groups.append(group)
 
     session.flush()
     return created_groups
+
+
+def list_canonical_events(session: Session, *, limit: int | None = None) -> list[CanonicalEventView]:
+    candidate_events = _list_candidate_events(session)
+    grouped_counts: dict[str, int] = {}
+    active_views: list[CanonicalEventView] = []
+
+    for event in candidate_events:
+        group_key = event.canonical_group_id or event.id
+        grouped_counts[group_key] = grouped_counts.get(group_key, 0) + 1
+
+    for event in candidate_events:
+        if event.event_visibility_state != "active":
+            continue
+        group_key = event.canonical_group_id or event.id
+        active_views.append(
+            CanonicalEventView(
+                event=event,
+                source_count=grouped_counts.get(group_key, 1),
+            )
+        )
+
+    active_views.sort(key=lambda view: _event_sort_key(view.event))
+    if limit is not None:
+        return active_views[:limit]
+    return active_views
+
+
+def _cluster_candidate_events(events: list[Event]) -> list[list[Event]]:
+    grouped_events: list[list[Event]] = []
+    for event in sorted(events, key=_event_sort_key):
+        matched_group = next(
+            (
+                group
+                for group in grouped_events
+                if any(_events_look_like_duplicates(event, existing) for existing in group)
+            ),
+            None,
+        )
+        if matched_group is None:
+            grouped_events.append([event])
+            continue
+        matched_group.append(event)
+
+    return grouped_events
+
+
+def _events_look_like_duplicates(left: Event, right: Event) -> bool:
+    if left.all_day != right.all_day:
+        return False
+
+    if _title_signature(left.title) != _title_signature(right.title):
+        return False
+
+    if abs(left.starts_at - right.starts_at) > NEAR_DUPLICATE_TIME_DRIFT:
+        return False
+
+    if abs(left.ends_at - right.ends_at) > NEAR_DUPLICATE_TIME_DRIFT:
+        return False
+
+    return True
+
+
+def _title_signature(title: str) -> tuple[str, ...]:
+    normalized = _normalize_title(title)
+    tokens = [_normalize_title_token(token) for token in normalized.split(" ") if token]
+    filtered_tokens = [token for token in tokens if token and token not in GENERIC_TITLE_TOKENS]
+    if filtered_tokens:
+        return tuple(filtered_tokens)
+    return tuple(tokens)
+
+
+def _normalize_title_token(token: str) -> str:
+    return TITLE_TOKEN_ALIASES.get(token, token)
+
+
+def _normalize_title(title: str) -> str:
+    normalized = re.sub(r"[^a-z0-9]+", " ", title.casefold())
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
+def _preferred_event_score(event: Event) -> tuple[int, int, int, int, tuple[object, ...]]:
+    return (
+        1 if event.event_visibility_state == "active" else 0,
+        1 if event.location else 0,
+        1 if event.description else 0,
+        _provider_priority(event.provider_type),
+        tuple(_event_sort_key(event)),
+    )
+
+
+def _provider_priority(provider_type: str) -> int:
+    return {
+        "google": 3,
+        "icloud_caldav": 2,
+        "mock": 1,
+    }.get(provider_type, 0)
+
+
+def _event_sort_key(event: Event) -> tuple[object, ...]:
+    return (
+        event.starts_at,
+        event.provider_type,
+        event.provider_account_id,
+        event.provider_calendar_id,
+        event.provider_event_id,
+        event.id,
+    )
+
+
+def _count_events_in_state(session: Session, state: str) -> int:
+    return len(
+        session.scalars(
+            select(Event.id).where(Event.event_visibility_state == state)
+        ).all()
+    )
 
 
 def list_duplicate_groups(session: Session) -> list[DuplicateGroupView]:
@@ -152,45 +284,3 @@ def _list_candidate_events(session: Session) -> list[Event]:
         )
         .order_by(Event.starts_at, Event.provider_type, Event.provider_account_id, Event.provider_event_id)
     ).all()
-
-
-def _normalize_title(title: str) -> str:
-    normalized = re.sub(r"\s+", " ", title.casefold()).strip()
-    return normalized
-
-
-def _preferred_event_score(event: Event) -> tuple[int, int, int, int, tuple[object, ...]]:
-    return (
-        1 if event.event_visibility_state == "active" else 0,
-        1 if event.location else 0,
-        1 if event.description else 0,
-        _provider_priority(event.provider_type),
-        tuple(_event_sort_key(event)),
-    )
-
-
-def _provider_priority(provider_type: str) -> int:
-    return {
-        "google": 3,
-        "icloud_caldav": 2,
-        "mock": 1,
-    }.get(provider_type, 0)
-
-
-def _event_sort_key(event: Event) -> tuple[object, ...]:
-    return (
-        event.starts_at,
-        event.provider_type,
-        event.provider_account_id,
-        event.provider_calendar_id,
-        event.provider_event_id,
-        event.id,
-    )
-
-
-def _count_events_in_state(session: Session, state: str) -> int:
-    return len(
-        session.scalars(
-            select(Event.id).where(Event.event_visibility_state == state)
-        ).all()
-    )

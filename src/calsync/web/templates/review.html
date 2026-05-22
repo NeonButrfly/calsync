@@ -26,6 +26,16 @@
   <article class="panel">
     <div class="panel-heading">
       <div>
+        <h2>Needs attention</h2>
+        <p class="subtle">Use this queue to clean up duplicate appointments and keep the combined calendar trustworthy.</p>
+      </div>
+      <span class="review-chip">{{ trust_metrics.duplicate_groups + trust_metrics.deleted_upstream + trust_metrics.cancelled }} items</span>
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="panel-heading">
+      <div>
         <h2>Possible duplicates</h2>
         <p class="subtle">Pick the copy you want to keep in the combined schedule. The others stay available for review but drop out of active views.</p>
       </div>

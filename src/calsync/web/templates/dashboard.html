@@ -59,10 +59,22 @@
     <h2>Combined calendar view</h2>
     {% if upcoming_events %}
     <ul class="event-list">
-      {% for event in upcoming_events %}
-      <li>
-        <strong>{{ event.title }}</strong>
-        <span>{{ event.starts_at | alaska_datetime }}</span>
+      {% for canonical_event in upcoming_events %}
+      <li class="event-list-item">
+        <div class="event-list-main">
+          <strong>{{ canonical_event.event.title }}</strong>
+          {% if canonical_event.source_count > 1 %}
+          <span class="review-chip">{{ canonical_event.source_count }} sources</span>
+          {% endif %}
+        </div>
+        <span>{{ canonical_event.event.starts_at | alaska_datetime }}</span>
+        <span class="subtle">{{ canonical_event.event.provider_account_id }} · {{ canonical_event.event.provider_calendar_id }}</span>
+        {% if canonical_event.event.location %}
+        <span class="subtle">{{ canonical_event.event.location }}</span>
+        {% endif %}
+        {% if canonical_event.source_count > 1 %}
+        <span class="subtle">CalSync is keeping one combined copy visible for this appointment.</span>
+        {% endif %}
       </li>
       {% endfor %}
     </ul>
