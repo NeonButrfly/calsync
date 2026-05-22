@@ -230,3 +230,31 @@
 
 - issue `#10` adds `restart: unless-stopped` to the long-running Compose services
 - README and ops docs should describe the reboot-recovery expectation and verification flow
+
+---
+
+- GitHub issue: `#11`
+- Scope: turn CalSync into a more trustworthy personal scheduling utility with sync hygiene, dedupe, and extensible appointment ingestion
+
+## Interpreted Requirements
+
+- keep connected calendars current and useful rather than merely aggregated
+- remove stale, obsolete, cancelled, or upstream-deleted items from active schedule views
+- resolve or suppress duplicate calendar entries across multiple connected sources
+- preserve source provenance while presenting cleaner canonical events
+- prepare source hooks for appointment-oriented systems beyond standard calendar providers
+- create a safe path for future portal-based or reminder-derived appointment ingestion
+
+## Behavioral Boundaries
+
+- all ingestion remains read-only
+- no generic promise of arbitrary portal scraping
+- no direct server-side ingestion of iCloud phone backups as the first message-derived source path
+- trust and cleanup work should land before harder new connectors
+
+## Phase Notes
+
+- issue `#11` is a product-expansion umbrella, not a single bugfix
+- the first recommended implementation slice is event trust and cleanup
+- Athena-style portal work should be treated as a gated future adapter requiring a real supported auth path
+- reminder or message-derived appointment capture should enter through a generalized source adapter model rather than through direct backup parsing
