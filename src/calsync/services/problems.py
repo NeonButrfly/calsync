@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from calsync.models import ProviderAccount, SyncLog
-from calsync.services.reconciliation import collect_trust_metrics, list_duplicate_groups
+from calsync.services.reconciliation import (
+    DuplicateGroupView,
+    collect_trust_metrics,
+    list_duplicate_groups,
+)
 
 
 @dataclass
@@ -26,6 +30,8 @@ class ProblemItem:
     source_label: str
     primary_action: ProblemAction
     secondary_action: ProblemAction | None = None
+    extra_actions: list[ProblemAction] = field(default_factory=list)
+    event_id: str | None = None
 
 
 def list_operator_problems(session: Session) -> list[ProblemItem]:
@@ -52,6 +58,8 @@ def list_operator_problems(session: Session) -> list[ProblemItem]:
                     label="Review duplicates",
                     target=f"/admin/review#group-{duplicate_group.group.id}",
                 ),
+                extra_actions=_duplicate_problem_actions(duplicate_group),
+                event_id=duplicate_group.group.preferred_event_id,
             )
         )
 
@@ -187,3 +195,47 @@ def _problem_sort_key(problem: ProblemItem) -> tuple[int, str, str]:
         "low": 2,
     }.get(problem.severity, 3)
     return (severity_rank, problem.category, problem.title)
+
+
+def _duplicate_problem_actions(duplicate_group: DuplicateGroupView) -> list[ProblemAction]:
+    actions: list[ProblemAction] = []
+
+    provider_actions = {
+        "google": "Keep Google copy",
+        "icloud_caldav": "Keep iCloud copy",
+    }
+    for provider_type, label in provider_actions.items():
+        matching_event = next(
+            (event for event in duplicate_group.events if event.provider_type == provider_type),
+            None,
+        )
+        if matching_event is None:
+            continue
+        actions.append(
+            ProblemAction(
+                label=label,
+                target=f"/admin/review/groups/{duplicate_group.group.id}/prefer/{matching_event.id}",
+                method="post",
+            )
+        )
+
+    hidden_duplicate = next(
+        (event for event in duplicate_group.events if event.event_visibility_state == "hidden_duplicate"),
+        None,
+    )
+    if hidden_duplicate is not None:
+        actions.append(
+            ProblemAction(
+                label="Show both",
+                target=f"/admin/review/events/{hidden_duplicate.id}/restore",
+                method="post",
+            )
+        )
+
+    actions.append(
+        ProblemAction(
+            label="Explain this event",
+            target=f"/admin/review#group-{duplicate_group.group.id}",
+        )
+    )
+    return actions

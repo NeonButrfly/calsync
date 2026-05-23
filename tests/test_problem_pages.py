@@ -87,6 +87,15 @@ def _build_client(tmp_path: Path):
         session.add(google_account)
         session.flush()
 
+        icloud_account = ProviderAccount(
+            provider_type="icloud_caldav",
+            provider_account_id="icloud-user@icloud.com",
+            display_name="iCloud Household",
+            provider_metadata={},
+        )
+        session.add(icloud_account)
+        session.flush()
+
         source_event = session.scalar(select(Event).where(Event.provider_event_id == "home-standup"))
         assert source_event is not None
         upsert_event(
@@ -103,6 +112,22 @@ def _build_client(tmp_path: Path):
                 "status": "confirmed",
                 "location": source_event.location,
                 "source_payload": {"seed": "problem-page-duplicate"},
+            },
+        )
+        upsert_event(
+            session,
+            {
+                "provider_type": "icloud_caldav",
+                "provider_account_id": "icloud-user@icloud.com",
+                "provider_calendar_id": "icloud-family",
+                "provider_event_id": "problem-duplicate-icloud",
+                "title": source_event.title,
+                "starts_at": source_event.starts_at,
+                "ends_at": source_event.ends_at,
+                "all_day": source_event.all_day,
+                "status": "confirmed",
+                "location": source_event.location,
+                "source_payload": {"seed": "problem-page-duplicate-icloud"},
             },
         )
         rebuild_duplicate_groups(session)
@@ -151,6 +176,35 @@ def test_problem_page_lists_duplicate_and_reconnect_items(tmp_path: Path) -> Non
     assert "Google account needs reconnection" in response.text
     assert "Review duplicates" in response.text
     assert "Reconnect in accounts" in response.text
+
+
+def test_problem_page_lists_provider_specific_duplicate_actions(tmp_path: Path) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client)
+        response = client.get("/admin/problems")
+
+    assert response.status_code == 200
+    assert "Keep Google copy" in response.text
+    assert "Keep iCloud copy" in response.text
+    assert "Show both" in response.text
+    assert "Explain this event" in response.text
+
+
+def test_problem_page_hides_provider_specific_action_when_provider_copy_missing(tmp_path: Path) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client)
+
+        with _db_session(client) as session:
+            google_copy = session.scalar(select(Event).where(Event.provider_type == "google"))
+            assert google_copy is not None
+            session.delete(google_copy)
+            rebuild_duplicate_groups(session)
+            session.commit()
+
+        response = client.get("/admin/problems")
+
+    assert response.status_code == 200
+    assert "Keep Google copy" not in response.text
 
 
 def test_problem_page_sync_action_retries_account_and_returns_to_inbox(tmp_path: Path) -> None:

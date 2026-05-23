@@ -64,6 +64,18 @@
             <a class="button-link button-link--secondary" href="{{ problem.secondary_action.target }}">{{ problem.secondary_action.label }}</a>
             {% endif %}
           {% endif %}
+
+          {% if problem.extra_actions %}
+            {% for action in problem.extra_actions %}
+              {% if action.method == "post" %}
+              <form method="post" action="{{ action.target }}">
+                <button type="submit" class="secondary-button">{{ action.label }}</button>
+              </form>
+              {% else %}
+              <a class="button-link button-link--secondary" href="{{ action.target }}">{{ action.label }}</a>
+              {% endif %}
+            {% endfor %}
+          {% endif %}
         </div>
       </article>
       {% endfor %}

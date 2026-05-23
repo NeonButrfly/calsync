@@ -206,11 +206,7 @@ def list_duplicate_groups(session: Session) -> list[DuplicateGroupView]:
 
     duplicate_groups: list[DuplicateGroupView] = []
     for group in groups:
-        events = session.scalars(
-            select(Event)
-            .where(Event.canonical_group_id == group.id)
-            .order_by(Event.starts_at, Event.provider_type, Event.provider_account_id, Event.provider_event_id)
-        ).all()
+        events = list_group_events(session, group.id)
         if len(events) < 2:
             continue
         duplicate_groups.append(
@@ -220,6 +216,14 @@ def list_duplicate_groups(session: Session) -> list[DuplicateGroupView]:
             )
         )
     return duplicate_groups
+
+
+def list_group_events(session: Session, group_id: str) -> list[Event]:
+    return session.scalars(
+        select(Event)
+        .where(Event.canonical_group_id == group_id)
+        .order_by(Event.starts_at, Event.provider_type, Event.provider_account_id, Event.provider_event_id)
+    ).all()
 
 
 def prefer_event_in_group(session: Session, group_id: str, preferred_event_id: str) -> EventGroup:
