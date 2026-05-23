@@ -116,7 +116,7 @@ def _cluster_candidate_events(events: list[Event]) -> list[list[Event]]:
             (
                 group
                 for group in grouped_events
-                if any(_events_look_like_duplicates(event, existing) for existing in group)
+                if _events_look_like_duplicates(event, group[0])
             ),
             None,
         )

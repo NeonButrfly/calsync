@@ -136,6 +136,66 @@ def test_rebuild_duplicate_groups_matches_small_time_and_title_drift(
         }
 
 
+def test_rebuild_duplicate_groups_does_not_bridge_transitive_time_matches(
+    migrated_session_factory: sessionmaker[Session],
+) -> None:
+    with migrated_session_factory() as session:
+        first = upsert_event(
+            session,
+            _make_event(
+                provider_type="google",
+                provider_account_id="g-1",
+                provider_calendar_id="cal-a",
+                provider_event_id="evt-google",
+                title="Dermatology Follow-up",
+                starts_at=datetime(2026, 5, 24, 15, 0, tzinfo=UTC),
+                ends_at=datetime(2026, 5, 24, 16, 0, tzinfo=UTC),
+            ),
+        )
+        second = upsert_event(
+            session,
+            _make_event(
+                provider_type="icloud_caldav",
+                provider_account_id="i-1",
+                provider_calendar_id="cal-b",
+                provider_event_id="evt-icloud",
+                title="Dermatology Follow-up",
+                starts_at=datetime(2026, 5, 24, 15, 10, tzinfo=UTC),
+                ends_at=datetime(2026, 5, 24, 16, 10, tzinfo=UTC),
+            ),
+        )
+        third = upsert_event(
+            session,
+            _make_event(
+                provider_type="mock",
+                provider_account_id="m-1",
+                provider_calendar_id="cal-c",
+                provider_event_id="evt-mock",
+                title="Dermatology Follow-up",
+                starts_at=datetime(2026, 5, 24, 15, 20, tzinfo=UTC),
+                ends_at=datetime(2026, 5, 24, 16, 20, tzinfo=UTC),
+            ),
+        )
+
+        groups = rebuild_duplicate_groups(session)
+        session.commit()
+
+        assert len(groups) == 1
+
+    with migrated_session_factory() as session:
+        stored_first = session.get(Event, first.id)
+        stored_second = session.get(Event, second.id)
+        stored_third = session.get(Event, third.id)
+
+        assert stored_first is not None
+        assert stored_second is not None
+        assert stored_third is not None
+        assert stored_first.canonical_group_id == stored_second.canonical_group_id
+        assert stored_first.canonical_group_id is not None
+        assert stored_third.canonical_group_id is None
+        assert stored_third.event_visibility_state == "active"
+
+
 def test_rebuild_duplicate_groups_promotes_hidden_duplicate_when_it_is_alone(
     migrated_session_factory: sessionmaker[Session],
 ) -> None:

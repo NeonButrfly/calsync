@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from calsync.models import ProviderAccount, SyncLog
 from calsync.services.reconciliation import (
@@ -65,7 +65,6 @@ def list_operator_problems(session: Session) -> list[ProblemItem]:
 
     accounts = session.scalars(
         select(ProviderAccount)
-        .options(selectinload(ProviderAccount.sync_logs))
         .order_by(ProviderAccount.display_name, ProviderAccount.provider_account_id)
     ).all()
 

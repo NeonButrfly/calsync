@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from calsync.config import Settings
 from calsync.main import create_app
-from calsync.models import Base, Event, ProviderAccount, SyncLog
+from calsync.models import Base, Event, EventGroup, ProviderAccount, SyncLog
 from calsync.repos.events import upsert_event
 from calsync.repos.state import set_app_state
 from calsync.repos.users import create_admin_user
@@ -188,6 +188,24 @@ def test_problem_page_lists_provider_specific_duplicate_actions(tmp_path: Path) 
     assert "Keep iCloud copy" in response.text
     assert "Show both" in response.text
     assert "Explain this event" in response.text
+    with _db_session(client) as session:
+        duplicate_group = session.scalar(select(EventGroup))
+        assert duplicate_group is not None
+        duplicate_group_id = duplicate_group.id
+        hidden_event = session.scalar(select(Event).where(Event.canonical_group_id == duplicate_group_id, Event.event_visibility_state == "hidden_duplicate"))
+        google_copy = session.scalar(select(Event).where(Event.canonical_group_id == duplicate_group_id, Event.provider_type == "google"))
+        icloud_copy = session.scalar(select(Event).where(Event.canonical_group_id == duplicate_group_id, Event.provider_type == "icloud_caldav"))
+        hidden_event_id = hidden_event.id if hidden_event is not None else None
+        google_copy_id = google_copy.id if google_copy is not None else None
+        icloud_copy_id = icloud_copy.id if icloud_copy is not None else None
+
+    assert google_copy_id is not None
+    assert icloud_copy_id is not None
+    assert hidden_event_id is not None
+    assert f'<form method="post" action="/admin/review/groups/{duplicate_group_id}/prefer/{google_copy_id}">' in response.text
+    assert f'<form method="post" action="/admin/review/groups/{duplicate_group_id}/prefer/{icloud_copy_id}">' in response.text
+    assert f'<form method="post" action="/admin/review/events/{hidden_event_id}/restore">' in response.text
+    assert f'<a class="button-link button-link--secondary" href="/admin/review#group-{duplicate_group_id}">Explain this event</a>' in response.text
 
 
 def test_problem_page_hides_provider_specific_action_when_provider_copy_missing(tmp_path: Path) -> None:
