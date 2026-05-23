@@ -333,3 +333,26 @@
 - issue `#14` builds on issues `#12` and `#13`
 - `/admin/problems` is the new problem-to-fix inbox
 - `/admin` now includes a `Problems to fix` summary card
+
+---
+
+- GitHub issue: `#15`
+- Scope: add direct problem inbox actions and a per-event explain view so operators can understand and fix trust issues without hunting through the app
+
+## Interpreted Requirements
+
+- duplicate problem cards should offer more useful direct actions instead of only redirecting elsewhere
+- operators should be able to inspect one event and understand its source copies, preferred state, and sync context
+- the problem inbox should stay action-oriented while the explain page becomes the deeper inspection surface
+
+## Behavioral Boundaries
+
+- duplicate fixes remain local visibility and preference changes only
+- no provider write-back or raw event deletion is introduced
+- provider-specific keep actions only appear when that provider has a copy in the grouped appointment
+
+## Phase Notes
+
+- issue `#15` builds on the problem inbox from issue `#14`
+- `/admin/problems` should gain richer duplicate actions and an `Explain this event` path
+- `/admin/events/{event_id}` should become the operator deep-dive view for event trust state
