@@ -598,6 +598,38 @@ code {
   padding: 1.5rem;
 }
 
+.explain-panel {
+  gap: 1rem;
+}
+
+.explain-metadata {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin: 0;
+}
+
+.explain-metadata div {
+  background: rgba(26, 51, 63, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  padding: 0.85rem 1rem;
+}
+
+.explain-metadata dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.35rem;
+  text-transform: uppercase;
+}
+
+.explain-metadata dd {
+  color: var(--text);
+  margin: 0;
+}
+
 @media (max-width: 720px) {
   .shell-header {
     align-items: start;

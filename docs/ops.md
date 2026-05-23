@@ -140,6 +140,7 @@ Practical verification points:
 - the dashboard combined calendar collapses duplicate copies into one row and shows a multi-source badge when more than one provider copy exists
 - `/admin/review` shows `Needs attention` and `Possible duplicates` when matching copies exist
 - choosing `Keep this copy` hides the extra copy from active dashboard, flightboard, and ICS surfaces
+- restoring a hidden duplicate should keep that copy visible even after the page recalculates duplicate groups
 - if a calendar disappears from provider discovery, its old events become `deleted_upstream` instead of staying active forever
 
 ## Problem To Fix Inbox
@@ -152,7 +153,7 @@ Behavior:
 
 - gathers duplicate cleanup, sync retry, and account authentication problems into one list
 - sorts higher-risk sync and auth items ahead of lower-risk cleanup items
-- offers the safest next action for each problem, such as `Review duplicates`, `Sync now`, or `Reconnect in accounts`
+- offers the safest next action for each problem, such as `Review duplicates`, `Keep Google copy`, `Keep iCloud copy`, `Show all copies`, `Explain this event`, `Sync now`, or `Reconnect in accounts`
 - returns `Sync now` actions back to the problem inbox so the operator can keep working from one page
 
 Practical verification points:
@@ -161,7 +162,28 @@ Practical verification points:
 - the dashboard shows a `Problems to fix` summary card
 - `/admin/problems` shows `Problem to fix list`
 - duplicate items link into `/admin/review`
+- duplicate items also provide `Explain this event` links into `/admin/events/{event_id}`
 - sync retry items can run directly from the inbox and redirect back to `/admin/problems`
+
+## Event Explain View
+
+The event explain page is available at:
+
+- `/admin/events/{event_id}`
+
+Behavior:
+
+- requires an authenticated admin session
+- explains why the selected appointment copy is preferred, hidden, or still visible
+- lists the grouped source copies that belong to the same duplicate cluster
+- shows the latest sync status for the owning provider account when available
+
+Practical verification points:
+
+- opening `/admin/events/{event_id}` after login renders `Why CalSync is showing this appointment`
+- the page shows `Grouped source copies`
+- the page marks the preferred copy clearly
+- unauthenticated access should redirect to login instead of exposing appointment details
 
 ## Apple / iCloud Operator Notes
 

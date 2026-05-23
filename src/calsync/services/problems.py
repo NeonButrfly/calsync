@@ -45,7 +45,7 @@ def list_operator_problems(session: Session) -> list[ProblemItem]:
         )
         problems.append(
             ProblemItem(
-                id=f"duplicate-{duplicate_group.group.id}",
+                id=duplicate_group.anchor_id,
                 category="duplicate",
                 severity="medium",
                 title="Possible duplicate appointment",
@@ -56,7 +56,7 @@ def list_operator_problems(session: Session) -> list[ProblemItem]:
                 source_label=f"{preferred_event.provider_type} · {preferred_event.provider_account_id}",
                 primary_action=ProblemAction(
                     label="Review duplicates",
-                    target=f"/admin/review#group-{duplicate_group.group.id}",
+                    target=f"/admin/review#{duplicate_group.anchor_id}",
                 ),
                 extra_actions=_duplicate_problem_actions(duplicate_group),
                 event_id=duplicate_group.group.preferred_event_id,
@@ -213,20 +213,19 @@ def _duplicate_problem_actions(duplicate_group: DuplicateGroupView) -> list[Prob
         actions.append(
             ProblemAction(
                 label=label,
-                target=f"/admin/review/groups/{duplicate_group.group.id}/prefer/{matching_event.id}",
+                target=f"/admin/problems/actions/event/{duplicate_group.group.preferred_event_id}/provider/{provider_type}",
                 method="post",
             )
         )
 
-    hidden_duplicate = next(
-        (event for event in duplicate_group.events if event.event_visibility_state == "hidden_duplicate"),
-        None,
-    )
-    if hidden_duplicate is not None:
+    hidden_duplicates = [
+        event for event in duplicate_group.events if event.event_visibility_state == "hidden_duplicate"
+    ]
+    if hidden_duplicates:
         actions.append(
             ProblemAction(
-                label="Show both",
-                target=f"/admin/review/events/{hidden_duplicate.id}/restore",
+                label="Show both" if len(duplicate_group.events) == 2 else "Show all copies",
+                target=f"/admin/problems/actions/event/{duplicate_group.group.preferred_event_id}/show-both",
                 method="post",
             )
         )
@@ -234,7 +233,7 @@ def _duplicate_problem_actions(duplicate_group: DuplicateGroupView) -> list[Prob
     actions.append(
         ProblemAction(
             label="Explain this event",
-            target=f"/admin/review#group-{duplicate_group.group.id}",
+            target=f"/admin/events/{duplicate_group.group.preferred_event_id}",
         )
     )
     return actions

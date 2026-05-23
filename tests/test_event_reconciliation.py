@@ -15,6 +15,7 @@ from calsync.services.reconciliation import (
     list_duplicate_groups,
     prefer_event_in_group,
     rebuild_duplicate_groups,
+    restore_hidden_duplicates_in_group,
 )
 
 
@@ -267,6 +268,54 @@ def test_prefer_event_in_group_hides_other_members(
         assert stored_group.preferred_event_id == second.id
         assert stored_second.event_visibility_state == "active"
         assert stored_first.event_visibility_state == "hidden_duplicate"
+
+
+def test_restore_hidden_duplicates_in_group_persists_across_rebuilds(
+    migrated_session_factory: sessionmaker[Session],
+) -> None:
+    with migrated_session_factory() as session:
+        first = upsert_event(
+            session,
+            _make_event(
+                provider_type="google",
+                provider_account_id="g-1",
+                provider_calendar_id="cal-a",
+                provider_event_id="evt-restore-1",
+                title="Physical Therapy",
+            ),
+        )
+        second = upsert_event(
+            session,
+            _make_event(
+                provider_type="icloud_caldav",
+                provider_account_id="i-1",
+                provider_calendar_id="cal-b",
+                provider_event_id="evt-restore-2",
+                title="Physical Therapy",
+            ),
+        )
+        rebuild_duplicate_groups(session)
+        session.commit()
+
+        groups = list_duplicate_groups(session)
+        assert len(groups) == 1
+
+        restore_hidden_duplicates_in_group(session, groups[0].group.id)
+        session.commit()
+
+        rebuild_duplicate_groups(session)
+        session.commit()
+
+    with migrated_session_factory() as session:
+        stored_first = session.get(Event, first.id)
+        stored_second = session.get(Event, second.id)
+
+        assert stored_first is not None
+        assert stored_second is not None
+        assert stored_first.event_visibility_state == "active"
+        assert stored_second.event_visibility_state == "active"
+        assert stored_first.duplicate_visibility_override is False
+        assert stored_second.duplicate_visibility_override is True
 
 
 def _make_event(**overrides: object) -> dict[str, object]:

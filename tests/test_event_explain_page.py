@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pyotp
@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from calsync.config import Settings
 from calsync.main import create_app
-from calsync.models import Base, Event
+from calsync.models import Base, Event, EventGroup, ProviderAccount, SyncLog
 from calsync.repos.events import upsert_event
 from calsync.repos.state import set_app_state
 from calsync.repos.users import create_admin_user
@@ -24,13 +24,13 @@ from calsync.services.auth import (
 from calsync.services.reconciliation import list_duplicate_groups, rebuild_duplicate_groups
 
 
-ENCRYPTION_KEY = "review-page-test-key"
-SESSION_SECRET = "review-page-session-secret"
+ENCRYPTION_KEY = "event-explain-test-key"
+SESSION_SECRET = "event-explain-session-secret"
 
 
 @contextmanager
 def _build_client(tmp_path: Path):
-    database_path = tmp_path / "review-page.sqlite3"
+    database_path = tmp_path / "event-explain.sqlite3"
     settings = Settings(
         database_url=f"sqlite+pysqlite:///{database_path}",
         public_base_url="http://testserver",
@@ -53,19 +53,15 @@ def _build_client(tmp_path: Path):
             password_hash=hash_password("StrongPassword1!"),
         )
         totp_secret = pyotp.random_base32()
-        store_totp_secret(
-            session,
-            admin_user,
-            totp_secret,
-            encryption_key=ENCRYPTION_KEY,
-        )
+        store_totp_secret(session, admin_user, totp_secret, encryption_key=ENCRYPTION_KEY)
         admin_user.mfa_enrolled = True
         store_recovery_codes(session, admin_user, generate_recovery_codes(count=2))
-        upsert_event(
+
+        google_event = upsert_event(
             session,
             _make_event(
                 provider_type="google",
-                provider_account_id="g-1",
+                provider_account_id="google-user@example.com",
                 provider_calendar_id="google-primary",
                 provider_event_id="evt-google",
                 title="Orthodontist Appointment",
@@ -77,17 +73,37 @@ def _build_client(tmp_path: Path):
             session,
             _make_event(
                 provider_type="icloud_caldav",
-                provider_account_id="i-1",
+                provider_account_id="icloud-user@icloud.com",
                 provider_calendar_id="icloud-family",
                 provider_event_id="evt-icloud",
                 title="Orthodontist Appointment",
             ),
         )
         rebuild_duplicate_groups(session)
+
+        google_account = session.scalar(
+            select(ProviderAccount).where(
+                ProviderAccount.provider_type == "google",
+                ProviderAccount.provider_account_id == "google-user@example.com",
+            )
+        )
+        assert google_account is not None
+        session.add(
+            SyncLog(
+                provider_account_pk=google_account.id,
+                provider_type="google",
+                trigger="manual",
+                status="success",
+                events_seen=2,
+                events_upserted=2,
+            )
+        )
+        google_event_id = google_event.id
         session.commit()
 
     app = create_app(settings)
     app.state.test_totp_secret = totp_secret
+    app.state.test_google_event_id = google_event_id
 
     with TestClient(app) as test_client:
         yield test_client
@@ -109,112 +125,56 @@ def _login(client: TestClient) -> None:
     assert mfa_step.status_code == 303
 
 
-def test_review_page_requires_authenticated_admin(tmp_path: Path) -> None:
+def test_event_explain_page_requires_authenticated_admin(tmp_path: Path) -> None:
     with _build_client(tmp_path) as client:
-        response = client.get("/admin/review", follow_redirects=False)
+        response = client.get("/admin/events/example-id", follow_redirects=False)
 
     assert response.status_code == 303
     assert response.headers["location"] == "/login"
 
 
-def test_review_page_lists_duplicate_groups_and_resolution_actions(tmp_path: Path) -> None:
+def test_event_explain_page_shows_grouped_copies_and_preferred_state(tmp_path: Path) -> None:
     with _build_client(tmp_path) as client:
         _login(client)
 
-        response = client.get("/admin/review")
+        with _db_session(client) as session:
+            group = list_duplicate_groups(session)[0]
+            preferred = next(event for event in group.events if event.id == group.group.preferred_event_id)
 
-    with _db_session(client) as session:
-        groups = list_duplicate_groups(session)
-        assert len(groups) == 1
-        anchor_id = groups[0].anchor_id
+        response = client.get(f"/admin/events/{preferred.id}")
 
     assert response.status_code == 200
-    assert "Needs attention" in response.text
-    assert "Possible duplicates" in response.text
-    assert "Orthodontist Appointment" in response.text
-    assert "Keep this copy" in response.text
-    assert f'id="{anchor_id}"' in response.text
+    assert "Why CalSync is showing this appointment" in response.text
+    assert "Preferred copy" in response.text
+    assert "Grouped source copies" in response.text
+    assert "google" in response.text.lower()
+    assert "icloud" in response.text.lower()
+    assert "Latest sync status" in response.text
 
 
-def test_review_page_prefer_action_hides_other_duplicate(tmp_path: Path) -> None:
+def test_event_explain_page_persists_rebuilt_duplicate_state(tmp_path: Path) -> None:
     with _build_client(tmp_path) as client:
         _login(client)
 
         with _db_session(client) as session:
-            groups = list_duplicate_groups(session)
-            assert len(groups) == 1
-            preferred_id = groups[0].events[-1].id
-            anchor_id = groups[0].anchor_id
+            group = list_duplicate_groups(session)[0]
+            preferred = next(event for event in group.events if event.id == group.group.preferred_event_id)
+            preferred_id = preferred.id
+            session.query(EventGroup).delete()
+            for event in group.events:
+                stored_event = session.get(Event, event.id)
+                assert stored_event is not None
+                stored_event.canonical_group_id = None
+                stored_event.event_visibility_state = "active"
+            session.commit()
 
-        response = client.post(
-            f"/admin/review/groups/{groups[0].group.id}/prefer/{preferred_id}",
-            follow_redirects=False,
-        )
-
-        assert response.status_code == 303
-        assert response.headers["location"] == f"/admin/review#{anchor_id}"
-
-        with _db_session(client) as session:
-            kept_event = session.get(Event, preferred_id)
-            hidden_events = session.scalars(
-                select(Event).where(
-                    Event.canonical_group_id == groups[0].group.id,
-                    Event.id != preferred_id,
-                )
-            ).all()
-
-            assert kept_event is not None
-            assert kept_event.event_visibility_state == "active"
-            assert hidden_events
-            assert all(event.event_visibility_state == "hidden_duplicate" for event in hidden_events)
-
-
-def test_review_page_restore_all_action_restores_hidden_duplicates(tmp_path: Path) -> None:
-    with _build_client(tmp_path) as client:
-        _login(client)
+        response = client.get(f"/admin/events/{preferred_id}")
+        assert response.status_code == 200
 
         with _db_session(client) as session:
-            groups = list_duplicate_groups(session)
-            assert len(groups) == 1
-            group_id = groups[0].group.id
-            anchor_id = groups[0].anchor_id
+            rebuilt_groups = list_duplicate_groups(session)
 
-        response = client.post(
-            f"/admin/review/groups/{group_id}/restore-all",
-            follow_redirects=False,
-        )
-
-        assert response.status_code == 303
-        assert response.headers["location"] == f"/admin/review#{anchor_id}"
-
-        with _db_session(client) as session:
-            restored_events = session.scalars(
-                select(Event).where(Event.canonical_group_id == group_id)
-            ).all()
-
-        assert restored_events
-        assert all(event.event_visibility_state == "active" for event in restored_events)
-
-
-def test_review_page_restore_single_duplicate_redirects_to_group_anchor(tmp_path: Path) -> None:
-    with _build_client(tmp_path) as client:
-        _login(client)
-
-        with _db_session(client) as session:
-            groups = list_duplicate_groups(session)
-            assert len(groups) == 1
-            hidden_event = next(
-                event for event in groups[0].events if event.event_visibility_state == "hidden_duplicate"
-            )
-            anchor_id = groups[0].anchor_id
-
-        response = client.post(
-            f"/admin/review/events/{hidden_event.id}/restore",
-            follow_redirects=False,
-        )
-
-        assert response.status_code == 303
-        assert response.headers["location"] == f"/admin/review#{anchor_id}"
+        assert len(rebuilt_groups) == 1
 
 
 def _db_session(client: TestClient) -> Session:

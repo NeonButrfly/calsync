@@ -129,3 +129,20 @@ def test_docs_cover_problem_to_fix_inbox() -> None:
     assert "#14" in prompt_content
     assert "/admin/problems" in prompt_content
     assert "problem-to-fix inbox" in prompt_content
+
+
+def test_docs_cover_event_explain_and_richer_problem_actions() -> None:
+    readme_content = Path("README.md").read_text(encoding="utf-8").lower()
+    ops_content = Path("docs/ops.md").read_text(encoding="utf-8").lower()
+    prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()
+
+    assert "/admin/events/" in readme_content
+    assert "explain this event" in readme_content
+
+    assert "/admin/events/" in ops_content
+    assert "explain this event" in ops_content
+    assert "keep google copy" in ops_content
+
+    assert "#15" in prompt_content
+    assert "/admin/events/" in prompt_content
+    assert "explain this event" in prompt_content

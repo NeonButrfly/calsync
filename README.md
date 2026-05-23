@@ -138,6 +138,7 @@ Current admin pages:
 - `/admin` for the dashboard, combined feed link, and last sync summary
 - `/admin/problems` for the problem-to-fix inbox that gathers duplicate, sync, and account issues in one place
 - `/admin/review` for trust review, duplicate cleanup, and hidden-copy recovery
+- `/admin/events/{event_id}` for explaining why one copy is visible, hidden, or preferred
 - `/admin/flightboard` for the private Flightboard view of enabled calendar events
 - `/admin/providers` for deployment-wide Google OAuth app settings
 - `/admin/accounts` for mock, Google, and Apple/iCloud account connection
@@ -160,6 +161,8 @@ Current behavior:
 - the dashboard combined view keeps one visible row for a trusted appointment and shows when that row comes from multiple synced sources
 - the problem-to-fix inbox gives you one obvious list of duplicate, sync, and account issues with the safest next action
 - the review page acts as a `Needs attention` queue so you can keep the right copy and hide the extra one when you accidentally add the same appointment twice
+- duplicate fixes now include provider-aware actions like `Keep Google copy`, `Keep iCloud copy`, and `Show all copies`
+- `Explain this event` opens `/admin/events/{event_id}` so you can see grouped copies, visibility state, and the latest sync context for that appointment
 - hidden duplicate decisions survive later refreshes instead of being lost on the next sync
 
 Current limits:

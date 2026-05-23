@@ -4,6 +4,7 @@ from .accounts import router as accounts_router
 from .auth import router as auth_router
 from .calendars import router as calendars_router
 from .dashboard import router as dashboard_router
+from .events import router as events_router
 from .feeds import router as feeds_router
 from .flightboard import router as flightboard_router
 from .google import router as google_router
@@ -20,6 +21,7 @@ router.include_router(auth_router)
 router.include_router(google_router)
 router.include_router(feeds_router)
 router.include_router(dashboard_router)
+router.include_router(events_router)
 router.include_router(problems_router)
 router.include_router(flightboard_router)
 router.include_router(review_router)

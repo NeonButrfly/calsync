@@ -258,6 +258,31 @@
 - the first recommended implementation slice is event trust and cleanup
 - Athena-style portal work should be treated as a gated future adapter requiring a real supported auth path
 - reminder or message-derived appointment capture should enter through a generalized source adapter model rather than through direct backup parsing
+
+---
+
+- GitHub issue: `#15`
+- Scope: direct problem inbox actions and per-event explainability for trust cleanup
+
+## Interpreted Requirements
+
+- `/admin/problems` should offer provider-aware duplicate actions instead of only sending the operator into review
+- duplicate action links and redirects must stay stable even when duplicate groups are recalculated
+- manual `show both` style decisions must persist across duplicate rebuilds
+- the app should expose `/admin/events/{event_id}` as a private explanation surface for one appointment copy
+- operators should be able to understand why one copy is preferred, hidden, or still visible without hunting through multiple pages
+
+## Behavioral Boundaries
+
+- duplicate cleanup remains read-only with respect to upstream providers
+- CalSync hides or reveals local normalized copies; it does not delete provider source records
+- private trust and explain routes stay behind admin authentication
+
+## Phase Notes
+
+- issue `#15` adds `Keep Google copy`, `Keep iCloud copy`, `Show all copies`, and `Explain this event` to the problem-to-fix inbox
+- duplicate group anchors are now based on stable member event ids rather than ephemeral rebuilt group ids
+- `/admin/events/{event_id}` shows grouped source copies, visibility state, and latest sync context for the selected appointment
 - active views now suppress `deleted_upstream`, `cancelled`, and hidden duplicate copies
 - full discovery can retire events from calendars that disappear upstream instead of leaving zombie active items behind
 - duplicate cleanup is now exposed through `/admin/review`

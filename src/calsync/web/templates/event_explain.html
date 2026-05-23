@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}CalSync Event Explain{% endblock %}
+{% block page_title %}Event Explain{% endblock %}
+
+{% block content %}
+<section class="stack">
+  <article class="panel explain-panel">
+    <div class="panel-heading">
+      <div>
+        <h2>Why CalSync is showing this appointment</h2>
+        <p class="subtle">{{ event_view.event.title }}</p>
+      </div>
+      {% if event_view.event.id == event_view.preferred_copy_id %}
+      <span class="review-chip review-chip--preferred">Preferred copy</span>
+      {% else %}
+      <span class="review-chip">{{ event_view.event.event_visibility_state | replace("_", " ") | title }}</span>
+      {% endif %}
+    </div>
+    <p>{{ event_view.preferred_reason }}</p>
+    <dl class="explain-metadata">
+      <div><dt>When</dt><dd>{{ event_view.event.starts_at | alaska_datetime }}</dd></div>
+      <div><dt>Location</dt><dd>{{ event_view.event.location or "Location pending" }}</dd></div>
+      <div><dt>Provider</dt><dd>{{ event_view.event.provider_type }} · {{ event_view.event.provider_account_id }}</dd></div>
+      <div><dt>Calendar</dt><dd>{{ event_view.event.provider_calendar_id }}</dd></div>
+      <div><dt>Visibility</dt><dd>{{ event_view.event.event_visibility_state | replace("_", " ") | title }}</dd></div>
+    </dl>
+  </article>
+
+  <article class="panel explain-panel">
+    <h2>Grouped source copies</h2>
+    <ul class="review-event-list">
+      {% for copy in event_view.copies %}
+      <li class="review-event-card">
+        <div class="review-event-main">
+          <strong>{{ copy.title }}</strong>
+          <span class="subtle">{{ copy.provider_type }} · {{ copy.provider_account_id }} · {{ copy.provider_calendar_id }}</span>
+          <span class="subtle">Visibility: {{ copy.visibility_state }}</span>
+        </div>
+        {% if copy.is_preferred %}
+        <span class="review-chip review-chip--preferred">Preferred copy</span>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </article>
+
+  <article class="panel explain-panel">
+    <h2>Latest sync status</h2>
+    {% if event_view.latest_sync %}
+    <dl class="explain-metadata">
+      <div><dt>Status</dt><dd>{{ event_view.latest_sync.status | title }}</dd></div>
+      <div><dt>Started</dt><dd>{{ event_view.latest_sync.started_at | alaska_datetime }}</dd></div>
+      <div><dt>Events seen</dt><dd>{{ event_view.latest_sync.events_seen }}</dd></div>
+      <div><dt>Events updated</dt><dd>{{ event_view.latest_sync.events_upserted }}</dd></div>
+    </dl>
+    {% if event_view.latest_sync.error_text %}
+    <p class="subtle">{{ event_view.latest_sync.error_text }}</p>
+    {% endif %}
+    {% else %}
+    <p class="subtle">No sync history is available for this source account yet.</p>
+    {% endif %}
+  </article>
+</section>
+{% endblock %}

@@ -31,6 +31,7 @@ NEAR_DUPLICATE_TIME_DRIFT = timedelta(minutes=15)
 class DuplicateGroupView:
     group: EventGroup
     events: list[Event]
+    anchor_id: str
 
 
 @dataclass
@@ -57,6 +58,7 @@ def rebuild_duplicate_groups(session: Session) -> list[EventGroup]:
             lone_event = ordered_events[0]
             if lone_event.event_visibility_state == "hidden_duplicate":
                 lone_event.event_visibility_state = "active"
+            lone_event.duplicate_visibility_override = False
             continue
 
         preferred_event = max(ordered_events, key=_preferred_event_score)
@@ -73,10 +75,14 @@ def rebuild_duplicate_groups(session: Session) -> list[EventGroup]:
         for event in ordered_events:
             event.canonical_group_id = group.id
             if event.id == preferred_event.id:
+                event.duplicate_visibility_override = False
                 if event.event_visibility_state == "hidden_duplicate":
                     event.event_visibility_state = "active"
+            elif event.duplicate_visibility_override and event.event_visibility_state in VISIBLE_RECONCILIATION_STATES:
+                event.event_visibility_state = "active"
             elif event.event_visibility_state in VISIBLE_RECONCILIATION_STATES:
                 event.event_visibility_state = "hidden_duplicate"
+                event.duplicate_visibility_override = False
         created_groups.append(group)
 
     session.flush()
@@ -213,6 +219,7 @@ def list_duplicate_groups(session: Session) -> list[DuplicateGroupView]:
             DuplicateGroupView(
                 group=group,
                 events=sorted(events, key=lambda event: (event.id != group.preferred_event_id, *_event_sort_key(event))),
+                anchor_id=_duplicate_group_anchor_id(events),
             )
         )
     return duplicate_groups
@@ -224,6 +231,10 @@ def list_group_events(session: Session, group_id: str) -> list[Event]:
         .where(Event.canonical_group_id == group_id)
         .order_by(Event.starts_at, Event.provider_type, Event.provider_account_id, Event.provider_event_id)
     ).all()
+
+
+def duplicate_group_anchor_id(events: list[Event]) -> str:
+    return _duplicate_group_anchor_id(events)
 
 
 def prefer_event_in_group(session: Session, group_id: str, preferred_event_id: str) -> EventGroup:
@@ -242,8 +253,10 @@ def prefer_event_in_group(session: Session, group_id: str, preferred_event_id: s
     for event in events:
         if event.id == preferred_event_id:
             event.event_visibility_state = "active"
+            event.duplicate_visibility_override = False
         elif event.event_visibility_state in VISIBLE_RECONCILIATION_STATES:
             event.event_visibility_state = "hidden_duplicate"
+            event.duplicate_visibility_override = False
 
     group.preferred_event_id = preferred_event_id
     group.display_title = selected.title
@@ -261,8 +274,36 @@ def restore_hidden_duplicate(session: Session, event_id: str) -> Event:
     if event.event_visibility_state != "hidden_duplicate":
         raise ValueError("Only hidden duplicate events can be restored.")
     event.event_visibility_state = "active"
+    event.duplicate_visibility_override = True
     session.flush()
     return event
+
+
+def restore_hidden_duplicates_in_group(session: Session, group_id: str) -> list[Event]:
+    group = session.get(EventGroup, group_id)
+    if group is None:
+        raise LookupError(f"Duplicate group not found: {group_id}")
+
+    hidden_events = session.scalars(
+        select(Event).where(
+            Event.canonical_group_id == group_id,
+            Event.event_visibility_state == "hidden_duplicate",
+        )
+    ).all()
+    if not hidden_events:
+        raise ValueError("Duplicate group has no hidden copies to restore.")
+
+    for event in hidden_events:
+        event.event_visibility_state = "active"
+        event.duplicate_visibility_override = True
+
+    session.flush()
+    return hidden_events
+
+
+def _duplicate_group_anchor_id(events: list[Event]) -> str:
+    stable_event_id = min(event.id for event in events)
+    return f"duplicate-group-{stable_event_id}"
 
 
 def collect_trust_metrics(session: Session) -> dict[str, int]:

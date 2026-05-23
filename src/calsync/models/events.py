@@ -11,6 +11,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import TypeDecorator
@@ -107,6 +108,12 @@ class Event(Base):
         nullable=False,
         default="active",
         server_default="active",
+    )
+    duplicate_visibility_override: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
     )
     last_seen_upstream_at: Mapped[datetime | None] = mapped_column(
         UtcDateTime(),

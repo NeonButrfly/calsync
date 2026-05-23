@@ -44,7 +44,7 @@
     {% if duplicate_groups %}
     <div class="review-group-list">
       {% for duplicate_group in duplicate_groups %}
-      <article class="review-group-card">
+      <article class="review-group-card" id="{{ duplicate_group.anchor_id }}">
         <header class="review-group-header">
           <div>
             <h3>{{ duplicate_group.group.display_title }}</h3>

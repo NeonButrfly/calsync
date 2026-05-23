@@ -20,7 +20,7 @@ from calsync.services.auth import (
     store_recovery_codes,
     store_totp_secret,
 )
-from calsync.services.reconciliation import rebuild_duplicate_groups
+from calsync.services.reconciliation import list_duplicate_groups, rebuild_duplicate_groups
 from calsync.services.sync import discover_calendars, sync_account
 
 
@@ -186,26 +186,27 @@ def test_problem_page_lists_provider_specific_duplicate_actions(tmp_path: Path) 
     assert response.status_code == 200
     assert "Keep Google copy" in response.text
     assert "Keep iCloud copy" in response.text
-    assert "Show both" in response.text
+    assert "Show all copies" in response.text
     assert "Explain this event" in response.text
     with _db_session(client) as session:
-        duplicate_group = session.scalar(select(EventGroup))
-        assert duplicate_group is not None
-        duplicate_group_id = duplicate_group.id
+        duplicate_group = list_duplicate_groups(session)[0]
+        duplicate_group_id = duplicate_group.group.id
+        preferred_event_id = duplicate_group.group.preferred_event_id
+        anchor_id = duplicate_group.anchor_id
         hidden_event = session.scalar(select(Event).where(Event.canonical_group_id == duplicate_group_id, Event.event_visibility_state == "hidden_duplicate"))
         google_copy = session.scalar(select(Event).where(Event.canonical_group_id == duplicate_group_id, Event.provider_type == "google"))
         icloud_copy = session.scalar(select(Event).where(Event.canonical_group_id == duplicate_group_id, Event.provider_type == "icloud_caldav"))
-        hidden_event_id = hidden_event.id if hidden_event is not None else None
         google_copy_id = google_copy.id if google_copy is not None else None
         icloud_copy_id = icloud_copy.id if icloud_copy is not None else None
 
     assert google_copy_id is not None
     assert icloud_copy_id is not None
-    assert hidden_event_id is not None
-    assert f'<form method="post" action="/admin/review/groups/{duplicate_group_id}/prefer/{google_copy_id}">' in response.text
-    assert f'<form method="post" action="/admin/review/groups/{duplicate_group_id}/prefer/{icloud_copy_id}">' in response.text
-    assert f'<form method="post" action="/admin/review/events/{hidden_event_id}/restore">' in response.text
-    assert f'<a class="button-link button-link--secondary" href="/admin/review#group-{duplicate_group_id}">Explain this event</a>' in response.text
+    assert preferred_event_id is not None
+    assert hidden_event is not None
+    assert f'<form method="post" action="/admin/problems/actions/event/{preferred_event_id}/provider/google">' in response.text
+    assert f'<form method="post" action="/admin/problems/actions/event/{preferred_event_id}/provider/icloud_caldav">' in response.text
+    assert f'<form method="post" action="/admin/problems/actions/event/{preferred_event_id}/show-both">' in response.text
+    assert f'<a class="button-link button-link--secondary" href="/admin/events/{preferred_event_id}">Explain this event</a>' in response.text
 
 
 def test_problem_page_hides_provider_specific_action_when_provider_copy_missing(tmp_path: Path) -> None:
@@ -255,6 +256,82 @@ def test_problem_page_sync_action_retries_account_and_returns_to_inbox(tmp_path:
             logs = session.scalars(select(SyncLog).order_by(SyncLog.started_at, SyncLog.id)).all()
             assert len(logs) == before_count + 1
             assert logs[-1].status == "success"
+
+
+def test_problem_page_can_keep_google_copy(tmp_path: Path) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client)
+
+        with _db_session(client) as session:
+            duplicate_group = list_duplicate_groups(session)[0]
+            preferred_event_id = duplicate_group.group.preferred_event_id
+            google_copy = session.scalar(
+                select(Event).where(
+                    Event.canonical_group_id == duplicate_group.group.id,
+                    Event.provider_type == "google",
+                )
+            )
+            anchor_id = duplicate_group.anchor_id
+            assert preferred_event_id is not None
+            assert google_copy is not None
+
+        response = client.post(
+            f"/admin/problems/actions/event/{preferred_event_id}/provider/google",
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 303
+        assert response.headers["location"] == f"/admin/problems#{anchor_id}"
+
+        with _db_session(client) as session:
+            refreshed_google = session.get(Event, google_copy.id)
+            assert refreshed_google is not None
+            assert refreshed_google.event_visibility_state == "active"
+
+
+def test_problem_page_show_all_action_restores_hidden_duplicates_and_lands_on_stable_anchor(tmp_path: Path) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client)
+
+        with _db_session(client) as session:
+            duplicate_group = list_duplicate_groups(session)[0]
+            preferred_event_id = duplicate_group.group.preferred_event_id
+            anchor_id = duplicate_group.anchor_id
+            assert preferred_event_id is not None
+            grouped_event_ids = [
+                event.id
+                for event in session.scalars(
+                    select(Event).where(Event.canonical_group_id == duplicate_group.group.id)
+                ).all()
+            ]
+
+        action_response = client.post(
+            f"/admin/problems/actions/event/{preferred_event_id}/show-both",
+            follow_redirects=False,
+        )
+
+        assert action_response.status_code == 303
+        assert action_response.headers["location"] == f"/admin/problems#{anchor_id}"
+
+        page_response = client.get(action_response.headers["location"])
+        assert page_response.status_code == 200
+        assert f'id="{anchor_id}"' in page_response.text
+
+        with _db_session(client) as session:
+            restored_events = [session.get(Event, event_id) for event_id in grouped_event_ids]
+
+        assert restored_events
+        assert all(event is not None and event.event_visibility_state == "active" for event in restored_events)
+
+
+def test_problem_page_links_duplicate_items_to_event_explain_view(tmp_path: Path) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client)
+        response = client.get("/admin/problems")
+
+    assert response.status_code == 200
+    assert "/admin/events/" in response.text
+    assert "Explain this event" in response.text
 
 
 def _db_session(client: TestClient) -> Session:

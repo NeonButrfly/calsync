@@ -5,9 +5,15 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from calsync.models import AdminUser, ProviderAccount
+from calsync.models import AdminUser, Event, ProviderAccount
 from calsync.services.problems import build_problem_summary, list_operator_problems
-from calsync.services.reconciliation import rebuild_duplicate_groups
+from calsync.services.reconciliation import (
+    duplicate_group_anchor_id,
+    list_group_events,
+    prefer_event_in_group,
+    rebuild_duplicate_groups,
+    restore_hidden_duplicates_in_group,
+)
 from calsync.services.sync import sync_account
 from calsync.web.deps import get_db, get_templates, require_admin
 
@@ -51,3 +57,48 @@ def problem_sync_now(
     )
     session.commit()
     return RedirectResponse(url="/admin/problems", status_code=303)
+
+
+@router.post("/actions/event/{event_id}/provider/{provider_type}")
+def problem_prefer_provider_copy(
+    event_id: str,
+    provider_type: str,
+    session: Session = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    event = session.get(Event, event_id)
+    if event is None or not event.canonical_group_id:
+        raise HTTPException(status_code=404, detail="Duplicate event group not found.")
+
+    group_events = list_group_events(session, event.canonical_group_id)
+    provider_event = next((candidate for candidate in group_events if candidate.provider_type == provider_type), None)
+    if provider_event is None:
+        raise HTTPException(status_code=404, detail="Provider copy not found in duplicate group.")
+
+    try:
+        prefer_event_in_group(session, event.canonical_group_id, provider_event.id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    session.commit()
+    return RedirectResponse(url=f"/admin/problems#{duplicate_group_anchor_id(group_events)}", status_code=303)
+
+
+@router.post("/actions/event/{event_id}/show-both")
+def problem_restore_duplicate_group(
+    event_id: str,
+    session: Session = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    event = session.get(Event, event_id)
+    if event is None or not event.canonical_group_id:
+        raise HTTPException(status_code=404, detail="Duplicate event group not found.")
+    group_events = list_group_events(session, event.canonical_group_id)
+
+    try:
+        restore_hidden_duplicates_in_group(session, event.canonical_group_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    session.commit()
+    return RedirectResponse(url=f"/admin/problems#{duplicate_group_anchor_id(group_events)}", status_code=303)
