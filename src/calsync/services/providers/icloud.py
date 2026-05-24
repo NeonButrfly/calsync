@@ -36,8 +36,7 @@ def infer_icloud_account_capabilities(
 ) -> tuple[str, bool, bool]:
     metadata = dict(account.provider_metadata or {})
     can_write = bool(
-        account.can_write
-        or metadata.get("can_write") is True
+        metadata.get("can_write") is True
         or metadata.get("supports_write") is True
         or metadata.get("supports_writes") is True
     )

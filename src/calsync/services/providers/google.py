@@ -64,8 +64,7 @@ def infer_google_account_capabilities(
     metadata = _account_metadata(account)
     scopes = _metadata_scope_values(metadata.get(ACCOUNT_SCOPES_KEY))
     can_write = bool(
-        account.can_write
-        or metadata.get("can_write") is True
+        metadata.get("can_write") is True
         or metadata.get("supports_write") is True
         or metadata.get("supports_writes") is True
         or any(scope in GOOGLE_WRITABLE_SCOPES for scope in scopes)

@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 
 from calsync.config import get_settings
 from calsync.models import ProviderAccount, ProviderCalendar
-from calsync.repos.providers import upsert_provider_account
+from calsync.repos.providers import get_provider_account, upsert_provider_account
 
 
 @pytest.fixture()
@@ -303,3 +303,63 @@ def test_google_account_capabilities(
         assert account.auth_mode == "oauth"
         assert account.can_read is True
         assert account.can_write is True
+
+
+def test_get_provider_account_hydrates_google_capabilities_from_current_scopes(
+    migrated_session_factory: sessionmaker[Session],
+) -> None:
+    with migrated_session_factory() as write_session:
+        account = ProviderAccount(
+            provider_type="google",
+            provider_account_id="google-sub",
+            display_name="owner@example.com",
+            can_write=True,
+            provider_metadata={
+                "google_scopes": [
+                    "openid",
+                    "email",
+                    "https://www.googleapis.com/auth/calendar.readonly",
+                ]
+            },
+        )
+        write_session.add(account)
+        write_session.commit()
+        account_id = account.id
+
+    with migrated_session_factory() as read_session:
+        hydrated = get_provider_account(read_session, account_id)
+
+        assert hydrated is not None
+        assert hydrated.auth_mode == "oauth"
+        assert hydrated.can_read is True
+        assert hydrated.can_write is False
+
+
+def test_get_provider_account_hydrates_icloud_defaults(
+    migrated_session_factory: sessionmaker[Session],
+) -> None:
+    encrypted_secret = "existing-encrypted-secret"
+
+    with migrated_session_factory() as write_session:
+        account = ProviderAccount(
+            provider_type="icloud_caldav",
+            provider_account_id="kay@icloud.com",
+            display_name="Kay iCloud",
+            auth_mode="oauth",
+            can_read=False,
+            can_write=True,
+            credential_secret_encrypted=encrypted_secret,
+            provider_metadata={},
+        )
+        write_session.add(account)
+        write_session.commit()
+        account_id = account.id
+
+    with migrated_session_factory() as read_session:
+        hydrated = get_provider_account(read_session, account_id)
+
+        assert hydrated is not None
+        assert hydrated.auth_mode == "caldav"
+        assert hydrated.can_read is True
+        assert hydrated.can_write is False
+        assert hydrated.credential_secret_encrypted == encrypted_secret
