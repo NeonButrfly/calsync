@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from calsync.models import ProviderAccount, ProviderCalendar, SyncLog, utcnow
+from calsync.models import CALENDAR_ROLES, ProviderAccount, ProviderCalendar, SyncLog, utcnow
 from calsync.schemas.providers import DiscoveredCalendar
 
 
@@ -182,6 +182,21 @@ def list_provider_calendars(
             .order_by(ProviderCalendar.provider_calendar_id)
         )
     )
+
+
+def set_provider_calendar_role(
+    session: Session,
+    *,
+    calendar: ProviderCalendar,
+    calendar_role: str,
+) -> ProviderCalendar:
+    if calendar_role not in CALENDAR_ROLES:
+        raise ValueError(f"Unsupported calendar role: {calendar_role}")
+
+    calendar.calendar_role = calendar_role
+    session.add(calendar)
+    session.flush()
+    return calendar
 
 
 @dataclass

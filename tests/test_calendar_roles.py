@@ -1,15 +1,27 @@
 from pathlib import Path
 
 import pytest
+import pyotp
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine, text
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.exc import IntegrityError
 
-from calsync.config import get_settings
-from calsync.models import ProviderAccount, ProviderCalendar
+from calsync.config import Settings, get_settings
+from calsync.main import create_app
+from calsync.models import Base, ProviderAccount, ProviderCalendar
 from calsync.repos.providers import get_provider_account, upsert_provider_account
+from calsync.repos.state import set_app_state
+from calsync.repos.users import create_admin_user
+from calsync.services.auth import (
+    generate_recovery_codes,
+    hash_password,
+    store_recovery_codes,
+    store_totp_secret,
+)
+from calsync.services.sync import discover_calendars
 
 
 @pytest.fixture()
@@ -32,6 +44,60 @@ def migrated_session_factory(
         yield sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     finally:
         get_settings.cache_clear()
+
+
+@pytest.fixture()
+def authenticated_calendar_client(tmp_path: Path) -> TestClient:
+    database_path = tmp_path / "calendar-roles-page.sqlite3"
+    settings = Settings(
+        database_url=f"sqlite+pysqlite:///{database_path}",
+        public_base_url="http://testserver",
+        session_secret="calendar-role-test-session-secret",
+        encryption_key="calendar-role-test-encryption-key",
+    )
+    engine = create_engine(
+        settings.database_url,
+        future=True,
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(engine)
+
+    with Session(engine) as session:
+        set_app_state(session, key="setup_completed", value_text="true")
+        admin_user = create_admin_user(
+            session,
+            username="admin",
+            email="admin@example.com",
+            password_hash=hash_password("StrongPassword1!"),
+        )
+        totp_secret = pyotp.random_base32()
+        store_totp_secret(
+            session,
+            admin_user,
+            totp_secret,
+            encryption_key=settings.encryption_key,
+        )
+        admin_user.mfa_enrolled = True
+        store_recovery_codes(session, admin_user, generate_recovery_codes(count=2))
+
+        account = ProviderAccount(
+            provider_type="mock",
+            provider_account_id="mock-acct-roles",
+            display_name="Mock Account",
+            provider_metadata={"seed": "calendar-roles"},
+        )
+        session.add(account)
+        session.flush()
+        discover_calendars(session, account.id)
+        session.commit()
+
+    app = create_app(settings)
+    app.state.test_totp_secret = totp_secret
+    app.state.test_engine = engine
+
+    with TestClient(app, base_url="http://testserver") as client:
+        _authenticate_client(client)
+        yield client
 
 
 def test_provider_account_capabilities_round_trip(
@@ -113,6 +179,48 @@ def test_provider_calendar_role_rejects_unknown_values(
 
         with pytest.raises(IntegrityError):
             write_session.commit()
+
+
+def test_calendars_page_renders_role_selector_with_product_labels(
+    authenticated_calendar_client: TestClient,
+) -> None:
+    response = authenticated_calendar_client.get("/admin/calendars")
+
+    assert response.status_code == 200
+    assert "What this calendar is for" in response.text
+    assert "Check availability" in response.text
+    assert "Conflict checking only" in response.text
+    assert "Receive new bookings" in response.text
+    assert "Personal reference" in response.text
+    assert "Hidden" in response.text
+    assert 'name="calendar_role"' in response.text
+
+
+def test_calendar_role_update_persists_from_admin_page(
+    authenticated_calendar_client: TestClient,
+) -> None:
+    with _db_session(authenticated_calendar_client) as session:
+        calendar = session.scalar(
+            select(ProviderCalendar).where(
+                ProviderCalendar.provider_calendar_id == "work",
+            )
+        )
+        assert calendar is not None
+        calendar_id = calendar.id
+
+    response = authenticated_calendar_client.post(
+        f"/admin/calendars/{calendar_id}/role",
+        data={"calendar_role": "writable_booking_target"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/calendars"
+
+    with _db_session(authenticated_calendar_client) as session:
+        refreshed_calendar = session.get(ProviderCalendar, calendar_id)
+        assert refreshed_calendar is not None
+        assert refreshed_calendar.calendar_role == "writable_booking_target"
 
 
 def test_provider_role_migration_backfills_defaults_for_existing_rows(
@@ -392,3 +500,24 @@ def test_get_provider_account_hydrates_icloud_defaults(
         assert hydrated.can_read is True
         assert hydrated.can_write is False
         assert hydrated.credential_secret_encrypted == encrypted_secret
+
+
+def _db_session(client: TestClient) -> Session:
+    return Session(client.app.state.test_engine)
+
+
+def _authenticate_client(client: TestClient) -> None:
+    response = client.post(
+        "/login",
+        data={"identifier": "admin", "password": "StrongPassword1!"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    totp_code = pyotp.TOTP(client.app.state.test_totp_secret).now()
+    verify_response = client.post(
+        "/login/mfa",
+        data={"code": totp_code},
+        follow_redirects=False,
+    )
+    assert verify_response.status_code == 303

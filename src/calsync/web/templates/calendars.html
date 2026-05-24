@@ -15,6 +15,7 @@
           <th>Calendar</th>
           <th>Timezone</th>
           <th>Status</th>
+          <th>What this calendar is for</th>
           <th>Action</th>
         </tr>
       </thead>
@@ -24,6 +25,18 @@
           <td>{{ calendar.name or calendar.provider_calendar_id }}</td>
           <td>{{ calendar.timezone or "Unknown" }}</td>
           <td>{{ "Enabled" if calendar.enabled else "Disabled" }}</td>
+          <td>
+            <form method="post" action="/admin/calendars/{{ calendar.id }}/role">
+              <select id="calendar-role-{{ calendar.id }}" name="calendar_role">
+                {% for role_value, role_label in calendar_role_options %}
+                <option value="{{ role_value }}" {% if calendar.calendar_role == role_value %}selected{% endif %}>
+                  {{ role_label }}
+                </option>
+                {% endfor %}
+              </select>
+              <button type="submit">Save role</button>
+            </form>
+          </td>
           <td>
             <form method="post" action="/admin/calendars/{{ calendar.id }}/toggle">
               <button type="submit">{{ "Disable" if calendar.enabled else "Enable" }}</button>
