@@ -193,6 +193,18 @@ def set_provider_calendar_role(
     if calendar_role not in CALENDAR_ROLES:
         raise ValueError(f"Unsupported calendar role: {calendar_role}")
 
+    account = calendar.account
+    if account is None:
+        account = session.get(ProviderAccount, calendar.provider_account_pk)
+    if account is None:
+        raise LookupError(f"Provider account not found: {calendar.provider_account_pk}")
+
+    hydrate_provider_account_capabilities(account)
+    if calendar_role == "writable_booking_target" and not account.can_write:
+        raise ValueError(
+            "This calendar's provider account does not support writable booking targets."
+        )
+
     calendar.calendar_role = calendar_role
     session.add(calendar)
     session.flush()

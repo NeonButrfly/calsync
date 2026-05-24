@@ -17,7 +17,10 @@ from calsync.models import (
     ProviderAccount,
     ProviderCalendar,
 )
-from calsync.repos.providers import set_provider_calendar_role
+from calsync.repos.providers import (
+    hydrate_provider_account_capabilities,
+    set_provider_calendar_role,
+)
 from calsync.web.deps import get_db, get_templates, require_admin
 
 
@@ -32,6 +35,16 @@ CALENDAR_ROLE_OPTIONS = (
 )
 
 
+def _calendar_role_options_for_account(account: ProviderAccount) -> tuple[tuple[str, str], ...]:
+    if account.can_write:
+        return CALENDAR_ROLE_OPTIONS
+    return tuple(
+        option
+        for option in CALENDAR_ROLE_OPTIONS
+        if option[0] != CALENDAR_ROLE_WRITABLE_BOOKING_TARGET
+    )
+
+
 @router.get("")
 def calendars_page(
     request: Request,
@@ -44,13 +57,17 @@ def calendars_page(
         .options(selectinload(ProviderAccount.calendars))
         .order_by(ProviderAccount.display_name, ProviderAccount.provider_account_id)
     ).all()
+    for account in accounts:
+        hydrate_provider_account_capabilities(account)
     return templates.TemplateResponse(
         request,
         "calendars.html",
         {
             "current_admin": current_admin,
             "accounts": accounts,
-            "calendar_role_options": CALENDAR_ROLE_OPTIONS,
+            "calendar_role_options_by_account": {
+                account.id: _calendar_role_options_for_account(account) for account in accounts
+            },
         },
     )
 

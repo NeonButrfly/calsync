@@ -12,7 +12,11 @@ from sqlalchemy.exc import IntegrityError
 from calsync.config import Settings, get_settings
 from calsync.main import create_app
 from calsync.models import Base, ProviderAccount, ProviderCalendar
-from calsync.repos.providers import get_provider_account, upsert_provider_account
+from calsync.repos.providers import (
+    get_provider_account,
+    set_provider_calendar_role,
+    upsert_provider_account,
+)
 from calsync.repos.state import set_app_state
 from calsync.repos.users import create_admin_user
 from calsync.services.auth import (
@@ -47,7 +51,20 @@ def migrated_session_factory(
 
 
 @pytest.fixture()
-def authenticated_calendar_client(tmp_path: Path) -> TestClient:
+def authenticated_read_only_calendar_client(tmp_path: Path) -> TestClient:
+    yield from _build_authenticated_calendar_client(tmp_path, can_write=False)
+
+
+@pytest.fixture()
+def authenticated_writable_calendar_client(tmp_path: Path) -> TestClient:
+    yield from _build_authenticated_calendar_client(tmp_path, can_write=True)
+
+
+def _build_authenticated_calendar_client(
+    tmp_path: Path,
+    *,
+    can_write: bool,
+) -> TestClient:
     database_path = tmp_path / "calendar-roles-page.sqlite3"
     settings = Settings(
         database_url=f"sqlite+pysqlite:///{database_path}",
@@ -84,6 +101,7 @@ def authenticated_calendar_client(tmp_path: Path) -> TestClient:
             provider_type="mock",
             provider_account_id="mock-acct-roles",
             display_name="Mock Account",
+            can_write=can_write,
             provider_metadata={"seed": "calendar-roles"},
         )
         session.add(account)
@@ -135,6 +153,7 @@ def test_provider_calendar_role_round_trip(
             provider_type="mock",
             provider_account_id="acct-2",
             display_name="Mock Account",
+            can_write=True,
         )
         write_session.add(account)
         write_session.flush()
@@ -181,25 +200,53 @@ def test_provider_calendar_role_rejects_unknown_values(
             write_session.commit()
 
 
-def test_calendars_page_renders_role_selector_with_product_labels(
-    authenticated_calendar_client: TestClient,
+def test_set_provider_calendar_role_rejects_writable_booking_target_for_read_only_account(
+    migrated_session_factory: sessionmaker[Session],
 ) -> None:
-    response = authenticated_calendar_client.get("/admin/calendars")
+    with migrated_session_factory() as session:
+        account = ProviderAccount(
+            provider_type="mock",
+            provider_account_id="acct-read-only",
+            display_name="Read Only Account",
+            can_write=False,
+        )
+        session.add(account)
+        session.flush()
+        calendar = ProviderCalendar(
+            provider_account_pk=account.id,
+            provider_calendar_id="cal-read-only",
+            name="Reference Calendar",
+        )
+        session.add(calendar)
+        session.flush()
+
+        with pytest.raises(ValueError, match="does not support writable booking targets"):
+            set_provider_calendar_role(
+                session,
+                calendar=calendar,
+                calendar_role="writable_booking_target",
+            )
+
+
+def test_calendars_page_does_not_offer_writable_booking_target_for_read_only_accounts(
+    authenticated_read_only_calendar_client: TestClient,
+) -> None:
+    response = authenticated_read_only_calendar_client.get("/admin/calendars")
 
     assert response.status_code == 200
     assert "What this calendar is for" in response.text
     assert "Check availability" in response.text
     assert "Conflict checking only" in response.text
-    assert "Receive new bookings" in response.text
     assert "Personal reference" in response.text
     assert "Hidden" in response.text
+    assert "Receive new bookings" not in response.text
     assert 'name="calendar_role"' in response.text
 
 
-def test_calendar_role_update_persists_from_admin_page(
-    authenticated_calendar_client: TestClient,
+def test_calendar_role_update_persists_from_admin_page_for_write_capable_account(
+    authenticated_writable_calendar_client: TestClient,
 ) -> None:
-    with _db_session(authenticated_calendar_client) as session:
+    with _db_session(authenticated_writable_calendar_client) as session:
         calendar = session.scalar(
             select(ProviderCalendar).where(
                 ProviderCalendar.provider_calendar_id == "work",
@@ -208,7 +255,7 @@ def test_calendar_role_update_persists_from_admin_page(
         assert calendar is not None
         calendar_id = calendar.id
 
-    response = authenticated_calendar_client.post(
+    response = authenticated_writable_calendar_client.post(
         f"/admin/calendars/{calendar_id}/role",
         data={"calendar_role": "writable_booking_target"},
         follow_redirects=False,
@@ -217,7 +264,7 @@ def test_calendar_role_update_persists_from_admin_page(
     assert response.status_code == 303
     assert response.headers["location"] == "/admin/calendars"
 
-    with _db_session(authenticated_calendar_client) as session:
+    with _db_session(authenticated_writable_calendar_client) as session:
         refreshed_calendar = session.get(ProviderCalendar, calendar_id)
         assert refreshed_calendar is not None
         assert refreshed_calendar.calendar_role == "writable_booking_target"

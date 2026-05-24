@@ -28,7 +28,7 @@
           <td>
             <form method="post" action="/admin/calendars/{{ calendar.id }}/role">
               <select id="calendar-role-{{ calendar.id }}" name="calendar_role">
-                {% for role_value, role_label in calendar_role_options %}
+                {% for role_value, role_label in calendar_role_options_by_account[account.id] %}
                 <option value="{{ role_value }}" {% if calendar.calendar_role == role_value %}selected{% endif %}>
                   {{ role_label }}
                 </option>
