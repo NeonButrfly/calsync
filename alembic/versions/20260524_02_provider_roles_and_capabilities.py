@@ -10,6 +10,8 @@ from __future__ import annotations
 from alembic import op
 import sqlalchemy as sa
 
+from calsync.models.scheduling import calendar_role_check_constraint
+
 
 revision = "20260524_02"
 down_revision = "20260523_01"
@@ -61,10 +63,15 @@ def upgrade() -> None:
                 server_default="personal_reference",
             )
         )
+        batch_op.create_check_constraint(
+            "ck_provider_calendars_calendar_role",
+            calendar_role_check_constraint("calendar_role"),
+        )
 
 
 def downgrade() -> None:
     with op.batch_alter_table("provider_calendars") as batch_op:
+        batch_op.drop_constraint("ck_provider_calendars_calendar_role", type_="check")
         batch_op.drop_column("calendar_role")
 
     with op.batch_alter_table("provider_accounts") as batch_op:

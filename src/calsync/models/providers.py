@@ -2,11 +2,24 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    JSON,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from calsync.models import Base, new_uuid, utcnow
-from calsync.models.scheduling import CALENDAR_ROLE_PERSONAL_REFERENCE
+from calsync.models.scheduling import (
+    CALENDAR_ROLE_PERSONAL_REFERENCE,
+    calendar_role_check_constraint,
+)
 
 
 class ProviderAccount(Base):
@@ -57,6 +70,10 @@ class ProviderCalendar(Base):
             "provider_account_pk",
             "provider_calendar_id",
             name="uq_provider_calendars_provider_identity",
+        ),
+        CheckConstraint(
+            calendar_role_check_constraint("calendar_role"),
+            name="ck_provider_calendars_calendar_role",
         ),
     )
 

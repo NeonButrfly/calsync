@@ -3,7 +3,9 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.exc import IntegrityError
 
 from calsync.config import get_settings
 from calsync.models import ProviderAccount, ProviderCalendar
@@ -25,8 +27,6 @@ def migrated_session_factory(
     command.upgrade(alembic_config, "head")
 
     try:
-        from sqlalchemy import create_engine
-
         engine = create_engine(database_url, future=True)
         yield sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     finally:
@@ -87,3 +87,123 @@ def test_provider_calendar_role_round_trip(
 
         assert reloaded is not None
         assert reloaded.calendar_role == "writable_booking_target"
+
+
+def test_provider_calendar_role_rejects_unknown_values(
+    migrated_session_factory: sessionmaker[Session],
+) -> None:
+    with migrated_session_factory() as write_session:
+        account = ProviderAccount(
+            provider_type="mock",
+            provider_account_id="acct-3",
+            display_name="Constraint Test",
+        )
+        write_session.add(account)
+        write_session.flush()
+
+        write_session.add(
+            ProviderCalendar(
+                provider_account_pk=account.id,
+                provider_calendar_id="cal-invalid",
+                name="Bad Role",
+                calendar_role="typo_role",
+            )
+        )
+
+        with pytest.raises(IntegrityError):
+            write_session.commit()
+
+
+def test_provider_role_migration_backfills_defaults_for_existing_rows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database_path = tmp_path / "calendar-roles-upgrade.db"
+    database_url = f"sqlite+pysqlite:///{database_path.as_posix()}"
+
+    get_settings.cache_clear()
+    monkeypatch.setenv("DATABASE_URL", database_url)
+
+    alembic_config = Config("alembic.ini")
+    alembic_config.set_main_option("sqlalchemy.url", database_url)
+
+    try:
+        command.upgrade(alembic_config, "20260523_01")
+
+        engine = create_engine(database_url, future=True)
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO provider_accounts (
+                        id,
+                        provider_type,
+                        provider_account_id,
+                        display_name,
+                        created_at,
+                        updated_at
+                    ) VALUES (
+                        :id,
+                        :provider_type,
+                        :provider_account_id,
+                        :display_name,
+                        CURRENT_TIMESTAMP,
+                        CURRENT_TIMESTAMP
+                    )
+                    """
+                ),
+                {
+                    "id": "acct-existing",
+                    "provider_type": "google",
+                    "provider_account_id": "acct-legacy",
+                    "display_name": "Legacy Account",
+                },
+            )
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO provider_calendars (
+                        id,
+                        provider_account_pk,
+                        provider_calendar_id,
+                        name,
+                        enabled,
+                        created_at,
+                        updated_at
+                    ) VALUES (
+                        :id,
+                        :provider_account_pk,
+                        :provider_calendar_id,
+                        :name,
+                        :enabled,
+                        CURRENT_TIMESTAMP,
+                        CURRENT_TIMESTAMP
+                    )
+                    """
+                ),
+                {
+                    "id": "cal-existing",
+                    "provider_account_pk": "acct-existing",
+                    "provider_calendar_id": "cal-legacy",
+                    "name": "Legacy Calendar",
+                    "enabled": True,
+                },
+            )
+
+        command.upgrade(alembic_config, "head")
+
+        session_factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with session_factory() as read_session:
+            account = read_session.get(ProviderAccount, "acct-existing")
+            calendar = read_session.get(ProviderCalendar, "cal-existing")
+
+            assert account is not None
+            assert account.auth_mode == "oauth"
+            assert account.can_read is True
+            assert account.can_write is False
+            assert account.requires_reconnect is False
+
+            assert calendar is not None
+            assert calendar.calendar_role == "personal_reference"
+    finally:
+        get_settings.cache_clear()
