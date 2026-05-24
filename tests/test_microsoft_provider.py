@@ -5,14 +5,17 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from calsync.models import Base
+from calsync.models import Base, ProviderAccount
 from calsync.repos.provider_config import get_provider_configuration
 from calsync.services.provider_config import (
     resolve_microsoft_oauth_configuration,
     save_microsoft_oauth_configuration,
 )
 from calsync.services.providers.base import get_provider_adapter
-from calsync.services.providers.microsoft import MicrosoftProviderAdapter
+from calsync.services.providers.microsoft import (
+    MicrosoftProviderAdapter,
+    infer_microsoft_account_capabilities,
+)
 
 
 ENCRYPTION_KEY = "phase1-microsoft-provider-encryption-key"
@@ -58,6 +61,47 @@ def test_provider_factory_resolves_microsoft_adapter() -> None:
 
     assert isinstance(adapter, MicrosoftProviderAdapter)
     assert adapter.provider_type == "microsoft"
+
+
+def test_microsoft_provider_configuration_round_trip_supports_space_delimited_scopes(
+    tmp_path: Path,
+) -> None:
+    account = ProviderAccount(
+        provider_type="microsoft",
+        provider_account_id="microsoft-user",
+        provider_metadata={},
+    )
+
+    with _build_session(tmp_path) as session:
+        save_microsoft_oauth_configuration(
+            session,
+            client_id="microsoft-client-id",
+            client_secret="microsoft-client-secret",
+            scopes=(
+                "openid profile offline_access "
+                "https://graph.microsoft.com/Calendars.ReadWrite"
+            ),
+            encryption_key=ENCRYPTION_KEY,
+        )
+        session.commit()
+
+        configuration = resolve_microsoft_oauth_configuration(
+            session,
+            encryption_key=ENCRYPTION_KEY,
+        )
+
+    assert configuration is not None
+    assert configuration.scopes == (
+        "openid",
+        "profile",
+        "offline_access",
+        "https://graph.microsoft.com/Calendars.ReadWrite",
+    )
+
+    account.provider_metadata = {
+        "microsoft_scopes": list(configuration.scopes),
+    }
+    assert infer_microsoft_account_capabilities(account) == ("oauth", True, True)
 
 
 def _build_session(tmp_path: Path) -> Session:

@@ -22,6 +22,12 @@ def infer_provider_capabilities(account: ProviderAccount) -> tuple[str, bool, bo
         from calsync.services.providers.google import infer_google_account_capabilities
 
         return infer_google_account_capabilities(account)
+    if account.provider_type == "microsoft":
+        from calsync.services.providers.microsoft import (
+            infer_microsoft_account_capabilities,
+        )
+
+        return infer_microsoft_account_capabilities(account)
     return account.auth_mode, account.can_read, account.can_write
 
 

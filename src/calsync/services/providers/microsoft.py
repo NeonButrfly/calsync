@@ -11,6 +11,8 @@ MICROSOFT_PROVIDER_TYPE = "microsoft"
 MICROSOFT_WRITABLE_SCOPES = {
     "Calendars.ReadWrite",
     "Calendars.ReadWrite.Shared",
+    "https://graph.microsoft.com/Calendars.ReadWrite",
+    "https://graph.microsoft.com/Calendars.ReadWrite.Shared",
 }
 
 

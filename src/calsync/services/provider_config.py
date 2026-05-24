@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 
 from sqlalchemy.orm import Session
 
@@ -221,4 +222,8 @@ def save_microsoft_oauth_configuration(
 
 
 def _split_scopes(scope_text: str) -> tuple[str, ...]:
-    return tuple(scope.strip() for scope in scope_text.split(",") if scope.strip())
+    return tuple(
+        scope
+        for scope in re.split(r"[\s,]+", scope_text.strip())
+        if scope
+    )

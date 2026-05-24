@@ -335,6 +335,35 @@ def test_get_provider_account_hydrates_google_capabilities_from_current_scopes(
         assert hydrated.can_write is False
 
 
+def test_get_provider_account_hydrates_microsoft_capabilities_from_current_scopes(
+    migrated_session_factory: sessionmaker[Session],
+) -> None:
+    with migrated_session_factory() as write_session:
+        account = ProviderAccount(
+            provider_type="microsoft",
+            provider_account_id="microsoft-sub",
+            display_name="owner@example.com",
+            can_write=False,
+            provider_metadata={
+                "microsoft_scopes": (
+                    "openid profile offline_access "
+                    "https://graph.microsoft.com/Calendars.ReadWrite"
+                )
+            },
+        )
+        write_session.add(account)
+        write_session.commit()
+        account_id = account.id
+
+    with migrated_session_factory() as read_session:
+        hydrated = get_provider_account(read_session, account_id)
+
+        assert hydrated is not None
+        assert hydrated.auth_mode == "oauth"
+        assert hydrated.can_read is True
+        assert hydrated.can_write is True
+
+
 def test_get_provider_account_hydrates_icloud_defaults(
     migrated_session_factory: sessionmaker[Session],
 ) -> None:
