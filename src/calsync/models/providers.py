@@ -6,6 +6,7 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Tex
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from calsync.models import Base, new_uuid, utcnow
+from calsync.models.scheduling import CALENDAR_ROLE_PERSONAL_REFERENCE
 
 
 class ProviderAccount(Base):
@@ -22,6 +23,10 @@ class ProviderAccount(Base):
     provider_type: Mapped[str] = mapped_column(String(32), nullable=False)
     provider_account_id: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    auth_mode: Mapped[str] = mapped_column(String(32), nullable=False, default="oauth")
+    can_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    can_write: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    requires_reconnect: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     access_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     refresh_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     credential_secret_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -65,6 +70,11 @@ class ProviderCalendar(Base):
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    calendar_role: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default=CALENDAR_ROLE_PERSONAL_REFERENCE,
+    )
     provider_metadata: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
