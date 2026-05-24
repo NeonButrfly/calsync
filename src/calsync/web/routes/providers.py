@@ -146,6 +146,7 @@ def _render_provider_settings_page(
         "providers.html",
         {
             "current_admin": current_admin,
+            "connections_url": "/admin/connections",
             "error_message": error_message,
             "success_message": success_message,
             "public_base_url_value": (

@@ -16,13 +16,15 @@
   <article class="panel">
     <h2>Saved</h2>
     <p>{{ success_message }}</p>
+    <p class="subtle"><a href="{{ connections_url }}">Back to Connections</a></p>
   </article>
   {% endif %}
 
   <article class="panel">
     <h2>Public App URL</h2>
     <p class="subtle">
-      Set the canonical public URL for this deployment. Use <code>http://localhost</code> only for local development, or an HTTPS hostname for public use.
+      Set the canonical web address CalSync should use for calendar sign-in callbacks and shared links.
+      Use <code>http://localhost</code> only for local development, or an HTTPS hostname for public use.
       Leave this blank to clear the admin override and return to the environment or current-request fallback.
     </p>
     <form method="post" action="/admin/providers/public-url" class="stack">
@@ -42,14 +44,14 @@
 
   <article class="panel">
     <h2>Google OAuth App</h2>
-    <p class="subtle">Store the shared Google OAuth client for all Google account connections.</p>
+    <p class="subtle">Store the shared Google OAuth client once, then connect Google Calendar accounts from the Connections page.</p>
     <p><strong>Callback URL:</strong> {{ google_callback_url }}</p>
     {% if google_callback_error %}
     <p>{{ google_callback_error }}</p>
     {% endif %}
     <p class="subtle">
       One Google Cloud web OAuth client can be reused for multiple Google accounts in this CalSync deployment.
-      After you save the shared client here, go to the Accounts page and connect each Google account separately.
+      After you save the shared client here, go to the Connections page and connect each Google account separately.
     </p>
     <form method="post" action="/admin/providers/google" class="stack">
       <label>
@@ -83,7 +85,8 @@
   <article class="panel">
     <h2>Apple/iCloud Accounts</h2>
     <p class="subtle">Apple uses per-account CalDAV credentials instead of a deployment-wide OAuth app.</p>
-    <p>Add each Apple/iCloud account from the Accounts page using the Apple ID username or email and an app-specific password.</p>
+    <p>Add each Apple/iCloud account from the Connections page using the Apple ID username or email and an app-specific password.</p>
+    <p><a href="{{ connections_url }}">Open Connections</a></p>
   </article>
 </section>
 {% endblock %}

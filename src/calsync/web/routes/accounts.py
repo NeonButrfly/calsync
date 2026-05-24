@@ -33,7 +33,7 @@ def accounts_page(
     templates: Jinja2Templates = Depends(get_templates),
     current_admin: AdminUser = Depends(require_admin),
 ):
-    return _render_accounts_page(
+    return render_connections_page(
         request,
         session,
         templates,
@@ -85,7 +85,7 @@ def connect_icloud_account(
     normalized_label = label.strip()
 
     if not normalized_username:
-        return _render_accounts_page(
+        return render_connections_page(
             request,
             session,
             templates,
@@ -94,7 +94,7 @@ def connect_icloud_account(
             status_code=400,
         )
     if not normalized_password:
-        return _render_accounts_page(
+        return render_connections_page(
             request,
             session,
             templates,
@@ -134,7 +134,7 @@ def connect_icloud_account(
         account.provider_metadata = metadata
         session.add(account)
         session.commit()
-        return _render_accounts_page(
+        return render_connections_page(
             request,
             session,
             templates,
@@ -156,7 +156,7 @@ def render_accounts_page_with_error(
     error_message: str,
     status_code: int = 400,
 ):
-    return _render_accounts_page(
+    return render_connections_page(
         request,
         session,
         templates,
@@ -166,7 +166,7 @@ def render_accounts_page_with_error(
     )
 
 
-def _render_accounts_page(
+def render_connections_page(
     request: Request,
     session: Session,
     templates: Jinja2Templates,
@@ -197,6 +197,7 @@ def _render_accounts_page(
         .options(selectinload(ProviderAccount.calendars))
         .order_by(ProviderAccount.display_name, ProviderAccount.provider_account_id)
     ).all()
+    account_rows = [_build_account_row(account) for account in accounts]
     return templates.TemplateResponse(
         request,
         "accounts.html",
@@ -211,7 +212,17 @@ def _render_accounts_page(
             and callback_error is None,
             "google_configuration_source": google_snapshot["source"],
             "google_settings_url": "/admin/providers",
-            "account_rows": [_build_account_row(account) for account in accounts],
+            "account_rows": account_rows,
+            "apple_account_rows": [
+                account_row
+                for account_row in account_rows
+                if account_row["provider_name"] == "Apple/iCloud"
+            ],
+            "google_account_rows": [
+                account_row
+                for account_row in account_rows
+                if account_row["provider_name"] == "Google"
+            ],
             "error_message": error_message,
         },
         status_code=status_code,

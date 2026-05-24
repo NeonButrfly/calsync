@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}CalSync Accounts{% endblock %}
-{% block page_title %}Connected Accounts{% endblock %}
+{% block title %}CalSync Connections{% endblock %}
+{% block page_title %}Connect a calendar{% endblock %}
+{% block page_summary %}
+Choose the calendars CalSync can read today and prepare the sign-ins that will power writable scheduling next.
+{% endblock %}
 
 {% block content %}
 <section class="stack">
@@ -12,51 +15,76 @@
   </article>
   {% endif %}
 
+  <section class="grid dashboard-grid">
+    <article class="panel stack">
+      <h2>Google Calendar</h2>
+      <p class="subtle">
+        Use Google sign-in to connect an availability calendar now and keep the path open for writable scheduling later.
+      </p>
+      <p><strong>Google sign-in callback URL:</strong> {{ google_callback_url }}</p>
+      <p class="subtle">Google sign-in will use this callback URL for both the consent start and callback return.</p>
+      {% if not google_configured %}
+      <p>Google OAuth is not configured yet. Add the Google client ID and secret on the Provider Settings page first.</p>
+      <p><a href="{{ google_settings_url }}">Open Provider Settings</a></p>
+      {% elif google_block_message %}
+      <p>{{ google_block_message }}</p>
+      <p class="subtle">Use <strong>localhost</strong> directly on the server, or save a <strong>Public app URL</strong> with an <strong>https hostname registered with Google</strong>.</p>
+      <p><a href="{{ google_settings_url }}">Review Provider Settings</a></p>
+      {% else %}
+      <form method="get" action="/auth/google/start">
+        <button type="submit">Connect Google Account</button>
+      </form>
+      <form method="get" action="/auth/google/start">
+        <input type="hidden" name="force_consent" value="true" />
+        <button type="submit">Reconnect Google With Consent</button>
+      </form>
+      {% endif %}
+      {% if google_account_rows %}
+      <p class="subtle">{{ google_account_rows|length }} Google account{{ "" if google_account_rows|length == 1 else "s" }} already connected.</p>
+      {% endif %}
+    </article>
+
+    <article class="panel stack">
+      <h2>Outlook / Microsoft 365</h2>
+      <p class="subtle">
+        Prepare for Microsoft calendar sign-in next. This slice keeps the product framing in place without pretending a real OAuth connect flow exists yet.
+      </p>
+      <p><strong>Coming next:</strong> Microsoft sign-in and calendar permissions.</p>
+      <p class="subtle">
+        You can still use Provider Settings to keep the public app URL ready for future Microsoft callback and trust checks.
+      </p>
+      <p><a href="{{ google_settings_url }}">Open Provider Settings</a></p>
+    </article>
+
+    <article class="panel stack">
+      <h2>Apple Calendar</h2>
+      <p class="subtle">Keep using your Apple ID username or email together with an app-specific password.</p>
+      <h3>Add Apple/iCloud Account</h3>
+      <form method="post" action="/admin/accounts/icloud/connect" class="stack">
+        <label>
+          Account label
+          <input type="text" name="label" placeholder="Personal iCloud" />
+        </label>
+        <label>
+          Apple ID username or email
+          <input type="text" name="username" autocomplete="username" />
+        </label>
+        <label>
+          App-specific password
+          <input type="password" name="app_password" autocomplete="new-password" />
+        </label>
+        <button type="submit">Add Apple/iCloud Account</button>
+      </form>
+      {% if apple_account_rows %}
+      <p class="subtle">{{ apple_account_rows|length }} Apple/iCloud account{{ "" if apple_account_rows|length == 1 else "s" }} already connected.</p>
+      {% endif %}
+    </article>
+  </section>
+
   <article class="panel">
     <h2>Provider Settings</h2>
-    <p class="subtle">Configure the shared Google OAuth app before connecting Google accounts.</p>
+    <p class="subtle">Need to update the shared Google app or public URL before connecting more calendars?</p>
     <p><a href="{{ google_settings_url }}">Open Provider Settings</a></p>
-  </article>
-
-  <article class="panel">
-    <h2>Google Calendar Accounts</h2>
-    <p class="subtle">Read-only OAuth connection for one or more Google Calendar accounts.</p>
-    <p><strong>Google sign-in callback URL:</strong> {{ google_callback_url }}</p>
-    <p class="subtle">Google sign-in will use this callback URL for both the consent start and callback return.</p>
-    {% if not google_configured %}
-    <p>Google OAuth is not configured yet. Add the Google client ID and secret on the Provider Settings page first.</p>
-    {% elif google_block_message %}
-    <p>{{ google_block_message }}</p>
-    <p class="subtle">Use <strong>localhost</strong> directly on the server, or save a <strong>Public app URL</strong> with an <strong>https hostname registered with Google</strong>.</p>
-    {% else %}
-    <form method="get" action="/auth/google/start">
-      <button type="submit">Connect Google Account</button>
-    </form>
-    <form method="get" action="/auth/google/start">
-      <input type="hidden" name="force_consent" value="true" />
-      <button type="submit">Reconnect Google With Consent</button>
-    </form>
-    {% endif %}
-  </article>
-
-  <article class="panel">
-    <h2>Add Apple/iCloud Account</h2>
-    <p class="subtle">Use your Apple ID username or email together with an app-specific password.</p>
-    <form method="post" action="/admin/accounts/icloud/connect" class="stack">
-      <label>
-        Account label
-        <input type="text" name="label" placeholder="Personal iCloud" />
-      </label>
-      <label>
-        Apple ID username or email
-        <input type="text" name="username" autocomplete="username" />
-      </label>
-      <label>
-        App-specific password
-        <input type="password" name="app_password" autocomplete="new-password" />
-      </label>
-      <button type="submit">Add Apple/iCloud Account</button>
-    </form>
   </article>
 
   <article class="panel">
@@ -68,7 +96,8 @@
   </article>
 
   <article class="panel">
-    <h2>Connected Accounts</h2>
+    <h2>Existing connected accounts</h2>
+    <p class="subtle">Connected calendars stay visible here so you can review status, errors, and next actions without losing the current Apple data model.</p>
     <table class="data-table">
       <thead>
         <tr>

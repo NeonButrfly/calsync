@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from .accounts import router as accounts_router
 from .auth import router as auth_router
 from .calendars import router as calendars_router
+from .connections import router as connections_router
 from .dashboard import router as dashboard_router
 from .events import router as events_router
 from .feeds import router as feeds_router
@@ -26,6 +27,7 @@ router.include_router(problems_router)
 router.include_router(flightboard_router)
 router.include_router(review_router)
 router.include_router(providers_router)
+router.include_router(connections_router)
 router.include_router(accounts_router)
 router.include_router(calendars_router)
 router.include_router(sync_router)
