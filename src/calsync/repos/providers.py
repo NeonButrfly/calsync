@@ -116,11 +116,10 @@ def upsert_provider_account(
         session.add(account)
 
     account.display_name = display_name
-    account.provider_metadata = (
-        dict(provider_metadata)
-        if provider_metadata is not None
-        else None
-    )
+    if provider_metadata is not None:
+        merged_provider_metadata = dict(account.provider_metadata or {})
+        merged_provider_metadata.update(provider_metadata)
+        account.provider_metadata = merged_provider_metadata
     hydrate_provider_account_capabilities(account)
     session.flush()
     return account

@@ -246,6 +246,41 @@ def test_icloud_account_defaults(
         assert updated.credential_secret_encrypted == encrypted_secret
 
 
+def test_upsert_provider_account_preserves_existing_metadata_keys(
+    migrated_session_factory: sessionmaker[Session],
+) -> None:
+    with migrated_session_factory() as write_session:
+        account = ProviderAccount(
+            provider_type="icloud_caldav",
+            provider_account_id="kay@icloud.com",
+            display_name="Kay iCloud",
+            provider_metadata={
+                "principal_url": "https://caldav.icloud.com/123/principal/",
+                "calendar_home_url": "https://caldav.icloud.com/123/calendars/",
+                "auth_status": "connected",
+            },
+        )
+        write_session.add(account)
+        write_session.commit()
+
+    with migrated_session_factory() as read_session:
+        updated = upsert_provider_account(
+            read_session,
+            provider_type="icloud_caldav",
+            provider_account_id="kay@icloud.com",
+            display_name="Kay iCloud",
+            provider_metadata={"last_auth_error": None},
+        )
+        read_session.commit()
+
+        assert updated.provider_metadata == {
+            "principal_url": "https://caldav.icloud.com/123/principal/",
+            "calendar_home_url": "https://caldav.icloud.com/123/calendars/",
+            "auth_status": "connected",
+            "last_auth_error": None,
+        }
+
+
 def test_google_account_capabilities(
     migrated_session_factory: sessionmaker[Session],
 ) -> None:
