@@ -404,3 +404,30 @@
 - issue `#16` breaks the post-trust roadmap out of umbrella issue `#11`
 - the recommended next implementation slice is source confidence and sticky provider preference policies
 - later roadmap phases should include a connector SDK, email or ICS reminder ingestion, calendar sets and saved views, availability or booking links, and deeper scheduling intelligence
+
+---
+
+- GitHub issue: `#17`
+- Scope: redesign CalSync into a write-capable scheduling product with cleaner calendar connections, invited-user foundations, and brighter UX
+
+## Interpreted Requirements
+
+- the app should evolve beyond a read-only aggregator and support creating, editing, rescheduling, and cancelling appointments on writable providers
+- Google and Microsoft calendar connections should feel like normal public web sign-in flows on the existing public hostname
+- Apple/iCloud should keep the current CalDAV plus app-specific-password connector path
+- existing Apple connector data and stored app-specific passwords must be preserved
+- the product should be reshaped toward a clean scheduling experience with connections, availability, booking pages, and trust surfaces
+- future identity planning should include email and password plus MFA, Sign in with Google, Sign in with Microsoft, Sign in with Apple, and invited-user onboarding
+
+## Behavioral Boundaries
+
+- the redesign remains single-tenant with invited users first
+- no fake Apple calendar OIDC flow is introduced
+- the current Apple connector must not be lost during migration
+- write-back must be explicit and role-aware rather than silently writing to every connected calendar
+
+## Phase Notes
+
+- issue `#17` supersedes the earlier strictly read-only product direction for the long-term architecture
+- the recommended first implementation slice is the product refactor foundation plus the start of writable Google and Microsoft provider architecture
+- the product should keep trust and problem-fix workflows while moving toward a cleaner scheduling-app UX
