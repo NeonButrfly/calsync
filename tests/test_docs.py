@@ -146,3 +146,17 @@ def test_docs_cover_event_explain_and_richer_problem_actions() -> None:
     assert "#15" in prompt_content
     assert "/admin/events/" in prompt_content
     assert "explain this event" in prompt_content
+
+
+def test_docs_cover_ranked_utility_roadmap() -> None:
+    readme_content = Path("README.md").read_text(encoding="utf-8").lower()
+    prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()
+
+    assert "product roadmap" in readme_content
+    assert "source confidence" in readme_content
+    assert "connector sdk" in readme_content
+    assert "saved views" in readme_content
+
+    assert "#16" in prompt_content
+    assert "source confidence" in prompt_content
+    assert "connector sdk" in prompt_content

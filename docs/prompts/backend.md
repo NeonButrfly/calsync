@@ -381,3 +381,26 @@
 - issue `#15` builds on the problem inbox from issue `#14`
 - `/admin/problems` should gain richer duplicate actions and an `Explain this event` path
 - `/admin/events/{event_id}` should become the operator deep-dive view for event trust state
+
+---
+
+- GitHub issue: `#16`
+- Scope: rank the post-trust roadmap and start source-confidence utility work
+
+## Interpreted Requirements
+
+- the product should have a ranked roadmap for becoming a best-in-class private calendar integrator instead of only a loose future-work list
+- the next immediate slice should deepen trust by teaching CalSync why one source copy should win and how to remember that decision
+- future phases should be sequenced deliberately around trust, connector reach, saved views, availability, and scheduling intelligence
+
+## Behavioral Boundaries
+
+- all roadmap work remains read-only with respect to providers
+- the first next slice should extend the existing trust engine rather than jumping straight into portal scraping or message-backup ingestion
+- new roadmap ideas should be staged under the utility-expansion umbrella in issue `#11` instead of becoming untracked feature drift
+
+## Phase Notes
+
+- issue `#16` breaks the post-trust roadmap out of umbrella issue `#11`
+- the recommended next implementation slice is source confidence and sticky provider preference policies
+- later roadmap phases should include a connector SDK, email or ICS reminder ingestion, calendar sets and saved views, availability or booking links, and deeper scheduling intelligence

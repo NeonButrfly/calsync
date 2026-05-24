@@ -171,6 +171,21 @@ Current limits:
 - CalSync preserves raw source events internally even when one duplicate copy is hidden from active views
 - more advanced conflict resolution and non-calendar appointment ingestion remain future work under issue `#11`
 
+## Product Roadmap
+
+CalSync's next product work is tracked under issues `#11` and `#16`.
+
+Current ranked direction:
+
+1. source confidence and sticky provider preference rules
+2. connector SDK and broader non-calendar source model
+3. email or ICS reminder ingestion
+4. calendar sets, saved views, and command-center style dashboards
+5. availability and booking-link style scheduling surfaces
+6. deeper time intelligence once the event graph is trustworthy
+
+The recommended next implementation slice is source confidence. That work will teach CalSync why one source copy won, let operators make that preference sticky, and make future non-calendar ingestion safer instead of noisier.
+
 ## Public App URL
 
 CalSync can store a canonical external origin in `Provider Settings` under `Public App URL`.
