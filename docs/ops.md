@@ -128,7 +128,9 @@ Operator expectations for this slice:
 - Google uses the existing browser-based OAuth connect flow when Provider Settings and callback requirements are satisfied
 - Apple keeps the current CalDAV plus app-specific-password form
 - existing Apple connector rows and encrypted app-specific passwords are preserved while the surrounding shell and tables are refreshed
-- Microsoft is visible in the Connections page so the product IA matches the write-capable direction, but the page is intentionally honest that Microsoft sign-in and calendar permissions are not shipped yet
+- Microsoft is visible in the Connections page so the product IA matches the write-capable direction
+- `/admin/providers` now stores the shared Microsoft OAuth app fields and shows the planned callback URL for the future Outlook connect flow
+- the page is intentionally honest that Microsoft sign-in and calendar permissions are not shipped yet
 - full booking pages are not shipped in this slice
 
 Calendar role behavior:
@@ -142,7 +144,8 @@ Practical verification points:
 
 - the top navigation includes `Connections` and `Availability`
 - `/admin/accounts` shows Google Calendar, Outlook / Microsoft 365, Apple Calendar, and Mock Provider
-- the Microsoft card says `Microsoft sign-in and calendar permissions` are still coming next
+- the Microsoft card starts by saying `Microsoft sign-in and calendar permissions` are still coming next, then changes to a saved-state scaffold message after the shared Microsoft app is stored
+- `/admin/providers` shows `Microsoft OAuth App` and a planned callback URL without claiming the Outlook account connection flow is already live
 - `/admin/calendars` shows `Check availability` for connected calendars
 - `/admin/calendars` only shows `Receive new bookings` when the provider account supports writable booking targets
 - existing Apple/iCloud accounts remain visible in the connected-accounts table after the shell refresh

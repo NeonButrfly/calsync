@@ -15,6 +15,13 @@ from calsync.repos.provider_config import (
 
 GOOGLE_OAUTH_PROVIDER_TYPE = "google_oauth"
 MICROSOFT_OAUTH_PROVIDER_TYPE = "microsoft"
+DEFAULT_MICROSOFT_OAUTH_SCOPES = (
+    "openid",
+    "offline_access",
+    "User.Read",
+    "Calendars.Read",
+)
+DEFAULT_MICROSOFT_OAUTH_SCOPES_TEXT = " ".join(DEFAULT_MICROSOFT_OAUTH_SCOPES)
 
 
 @dataclass(frozen=True)
@@ -74,6 +81,35 @@ def has_google_oauth_configuration(
 ) -> bool:
     snapshot = get_google_provider_configuration_snapshot(session, settings=settings)
     return bool(snapshot["configured"])
+
+
+def get_microsoft_provider_configuration_snapshot(
+    session: Session,
+) -> dict[str, object]:
+    configuration = get_provider_configuration(session, MICROSOFT_OAUTH_PROVIDER_TYPE)
+    if configuration is not None:
+        public_config = dict(configuration.public_config_json or {})
+        normalized_scopes = _normalize_scope_text(
+            str(public_config.get("scopes") or ""),
+            default_text=DEFAULT_MICROSOFT_OAUTH_SCOPES_TEXT,
+        )
+        return {
+            "client_id": str(public_config.get("client_id") or ""),
+            "scopes": normalized_scopes,
+            "configured": bool(
+                public_config.get("client_id") and configuration.secret_config_encrypted
+            ),
+            "source": "database",
+            "has_secret": configuration.secret_config_encrypted is not None,
+        }
+
+    return {
+        "client_id": "",
+        "scopes": DEFAULT_MICROSOFT_OAUTH_SCOPES_TEXT,
+        "configured": False,
+        "source": None,
+        "has_secret": False,
+    }
 
 
 def resolve_google_oauth_configuration(
@@ -183,7 +219,12 @@ def resolve_microsoft_oauth_configuration(
         encryption_key,
         configuration.secret_config_encrypted,
     )
-    scopes = _split_scopes(str(public_config.get("scopes") or ""))
+    scopes = _split_scopes(
+        _normalize_scope_text(
+            str(public_config.get("scopes") or ""),
+            default_text=DEFAULT_MICROSOFT_OAUTH_SCOPES_TEXT,
+        )
+    )
     return MicrosoftOAuthConfiguration(
         client_id=client_id,
         client_secret=client_secret,
@@ -211,7 +252,10 @@ def save_microsoft_oauth_configuration(
         provider_type=MICROSOFT_OAUTH_PROVIDER_TYPE,
         public_config_json={
             "client_id": client_id.strip(),
-            "scopes": scopes.strip(),
+            "scopes": _normalize_scope_text(
+                scopes,
+                default_text=DEFAULT_MICROSOFT_OAUTH_SCOPES_TEXT,
+            ),
         },
         secret_config_encrypted=(
             encrypt_text(encryption_key, normalized_secret)
@@ -227,3 +271,10 @@ def _split_scopes(scope_text: str) -> tuple[str, ...]:
         for scope in re.split(r"[\s,]+", scope_text.strip())
         if scope
     )
+
+
+def _normalize_scope_text(scope_text: str, *, default_text: str = "") -> str:
+    scopes = _split_scopes(scope_text)
+    if scopes:
+        return " ".join(scopes)
+    return default_text

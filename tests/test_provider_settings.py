@@ -74,6 +74,136 @@ def test_google_provider_settings_can_be_saved_from_admin_ui(tmp_path: Path) -> 
             assert decrypted_secret == "google-client-secret"
 
 
+def test_microsoft_provider_settings_can_be_saved_from_admin_ui(tmp_path: Path) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client, client.app.state.test_totp_secret)
+
+        response = client.post(
+            "/admin/providers/microsoft",
+            data={
+                "client_id": "microsoft-client-id",
+                "client_secret": "microsoft-client-secret",
+                "scopes": "openid offline_access Calendars.Read",
+            },
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 303
+        assert response.headers["location"] == "/admin/providers?saved=microsoft"
+
+        providers_page = client.get("/admin/providers?saved=microsoft")
+        assert providers_page.status_code == 200
+        assert "Microsoft OAuth app settings saved." in providers_page.text
+        assert "microsoft-client-id" in providers_page.text
+        assert "auth/microsoft/callback" in providers_page.text
+        assert "Connection flow status:" in providers_page.text
+        assert "Shared Microsoft OAuth app settings are saved." in providers_page.text
+
+        accounts_page = client.get("/admin/accounts")
+        assert accounts_page.status_code == 200
+        assert (
+            "Microsoft OAuth app settings are saved. Account connection is still"
+            in accounts_page.text
+        )
+        assert "Open Provider Settings" in accounts_page.text
+
+        with _db_session(client) as session:
+            configuration = session.scalar(
+                select(ProviderConfiguration).where(
+                    ProviderConfiguration.provider_type == "microsoft"
+                )
+            )
+            assert configuration is not None
+            assert configuration.public_config_json is not None
+            assert configuration.public_config_json["client_id"] == "microsoft-client-id"
+            assert configuration.public_config_json["scopes"] == (
+                "openid offline_access Calendars.Read"
+            )
+            assert configuration.secret_config_encrypted is not None
+            assert "microsoft-client-secret" not in configuration.secret_config_encrypted
+            decrypted_secret = decrypt_text(
+                ENCRYPTION_KEY,
+                configuration.secret_config_encrypted,
+            )
+            assert decrypted_secret == "microsoft-client-secret"
+
+
+def test_microsoft_provider_settings_blank_scopes_save_defaults(
+    tmp_path: Path,
+) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client, client.app.state.test_totp_secret)
+
+        response = client.post(
+            "/admin/providers/microsoft",
+            data={
+                "client_id": "microsoft-client-id",
+                "client_secret": "microsoft-client-secret",
+                "scopes": "   ",
+            },
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 303
+        assert response.headers["location"] == "/admin/providers?saved=microsoft"
+
+        providers_page = client.get("/admin/providers?saved=microsoft")
+        assert providers_page.status_code == 200
+        assert 'value="openid offline_access User.Read Calendars.Read"' in (
+            providers_page.text
+        )
+
+        with _db_session(client) as session:
+            configuration = session.scalar(
+                select(ProviderConfiguration).where(
+                    ProviderConfiguration.provider_type == "microsoft"
+                )
+            )
+            assert configuration is not None
+            assert configuration.public_config_json is not None
+            assert configuration.public_config_json["scopes"] == (
+                "openid offline_access User.Read Calendars.Read"
+            )
+
+
+def test_microsoft_provider_settings_delimiter_only_scopes_save_defaults(
+    tmp_path: Path,
+) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client, client.app.state.test_totp_secret)
+
+        response = client.post(
+            "/admin/providers/microsoft",
+            data={
+                "client_id": "microsoft-client-id",
+                "client_secret": "microsoft-client-secret",
+                "scopes": ", , ,",
+            },
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 303
+        assert response.headers["location"] == "/admin/providers?saved=microsoft"
+
+        providers_page = client.get("/admin/providers?saved=microsoft")
+        assert providers_page.status_code == 200
+        assert 'value="openid offline_access User.Read Calendars.Read"' in (
+            providers_page.text
+        )
+
+        with _db_session(client) as session:
+            configuration = session.scalar(
+                select(ProviderConfiguration).where(
+                    ProviderConfiguration.provider_type == "microsoft"
+                )
+            )
+            assert configuration is not None
+            assert configuration.public_config_json is not None
+            assert configuration.public_config_json["scopes"] == (
+                "openid offline_access User.Read Calendars.Read"
+            )
+
+
 def test_provider_settings_can_save_public_base_url(tmp_path: Path) -> None:
     with _build_client(tmp_path) as client:
         _login(client, client.app.state.test_totp_secret)
@@ -191,6 +321,22 @@ def test_provider_settings_page_requires_authenticated_admin(tmp_path: Path) -> 
 
     assert response.status_code == 303
     assert response.headers["location"] == "/login"
+
+
+def test_provider_settings_page_shows_microsoft_oauth_section_with_scaffold_status(
+    tmp_path: Path,
+) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client, client.app.state.test_totp_secret)
+
+        response = client.get("/admin/providers")
+
+    assert response.status_code == 200
+    assert "Microsoft OAuth App" in response.text
+    assert "Microsoft OAuth callback URL:" in response.text
+    assert "auth/microsoft/callback" in response.text
+    assert "Connection flow status:" in response.text
+    assert "This release only stores the shared Microsoft OAuth app settings." in response.text
 
 
 def _build_client(

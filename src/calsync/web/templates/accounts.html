@@ -47,11 +47,18 @@ Choose the calendars CalSync can read today and prepare the sign-ins that will p
     <article class="panel stack">
       <h2>Outlook / Microsoft 365</h2>
       <p class="subtle">
-        Prepare for Microsoft calendar sign-in next. This slice keeps the product framing in place without pretending a real OAuth connect flow exists yet.
+        Prepare for Microsoft calendar sign-in next without overstating what is live today.
       </p>
-      <p><strong>Coming next:</strong> Microsoft sign-in and calendar permissions.</p>
+      {% if microsoft_configured %}
+      <p><strong>Connection flow status:</strong> Microsoft OAuth app settings are saved. Account connection is still scaffold-only in this slice.</p>
       <p class="subtle">
-        You can still use Provider Settings to keep the public app URL ready for future Microsoft callback and trust checks.
+        You do not need to re-enter the shared app unless you are rotating credentials or changing scopes. The Outlook account connect flow is the remaining step.
+      </p>
+      {% else %}
+      <p><strong>Coming next:</strong> Save the shared Microsoft OAuth app, then add the actual Outlook sign-in flow in a later slice.</p>
+      {% endif %}
+      <p class="subtle">
+        Provider Settings shows the callback URL and shared Microsoft app fields now, while account connection and calendar permissions still remain ahead.
       </p>
       <p><a href="{{ google_settings_url }}">Open Provider Settings</a></p>
     </article>

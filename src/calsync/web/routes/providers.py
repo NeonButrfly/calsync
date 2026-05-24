@@ -9,9 +9,12 @@ from calsync.config import validate_google_callback_url
 from calsync.models import AdminUser
 from calsync.services.provider_config import (
     get_google_provider_configuration_snapshot,
+    get_microsoft_provider_configuration_snapshot,
     save_google_oauth_configuration,
+    save_microsoft_oauth_configuration,
 )
 from calsync.services.app_settings import (
+    build_external_url,
     build_google_callback_url,
     get_configured_public_base_url,
     get_saved_public_base_url,
@@ -44,6 +47,8 @@ def provider_settings_page(
         success_message=(
             "Google OAuth app settings saved."
             if saved == "google"
+            else "Microsoft OAuth app settings saved."
+            if saved == "microsoft"
             else "Public app URL saved." if saved == "public-url" else None
         ),
     )
@@ -94,6 +99,50 @@ def save_google_provider_settings(
     return RedirectResponse(url="/admin/providers?saved=google", status_code=303)
 
 
+@router.post("/microsoft")
+def save_microsoft_provider_settings(
+    request: Request,
+    client_id: str = Form(...),
+    client_secret: str = Form(""),
+    scopes: str = Form(""),
+    session: Session = Depends(get_db),
+    templates: Jinja2Templates = Depends(get_templates),
+    current_admin: AdminUser = Depends(require_admin),
+    encryption_key: str = Depends(get_encryption_key),
+):
+    normalized_client_id = client_id.strip()
+    if not normalized_client_id:
+        return _render_provider_settings_page(
+            request,
+            session,
+            templates,
+            current_admin=current_admin,
+            error_message="Microsoft client ID is required.",
+            status_code=400,
+        )
+
+    try:
+        save_microsoft_oauth_configuration(
+            session,
+            client_id=normalized_client_id,
+            client_secret=client_secret,
+            scopes=scopes,
+            encryption_key=encryption_key,
+        )
+    except ValueError as exc:
+        return _render_provider_settings_page(
+            request,
+            session,
+            templates,
+            current_admin=current_admin,
+            error_message=str(exc),
+            status_code=400,
+        )
+
+    session.commit()
+    return RedirectResponse(url="/admin/providers?saved=microsoft", status_code=303)
+
+
 @router.post("/public-url")
 def save_public_provider_url(
     request: Request,
@@ -135,12 +184,19 @@ def _render_provider_settings_page(
         session,
         settings=settings,
     )
+    microsoft_snapshot = get_microsoft_provider_configuration_snapshot(session)
     callback_url = build_google_callback_url(
         request,
         session=session,
         settings=settings,
     )
     callback_error = validate_google_callback_url(callback_url)
+    microsoft_callback_url = build_external_url(
+        request,
+        "/auth/microsoft/callback",
+        session=session,
+        settings=settings,
+    )
     return templates.TemplateResponse(
         request,
         "providers.html",
@@ -164,6 +220,12 @@ def _render_provider_settings_page(
             "google_configured": google_snapshot["configured"],
             "google_callback_url": callback_url,
             "google_callback_error": callback_error,
+            "microsoft_client_id": microsoft_snapshot["client_id"],
+            "microsoft_scopes": microsoft_snapshot["scopes"],
+            "microsoft_has_secret": microsoft_snapshot["has_secret"],
+            "microsoft_source": microsoft_snapshot["source"],
+            "microsoft_configured": microsoft_snapshot["configured"],
+            "microsoft_callback_url": microsoft_callback_url,
         },
         status_code=status_code,
     )

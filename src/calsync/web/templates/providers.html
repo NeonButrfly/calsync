@@ -83,6 +83,47 @@
   </article>
 
   <article class="panel">
+    <h2>Microsoft OAuth App</h2>
+    <p class="subtle">
+      Save the shared Microsoft Entra app settings here so this deployment is ready for Outlook / Microsoft 365 sign-in.
+      This release only stores the shared Microsoft OAuth app settings. It does not yet launch the Outlook account connection flow.
+    </p>
+    <p><strong>Planned Microsoft OAuth callback URL:</strong> {{ microsoft_callback_url }}</p>
+    <p class="subtle">
+      This is the callback URL CalSync plans to use once the Outlook account connection flow ships. It is shown here so operators can prepare their Microsoft app settings without treating the account connection flow as live today.
+    </p>
+    <p><strong>Connection flow status:</strong> {{ "Shared Microsoft OAuth app settings are saved." if microsoft_configured else "Waiting for Microsoft OAuth app settings." }}</p>
+    <form method="post" action="/admin/providers/microsoft" class="stack">
+      <label>
+        Microsoft OAuth client ID
+        <input type="text" name="client_id" value="{{ microsoft_client_id }}" autocomplete="off" />
+      </label>
+      <label>
+        Microsoft OAuth client secret
+        <input type="password" name="client_secret" value="" autocomplete="new-password" />
+      </label>
+      {% if microsoft_has_secret %}
+      <p class="subtle">A Microsoft client secret is already stored securely. Enter a new one only when rotating it.</p>
+      {% endif %}
+      <label>
+        OAuth scopes
+        <input type="text" name="scopes" value="{{ microsoft_scopes }}" />
+      </label>
+      <button type="submit">Save Microsoft Settings</button>
+    </form>
+    {% if microsoft_source %}
+    <p class="subtle">
+      Current source:
+      <strong>Admin UI</strong>
+    </p>
+    {% endif %}
+    <p class="subtle">
+      After these settings are saved, keep using the Connections page as the operator entry point.
+      Outlook account sign-in, calendar permissions, and the active callback route are still scaffold-only in this slice, so no Microsoft accounts can be connected yet.
+    </p>
+  </article>
+
+  <article class="panel">
     <h2>Apple/iCloud Accounts</h2>
     <p class="subtle">Apple uses per-account CalDAV credentials instead of a deployment-wide OAuth app.</p>
     <p>Add each Apple/iCloud account from the Connections page using the Apple ID username or email and an app-specific password.</p>

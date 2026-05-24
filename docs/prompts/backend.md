@@ -439,3 +439,28 @@
 - Microsoft is represented honestly as scaffold and configuration groundwork, not as a shipped OAuth connect flow
 - no full booking pages in this slice
 - no real Microsoft OAuth connect, Microsoft calendar discovery, or Microsoft event sync in this slice
+
+---
+
+- GitHub issue: `#21`
+- Scope: expose Microsoft OAuth app settings in Provider Settings without overstating Microsoft account-connect readiness
+
+## Interpreted Requirements
+
+- the shared Microsoft OAuth client ID, secret, and scopes should be operator-visible and editable in `Provider Settings`
+- the app should show the planned Microsoft callback URL so operators can understand the future deployment shape
+- the Connections page should reflect whether the shared Microsoft app has already been saved
+- the product must stay honest that Outlook account sign-in is still scaffold-only in this slice
+
+## Behavioral Boundaries
+
+- no real Microsoft OAuth connect flow is introduced in this issue
+- no Microsoft calendar discovery or event sync is introduced in this issue
+- the callback URL shown in `Provider Settings` is a planned future callback target, not an active live route for account connection
+
+## Phase Notes
+
+- issue `#21` builds on the write-capable foundation in issue `#17`
+- `Provider Settings` now exposes a `Microsoft OAuth App` section
+- blank or malformed Microsoft scope input should normalize to the default shared scopes instead of persisting a misleading broken configuration
+- Connections should show whether the shared Microsoft app settings are already saved while still directing operators to wait for the later connect-flow slice

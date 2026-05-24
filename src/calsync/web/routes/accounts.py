@@ -12,7 +12,10 @@ from calsync.crypto import encrypt_text
 from calsync.models import AdminUser, ProviderAccount
 from calsync.repos.providers import upsert_provider_account
 from calsync.services.app_settings import build_google_callback_url
-from calsync.services.provider_config import get_google_provider_configuration_snapshot
+from calsync.services.provider_config import (
+    get_google_provider_configuration_snapshot,
+    get_microsoft_provider_configuration_snapshot,
+)
 from calsync.services.providers.icloud import ICloudCalDAVError
 from calsync.services.sync import sync_account
 from calsync.web.deps import (
@@ -186,6 +189,7 @@ def render_connections_page(
         session,
         settings=settings,
     )
+    microsoft_snapshot = get_microsoft_provider_configuration_snapshot(session)
     google_block_message = None
     if bool(google_snapshot["configured"]) and callback_error is not None:
         google_block_message = (
@@ -211,6 +215,7 @@ def render_connections_page(
             "google_connect_allowed": bool(google_snapshot["configured"])
             and callback_error is None,
             "google_configuration_source": google_snapshot["source"],
+            "microsoft_configured": microsoft_snapshot["configured"],
             "google_settings_url": "/admin/providers",
             "account_rows": account_rows,
             "apple_account_rows": [

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from calsync.models import Base, ProviderAccount
 from calsync.repos.provider_config import get_provider_configuration
 from calsync.services.provider_config import (
+    DEFAULT_MICROSOFT_OAUTH_SCOPES,
     resolve_microsoft_oauth_configuration,
     save_microsoft_oauth_configuration,
 )
@@ -102,6 +103,62 @@ def test_microsoft_provider_configuration_round_trip_supports_space_delimited_sc
         "microsoft_scopes": list(configuration.scopes),
     }
     assert infer_microsoft_account_capabilities(account) == ("oauth", True, True)
+
+
+def test_microsoft_provider_configuration_defaults_blank_scopes(
+    tmp_path: Path,
+) -> None:
+    with _build_session(tmp_path) as session:
+        save_microsoft_oauth_configuration(
+            session,
+            client_id="microsoft-client-id",
+            client_secret="microsoft-client-secret",
+            scopes="   ",
+            encryption_key=ENCRYPTION_KEY,
+        )
+        session.commit()
+
+        configuration = resolve_microsoft_oauth_configuration(
+            session,
+            encryption_key=ENCRYPTION_KEY,
+        )
+        stored_configuration = get_provider_configuration(session, "microsoft")
+
+    assert configuration is not None
+    assert configuration.scopes == DEFAULT_MICROSOFT_OAUTH_SCOPES
+    assert stored_configuration is not None
+    assert stored_configuration.public_config_json is not None
+    assert stored_configuration.public_config_json["scopes"] == " ".join(
+        DEFAULT_MICROSOFT_OAUTH_SCOPES
+    )
+
+
+def test_microsoft_provider_configuration_defaults_delimiter_only_scopes(
+    tmp_path: Path,
+) -> None:
+    with _build_session(tmp_path) as session:
+        save_microsoft_oauth_configuration(
+            session,
+            client_id="microsoft-client-id",
+            client_secret="microsoft-client-secret",
+            scopes=", , ,",
+            encryption_key=ENCRYPTION_KEY,
+        )
+        session.commit()
+
+        configuration = resolve_microsoft_oauth_configuration(
+            session,
+            encryption_key=ENCRYPTION_KEY,
+        )
+        stored_configuration = get_provider_configuration(session, "microsoft")
+
+    assert configuration is not None
+    assert configuration.scopes == DEFAULT_MICROSOFT_OAUTH_SCOPES
+    assert stored_configuration is not None
+    assert stored_configuration.public_config_json is not None
+    assert stored_configuration.public_config_json["scopes"] == " ".join(
+        DEFAULT_MICROSOFT_OAUTH_SCOPES
+    )
 
 
 def _build_session(tmp_path: Path) -> Session:
