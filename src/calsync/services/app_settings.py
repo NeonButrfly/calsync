@@ -24,7 +24,13 @@ PUBLIC_BASE_URL_REQUIREMENTS_MESSAGE = (
 
 
 def get_saved_public_base_url(session: Session) -> str | None:
-    return get_app_state_text(session, PUBLIC_BASE_URL_STATE_KEY)
+    saved_public_base_url = get_app_state_text(session, PUBLIC_BASE_URL_STATE_KEY)
+    if not saved_public_base_url:
+        return None
+    return _normalize_public_base_url(
+        saved_public_base_url,
+        reject_invalid=False,
+    )
 
 
 def get_configured_public_base_url(settings: Settings) -> str | None:

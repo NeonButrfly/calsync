@@ -797,6 +797,20 @@ code {
     padding: 0.35rem 0;
   }
 
+  .data-table td[data-label] {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .data-table td[data-label]::before {
+    color: var(--muted);
+    content: attr(data-label);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
   .data-table tr {
     border-top: 1px solid var(--border);
     padding: 0.75rem 0;

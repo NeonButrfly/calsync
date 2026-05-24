@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Iterator
 
 import pyotp
 import pytest
@@ -40,7 +41,13 @@ def empty_client(tmp_path: Path) -> TestClient:
     yield from _build_client(tmp_path, seed_mock_account=False)
 
 
-def _build_client(tmp_path: Path, *, seed_mock_account: bool) -> TestClient:
+def _build_client(
+    tmp_path: Path,
+    *,
+    seed_mock_account: bool,
+    request_base_url: str = "http://testserver",
+    saved_public_base_url: str | None = None,
+) -> Iterator[TestClient]:
     database_path = tmp_path / "dashboard-pages.sqlite3"
     settings = Settings(
         database_url=f"sqlite+pysqlite:///{database_path}",
@@ -87,6 +94,12 @@ def _build_client(tmp_path: Path, *, seed_mock_account: bool) -> TestClient:
             sync_account(session, account.id, trigger="manual")
         else:
             account_id = None
+        if saved_public_base_url is not None:
+            set_app_state(
+                session,
+                key="public_base_url",
+                value_text=saved_public_base_url,
+            )
         combined_feed = ensure_combined_feed(session)
         combined_feed_id = combined_feed.id
         session.commit()
@@ -96,25 +109,13 @@ def _build_client(tmp_path: Path, *, seed_mock_account: bool) -> TestClient:
     app.state.test_account_id = account_id
     app.state.test_combined_feed_id = combined_feed_id
 
-    with TestClient(app) as test_client:
+    with TestClient(app, base_url=request_base_url) as test_client:
         yield test_client
 
 
 @pytest.fixture()
 def authenticated_client(client: TestClient) -> TestClient:
-    password_step = client.post(
-        "/login",
-        data={"identifier": "admin", "password": "StrongPassword1!"},
-        follow_redirects=False,
-    )
-    assert password_step.status_code == 303
-
-    mfa_step = client.post(
-        "/login/mfa",
-        data={"code": pyotp.TOTP(client.app.state.test_totp_secret).now()},
-        follow_redirects=False,
-    )
-    assert mfa_step.status_code == 303
+    _authenticate_client(client)
     return client
 
 
@@ -135,6 +136,12 @@ def test_dashboard_shows_feed_links_and_sync_summary(
         assert hidden_event is not None
         hidden_event.event_visibility_state = "deleted_upstream"
         hidden_event.removed_upstream_at = datetime.now(UTC)
+        combined_feed = session.get(
+            PublishedFeed,
+            authenticated_client.app.state.test_combined_feed_id,
+        )
+        assert combined_feed is not None
+        combined_feed_token = combined_feed.token
         session.commit()
 
     response = authenticated_client.get("/admin")
@@ -143,8 +150,61 @@ def test_dashboard_shows_feed_links_and_sync_summary(
     assert "Upcoming schedule" in response.text
     assert "Combined feed" in response.text
     assert "Last sync" in response.text
-    assert "/feeds/" in response.text
+    assert f'href="http://testserver/feeds/{combined_feed_token}.ics"' in response.text
     assert "Morning Standup" not in response.text
+
+
+def test_dashboard_feed_link_uses_saved_public_base_url_origin_when_present(
+    tmp_path: Path,
+) -> None:
+    client_gen = _build_client(
+        tmp_path,
+        seed_mock_account=True,
+        request_base_url="http://localhost:4010",
+        saved_public_base_url="https://calendar.example.com/base/",
+    )
+    client = next(client_gen)
+    try:
+        _authenticate_client(client)
+        with _db_session(client) as session:
+            combined_feed = session.get(PublishedFeed, client.app.state.test_combined_feed_id)
+            assert combined_feed is not None
+
+        response = client.get("/admin")
+
+        assert response.status_code == 200
+        assert (
+            f'href="https://calendar.example.com/base/feeds/{combined_feed.token}.ics"'
+            in response.text
+        )
+        assert "http://localhost:4010/feeds/" not in response.text
+    finally:
+        _close_client_generator(client_gen)
+
+
+def test_dashboard_feed_link_falls_back_to_request_origin_for_invalid_saved_public_base_url(
+    tmp_path: Path,
+) -> None:
+    client_gen = _build_client(
+        tmp_path,
+        seed_mock_account=True,
+        request_base_url="http://localhost:4010",
+        saved_public_base_url="http://192.168.50.232:3080",
+    )
+    client = next(client_gen)
+    try:
+        _authenticate_client(client)
+        with _db_session(client) as session:
+            combined_feed = session.get(PublishedFeed, client.app.state.test_combined_feed_id)
+            assert combined_feed is not None
+
+        response = client.get("/admin")
+
+        assert response.status_code == 200
+        assert f'href="http://localhost:4010/feeds/{combined_feed.token}.ics"' in response.text
+        assert "http://192.168.50.232:3080/feeds/" not in response.text
+    finally:
+        _close_client_generator(client_gen)
 
 
 def test_dashboard_hides_events_from_disabled_calendars(
@@ -303,19 +363,7 @@ def test_dashboard_renders_sync_and_event_times_in_alaska_time(
 
 @pytest.fixture()
 def authenticated_empty_client(empty_client: TestClient) -> TestClient:
-    password_step = empty_client.post(
-        "/login",
-        data={"identifier": "admin", "password": "StrongPassword1!"},
-        follow_redirects=False,
-    )
-    assert password_step.status_code == 303
-
-    mfa_step = empty_client.post(
-        "/login/mfa",
-        data={"code": pyotp.TOTP(empty_client.app.state.test_totp_secret).now()},
-        follow_redirects=False,
-    )
-    assert mfa_step.status_code == 303
+    _authenticate_client(empty_client)
     return empty_client
 
 
@@ -439,3 +487,26 @@ def _db_session(client: TestClient) -> Session:
         connect_args={"check_same_thread": False},
     )
     return Session(engine)
+
+
+def _authenticate_client(client: TestClient) -> None:
+    password_step = client.post(
+        "/login",
+        data={"identifier": "admin", "password": "StrongPassword1!"},
+        follow_redirects=False,
+    )
+    assert password_step.status_code == 303
+
+    mfa_step = client.post(
+        "/login/mfa",
+        data={"code": pyotp.TOTP(client.app.state.test_totp_secret).now()},
+        follow_redirects=False,
+    )
+    assert mfa_step.status_code == 303
+
+
+def _close_client_generator(client_gen: Iterator[TestClient]) -> None:
+    try:
+        next(client_gen)
+    except StopIteration:
+        return

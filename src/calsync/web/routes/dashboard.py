@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from calsync.config import build_external_url
 from calsync.models import AdminUser, Event, ProviderAccount, ProviderCalendar, SyncLog
+from calsync.services.app_settings import build_external_url
 from calsync.services.publishing import ensure_combined_feed, rotate_combined_feed_token
 from calsync.services.problems import build_problem_summary
 from calsync.services.reconciliation import collect_trust_metrics, list_canonical_events, rebuild_duplicate_groups
@@ -44,6 +44,7 @@ def dashboard_page(
         "combined_feed_url": build_external_url(
             request,
             f"/feeds/{combined_feed.token}.ics",
+            session=session,
             settings=request.app.state.settings,
         ),
         "problem_summary": problem_summary,
@@ -71,6 +72,7 @@ def publishing_page(
             "combined_feed_url": build_external_url(
                 request,
                 f"/feeds/{combined_feed.token}.ics",
+                session=session,
                 settings=request.app.state.settings,
             ),
             "combined_feed_token": combined_feed.token,
