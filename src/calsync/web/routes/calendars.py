@@ -19,6 +19,7 @@ from calsync.models import (
 )
 from calsync.repos.providers import (
     hydrate_provider_account_capabilities,
+    provider_calendar_supports_write,
     set_provider_calendar_role,
 )
 from calsync.web.deps import get_db, get_templates, require_admin
@@ -35,8 +36,11 @@ CALENDAR_ROLE_OPTIONS = (
 )
 
 
-def _calendar_role_options_for_account(account: ProviderAccount) -> tuple[tuple[str, str], ...]:
-    if account.can_write:
+def _calendar_role_options_for_calendar(
+    account: ProviderAccount,
+    calendar: ProviderCalendar,
+) -> tuple[tuple[str, str], ...]:
+    if account.can_write and provider_calendar_supports_write(account, calendar):
         return CALENDAR_ROLE_OPTIONS
     return tuple(
         option
@@ -65,8 +69,10 @@ def calendars_page(
         {
             "current_admin": current_admin,
             "accounts": accounts,
-            "calendar_role_options_by_account": {
-                account.id: _calendar_role_options_for_account(account) for account in accounts
+            "calendar_role_options_by_calendar": {
+                calendar.id: _calendar_role_options_for_calendar(account, calendar)
+                for account in accounts
+                for calendar in account.calendars
             },
         },
     )

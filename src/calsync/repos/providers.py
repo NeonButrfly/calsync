@@ -184,6 +184,33 @@ def list_provider_calendars(
     )
 
 
+def provider_calendar_supports_write(
+    account: ProviderAccount,
+    calendar: ProviderCalendar,
+) -> bool:
+    metadata = dict(calendar.provider_metadata or {})
+
+    if metadata.get("can_write") is True:
+        return True
+    if metadata.get("supports_write") is True:
+        return True
+    if metadata.get("supports_writes") is True:
+        return True
+    if metadata.get("can_write") is False:
+        return False
+    if metadata.get("supports_write") is False:
+        return False
+    if metadata.get("supports_writes") is False:
+        return False
+
+    if account.provider_type == "google":
+        access_role = metadata.get("access_role")
+        if isinstance(access_role, str):
+            return access_role in {"owner", "writer"}
+
+    return True
+
+
 def set_provider_calendar_role(
     session: Session,
     *,
@@ -200,10 +227,13 @@ def set_provider_calendar_role(
         raise LookupError(f"Provider account not found: {calendar.provider_account_pk}")
 
     hydrate_provider_account_capabilities(account)
-    if calendar_role == "writable_booking_target" and not account.can_write:
-        raise ValueError(
-            "This calendar's provider account does not support writable booking targets."
-        )
+    if calendar_role == "writable_booking_target":
+        if not account.can_write:
+            raise ValueError(
+                "This calendar's provider account does not support writable booking targets."
+            )
+        if not provider_calendar_supports_write(account, calendar):
+            raise ValueError("This calendar does not support writable booking targets.")
 
     calendar.calendar_role = calendar_role
     session.add(calendar)

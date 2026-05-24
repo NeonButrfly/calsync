@@ -60,6 +60,76 @@ def authenticated_writable_calendar_client(tmp_path: Path) -> TestClient:
     yield from _build_authenticated_calendar_client(tmp_path, can_write=True)
 
 
+@pytest.fixture()
+def authenticated_google_writable_account_with_read_only_calendar_client(
+    tmp_path: Path,
+) -> TestClient:
+    database_path = tmp_path / "calendar-roles-google-read-only-page.sqlite3"
+    settings = Settings(
+        database_url=f"sqlite+pysqlite:///{database_path}",
+        public_base_url="http://testserver",
+        session_secret="calendar-role-google-test-session-secret",
+        encryption_key="calendar-role-google-test-encryption-key",
+    )
+    engine = create_engine(
+        settings.database_url,
+        future=True,
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(engine)
+
+    with Session(engine) as session:
+        set_app_state(session, key="setup_completed", value_text="true")
+        admin_user = create_admin_user(
+            session,
+            username="admin",
+            email="admin@example.com",
+            password_hash=hash_password("StrongPassword1!"),
+        )
+        totp_secret = pyotp.random_base32()
+        store_totp_secret(
+            session,
+            admin_user,
+            totp_secret,
+            encryption_key=settings.encryption_key,
+        )
+        admin_user.mfa_enrolled = True
+        store_recovery_codes(session, admin_user, generate_recovery_codes(count=2))
+
+        account = ProviderAccount(
+            provider_type="google",
+            provider_account_id="google-acct-roles",
+            display_name="Writable Google Account",
+            provider_metadata={
+                "google_scopes": [
+                    "openid",
+                    "email",
+                    "https://www.googleapis.com/auth/calendar",
+                ]
+            },
+        )
+        session.add(account)
+        session.flush()
+        session.add(
+            ProviderCalendar(
+                provider_account_pk=account.id,
+                provider_calendar_id="google-reader",
+                name="Google Reader Calendar",
+                enabled=True,
+                provider_metadata={"access_role": "reader"},
+            )
+        )
+        session.commit()
+
+    app = create_app(settings)
+    app.state.test_totp_secret = totp_secret
+    app.state.test_engine = engine
+
+    with TestClient(app, base_url="http://testserver") as client:
+        _authenticate_client(client)
+        yield client
+
+
 def _build_authenticated_calendar_client(
     tmp_path: Path,
     *,
@@ -228,6 +298,77 @@ def test_set_provider_calendar_role_rejects_writable_booking_target_for_read_onl
             )
 
 
+def test_set_provider_calendar_role_rejects_writable_booking_target_for_google_reader_calendar(
+    migrated_session_factory: sessionmaker[Session],
+) -> None:
+    with migrated_session_factory() as session:
+        account = ProviderAccount(
+            provider_type="google",
+            provider_account_id="google-reader-account",
+            display_name="Writable Google Account",
+            provider_metadata={
+                "google_scopes": [
+                    "openid",
+                    "email",
+                    "https://www.googleapis.com/auth/calendar",
+                ]
+            },
+        )
+        session.add(account)
+        session.flush()
+        calendar = ProviderCalendar(
+            provider_account_pk=account.id,
+            provider_calendar_id="google-reader-calendar",
+            name="Read Only Google Calendar",
+            provider_metadata={"access_role": "reader"},
+        )
+        session.add(calendar)
+        session.flush()
+
+        with pytest.raises(ValueError, match="does not support writable booking targets"):
+            set_provider_calendar_role(
+                session,
+                calendar=calendar,
+                calendar_role="writable_booking_target",
+            )
+
+
+def test_set_provider_calendar_role_allows_writable_booking_target_for_google_writer_calendar(
+    migrated_session_factory: sessionmaker[Session],
+) -> None:
+    with migrated_session_factory() as session:
+        account = ProviderAccount(
+            provider_type="google",
+            provider_account_id="google-writer-account",
+            display_name="Writable Google Account",
+            provider_metadata={
+                "google_scopes": [
+                    "openid",
+                    "email",
+                    "https://www.googleapis.com/auth/calendar",
+                ]
+            },
+        )
+        session.add(account)
+        session.flush()
+        calendar = ProviderCalendar(
+            provider_account_pk=account.id,
+            provider_calendar_id="google-writer-calendar",
+            name="Writable Google Calendar",
+            provider_metadata={"access_role": "writer"},
+        )
+        session.add(calendar)
+        session.flush()
+
+        updated = set_provider_calendar_role(
+            session,
+            calendar=calendar,
+            calendar_role="writable_booking_target",
+        )
+
+        assert updated.calendar_role == "writable_booking_target"
+
+
 def test_calendars_page_does_not_offer_writable_booking_target_for_read_only_accounts(
     authenticated_read_only_calendar_client: TestClient,
 ) -> None:
@@ -239,6 +380,22 @@ def test_calendars_page_does_not_offer_writable_booking_target_for_read_only_acc
     assert "Conflict checking only" in response.text
     assert "Personal reference" in response.text
     assert "Hidden" in response.text
+    assert "Receive new bookings" not in response.text
+    assert 'name="calendar_role"' in response.text
+
+
+def test_calendars_page_hides_writable_booking_target_for_google_reader_calendar(
+    authenticated_google_writable_account_with_read_only_calendar_client: TestClient,
+) -> None:
+    response = (
+        authenticated_google_writable_account_with_read_only_calendar_client.get(
+            "/admin/calendars"
+        )
+    )
+
+    assert response.status_code == 200
+    assert "Writable Google Account" in response.text
+    assert "Google Reader Calendar" in response.text
     assert "Receive new bookings" not in response.text
     assert 'name="calendar_role"' in response.text
 
