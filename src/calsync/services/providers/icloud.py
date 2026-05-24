@@ -31,6 +31,19 @@ class ICloudCalDAVError(RuntimeError):
     pass
 
 
+def infer_icloud_account_capabilities(
+    account: ProviderAccount,
+) -> tuple[str, bool, bool]:
+    metadata = dict(account.provider_metadata or {})
+    can_write = bool(
+        account.can_write
+        or metadata.get("can_write") is True
+        or metadata.get("supports_write") is True
+        or metadata.get("supports_writes") is True
+    )
+    return "caldav", True, can_write
+
+
 class ICloudCalDAVProviderAdapter:
     provider_type = ICLOUD_PROVIDER_TYPE
 

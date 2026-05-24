@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 
 from calsync.config import get_settings
 from calsync.models import ProviderAccount, ProviderCalendar
+from calsync.repos.providers import upsert_provider_account
 
 
 @pytest.fixture()
@@ -207,3 +208,63 @@ def test_provider_role_migration_backfills_defaults_for_existing_rows(
             assert calendar.calendar_role == "personal_reference"
     finally:
         get_settings.cache_clear()
+
+
+def test_icloud_account_defaults(
+    migrated_session_factory: sessionmaker[Session],
+) -> None:
+    encrypted_secret = "existing-encrypted-secret"
+
+    with migrated_session_factory() as write_session:
+        account = ProviderAccount(
+            provider_type="icloud_caldav",
+            provider_account_id="kay@icloud.com",
+            display_name="Kay iCloud",
+            credential_secret_encrypted=encrypted_secret,
+        )
+        write_session.add(account)
+        write_session.commit()
+        account_id = account.id
+
+    with migrated_session_factory() as read_session:
+        existing_account = read_session.get(ProviderAccount, account_id)
+        assert existing_account is not None
+
+        updated = upsert_provider_account(
+            read_session,
+            provider_type="icloud_caldav",
+            provider_account_id="kay@icloud.com",
+            display_name="Kay iCloud",
+            provider_metadata={"principal_url": "https://caldav.icloud.com/123/principal/"},
+        )
+        read_session.commit()
+
+        assert updated.id == account_id
+        assert updated.auth_mode == "caldav"
+        assert updated.can_read is True
+        assert updated.can_write is False
+        assert updated.credential_secret_encrypted == encrypted_secret
+
+
+def test_google_account_capabilities(
+    migrated_session_factory: sessionmaker[Session],
+) -> None:
+    with migrated_session_factory() as session:
+        account = upsert_provider_account(
+            session,
+            provider_type="google",
+            provider_account_id="google-sub",
+            display_name="owner@example.com",
+            provider_metadata={
+                "google_scopes": [
+                    "openid",
+                    "email",
+                    "https://www.googleapis.com/auth/calendar",
+                ]
+            },
+        )
+        session.commit()
+
+        assert account.auth_mode == "oauth"
+        assert account.can_read is True
+        assert account.can_write is True

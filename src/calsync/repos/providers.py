@@ -11,22 +11,50 @@ from calsync.models import ProviderAccount, ProviderCalendar, SyncLog, utcnow
 from calsync.schemas.providers import DiscoveredCalendar
 
 
+def infer_provider_capabilities(account: ProviderAccount) -> tuple[str, bool, bool]:
+    if account.provider_type == "icloud_caldav":
+        from calsync.services.providers.icloud import (
+            infer_icloud_account_capabilities,
+        )
+
+        return infer_icloud_account_capabilities(account)
+    if account.provider_type == "google":
+        from calsync.services.providers.google import infer_google_account_capabilities
+
+        return infer_google_account_capabilities(account)
+    return account.auth_mode, account.can_read, account.can_write
+
+
+def hydrate_provider_account_capabilities(account: ProviderAccount) -> ProviderAccount:
+    auth_mode, can_read, can_write = infer_provider_capabilities(account)
+    account.auth_mode = auth_mode
+    account.can_read = can_read
+    account.can_write = can_write
+    return account
+
+
 def get_provider_account_by_identity(
     session: Session,
     *,
     provider_type: str,
     provider_account_id: str,
 ) -> ProviderAccount | None:
-    return session.scalar(
+    account = session.scalar(
         select(ProviderAccount).where(
             ProviderAccount.provider_type == provider_type,
             ProviderAccount.provider_account_id == provider_account_id,
         )
     )
+    if account is None:
+        return None
+    return hydrate_provider_account_capabilities(account)
 
 
 def get_provider_account(session: Session, account_pk: str) -> ProviderAccount | None:
-    return session.get(ProviderAccount, account_pk)
+    account = session.get(ProviderAccount, account_pk)
+    if account is None:
+        return None
+    return hydrate_provider_account_capabilities(account)
 
 
 def require_provider_account(session: Session, account_pk: str) -> ProviderAccount:
@@ -93,6 +121,7 @@ def upsert_provider_account(
         if provider_metadata is not None
         else None
     )
+    hydrate_provider_account_capabilities(account)
     session.flush()
     return account
 

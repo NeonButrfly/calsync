@@ -44,6 +44,10 @@ ACCOUNT_TOKEN_EXPIRY_KEY = "google_access_token_expires_at"
 ACCOUNT_AUTH_STATUS_KEY = "google_auth_status"
 ACCOUNT_RECONNECT_REQUIRED_KEY = "google_reconnect_required"
 ACCOUNT_LAST_AUTH_ERROR_KEY = "google_last_auth_error"
+GOOGLE_WRITABLE_SCOPES = {
+    "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/calendar.events",
+}
 
 
 class GoogleOAuthError(RuntimeError):
@@ -52,6 +56,21 @@ class GoogleOAuthError(RuntimeError):
 
 class GoogleOAuthCompatibilityError(GoogleOAuthError):
     pass
+
+
+def infer_google_account_capabilities(
+    account: ProviderAccount,
+) -> tuple[str, bool, bool]:
+    metadata = _account_metadata(account)
+    scopes = _metadata_scope_values(metadata.get(ACCOUNT_SCOPES_KEY))
+    can_write = bool(
+        account.can_write
+        or metadata.get("can_write") is True
+        or metadata.get("supports_write") is True
+        or metadata.get("supports_writes") is True
+        or any(scope in GOOGLE_WRITABLE_SCOPES for scope in scopes)
+    )
+    return "oauth", True, can_write
 
 
 class GoogleProviderAdapter:
@@ -548,6 +567,14 @@ def _require_google_config(
 
 def _account_metadata(account: ProviderAccount) -> dict[str, object]:
     return dict(account.provider_metadata or {})
+
+
+def _metadata_scope_values(value: object) -> set[str]:
+    if isinstance(value, str):
+        return {scope for scope in value.split() if scope}
+    if isinstance(value, list):
+        return {str(scope) for scope in value if isinstance(scope, str) and scope}
+    return set()
 
 
 def _calendar_metadata(calendar: ProviderCalendar) -> dict[str, object]:
