@@ -13,7 +13,7 @@ from calsync.repos.provider_config import (
 
 
 GOOGLE_OAUTH_PROVIDER_TYPE = "google_oauth"
-MICROSOFT_OAUTH_PROVIDER_TYPE = "microsoft_oauth"
+MICROSOFT_OAUTH_PROVIDER_TYPE = "microsoft"
 
 
 @dataclass(frozen=True)

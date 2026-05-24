@@ -6,10 +6,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from calsync.models import Base
+from calsync.repos.provider_config import get_provider_configuration
 from calsync.services.provider_config import (
-    save_microsoft_oauth_configuration,
     resolve_microsoft_oauth_configuration,
+    save_microsoft_oauth_configuration,
 )
+from calsync.services.providers.base import get_provider_adapter
 from calsync.services.providers.microsoft import MicrosoftProviderAdapter
 
 
@@ -31,6 +33,7 @@ def test_microsoft_provider_configuration_round_trip(tmp_path: Path) -> None:
             session,
             encryption_key=ENCRYPTION_KEY,
         )
+        stored_configuration = get_provider_configuration(session, "microsoft")
 
     assert configuration is not None
     assert configuration.client_id == "microsoft-client-id"
@@ -39,6 +42,8 @@ def test_microsoft_provider_configuration_round_trip(tmp_path: Path) -> None:
         "offline_access",
         "Calendars.ReadWrite",
     )
+    assert stored_configuration is not None
+    assert stored_configuration.provider_type == "microsoft"
 
 
 def test_microsoft_provider_scaffold_reports_provider_identity() -> None:
@@ -46,6 +51,13 @@ def test_microsoft_provider_scaffold_reports_provider_identity() -> None:
 
     assert adapter.provider_type == "microsoft"
     assert adapter.auth_mode == "oauth"
+
+
+def test_provider_factory_resolves_microsoft_adapter() -> None:
+    adapter = get_provider_adapter("microsoft")
+
+    assert isinstance(adapter, MicrosoftProviderAdapter)
+    assert adapter.provider_type == "microsoft"
 
 
 def _build_session(tmp_path: Path) -> Session:

@@ -37,6 +37,10 @@ def get_provider_adapter(
         from calsync.services.providers.google import GoogleProviderAdapter
 
         return GoogleProviderAdapter(settings=settings, session=session)
+    if provider_type == "microsoft":
+        from calsync.services.providers.microsoft import MicrosoftProviderAdapter
+
+        return MicrosoftProviderAdapter(settings=settings, session=session)
     if provider_type == "icloud_caldav":
         from calsync.services.providers.icloud import ICloudCalDAVProviderAdapter
 
