@@ -13,10 +13,19 @@ from calsync.repos.provider_config import (
 
 
 GOOGLE_OAUTH_PROVIDER_TYPE = "google_oauth"
+MICROSOFT_OAUTH_PROVIDER_TYPE = "microsoft_oauth"
 
 
 @dataclass(frozen=True)
 class GoogleOAuthConfiguration:
+    client_id: str
+    client_secret: str
+    scopes: tuple[str, ...]
+    source: str
+
+
+@dataclass(frozen=True)
+class MicrosoftOAuthConfiguration:
     client_id: str
     client_secret: str
     scopes: tuple[str, ...]
@@ -140,6 +149,68 @@ def save_google_oauth_configuration(
             "client_id": client_id.strip(),
             "scopes": scopes.strip()
             or ",".join(get_google_oauth_scopes(settings=resolved_settings)),
+        },
+        secret_config_encrypted=(
+            encrypt_text(encryption_key, normalized_secret)
+            if normalized_secret
+            else existing_secret
+        ),
+    )
+
+
+def resolve_microsoft_oauth_configuration(
+    session: Session | None,
+    *,
+    encryption_key: str | None = None,
+) -> MicrosoftOAuthConfiguration | None:
+    configuration = (
+        get_provider_configuration(session, MICROSOFT_OAUTH_PROVIDER_TYPE)
+        if session is not None
+        else None
+    )
+    if configuration is None:
+        return None
+
+    public_config = dict(configuration.public_config_json or {})
+    client_id = str(public_config.get("client_id") or "").strip()
+    if not client_id or not configuration.secret_config_encrypted:
+        return None
+    if not encryption_key:
+        raise RuntimeError("CalSync encryption_key must be configured explicitly.")
+
+    client_secret = decrypt_text(
+        encryption_key,
+        configuration.secret_config_encrypted,
+    )
+    scopes = _split_scopes(str(public_config.get("scopes") or ""))
+    return MicrosoftOAuthConfiguration(
+        client_id=client_id,
+        client_secret=client_secret,
+        scopes=scopes,
+        source="database",
+    )
+
+
+def save_microsoft_oauth_configuration(
+    session: Session,
+    *,
+    client_id: str,
+    client_secret: str | None,
+    scopes: str,
+    encryption_key: str,
+) -> None:
+    existing = get_provider_configuration(session, MICROSOFT_OAUTH_PROVIDER_TYPE)
+    existing_secret = existing.secret_config_encrypted if existing is not None else None
+    normalized_secret = (client_secret or "").strip()
+    if not normalized_secret and existing_secret is None:
+        raise ValueError("Microsoft client secret is required.")
+
+    upsert_provider_configuration(
+        session,
+        provider_type=MICROSOFT_OAUTH_PROVIDER_TYPE,
+        public_config_json={
+            "client_id": client_id.strip(),
+            "scopes": scopes.strip(),
         },
         secret_config_encrypted=(
             encrypt_text(encryption_key, normalized_secret)
