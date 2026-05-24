@@ -140,6 +140,7 @@ def test_dashboard_shows_feed_links_and_sync_summary(
     response = authenticated_client.get("/admin")
 
     assert response.status_code == 200
+    assert "Upcoming schedule" in response.text
     assert "Combined feed" in response.text
     assert "Last sync" in response.text
     assert "/feeds/" in response.text

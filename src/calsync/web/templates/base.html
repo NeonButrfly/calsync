@@ -7,26 +7,73 @@
     <link rel="stylesheet" href="/static/app.css" />
   </head>
   <body>
+    {% set current_path = request.url.path %}
     <header class="shell-header">
-      <div>
+      <div class="shell-header__copy">
         <p class="eyebrow">CalSync</p>
-        <h1>{% block page_title %}Admin{% endblock %}</h1>
+        <h1>{% block page_title %}Scheduling workspace{% endblock %}</h1>
+        <p class="shell-summary">
+          {% block page_summary %}
+          Bring every calendar into one calm schedule, keep availability clear, and
+          fix trust issues before they affect the day.
+          {% endblock %}
+        </p>
       </div>
-      <div class="admin-badge">
-        Signed in as <strong>{{ current_admin.username }}</strong>
+      <div class="shell-header__meta">
+        <div class="admin-badge">
+          Signed in as <strong>{{ current_admin.username }}</strong>
+        </div>
+        <div class="shell-shortcuts" aria-label="Quick links">
+          <a href="/admin/review">Review queue</a>
+          <a href="/admin/sync">Sync status</a>
+          <a href="/admin/feeds">ICS publishing</a>
+        </div>
       </div>
     </header>
 
     <nav class="shell-nav" aria-label="Primary">
-      <a href="/admin">Dashboard</a>
-      <a href="/admin/problems">Problems</a>
-      <a href="/admin/review">Review</a>
-      <a href="/admin/flightboard">Flightboard</a>
-      <a href="/admin/providers">Provider Settings</a>
-      <a href="/admin/accounts">Accounts</a>
-      <a href="/admin/calendars">Calendars</a>
-      <a href="/admin/sync">Sync Status</a>
-      <a href="/admin/feeds">ICS Publishing</a>
+      <a
+        class="shell-nav-link{% if current_path in ['/admin', '/admin/sync', '/admin/feeds'] %} is-current{% endif %}"
+        href="/admin"
+      >
+        <span class="shell-nav-label">Home</span>
+        <span class="shell-nav-meta">Overview, sync health, and publishing</span>
+      </a>
+      <a
+        class="shell-nav-link{% if current_path.startswith('/admin/flightboard') %} is-current{% endif %}"
+        href="/admin/flightboard"
+      >
+        <span class="shell-nav-label">Calendar</span>
+        <span class="shell-nav-meta">See the combined schedule by day, week, or month</span>
+      </a>
+      <a
+        class="shell-nav-link{% if current_path.startswith('/admin/accounts') %} is-current{% endif %}"
+        href="/admin/accounts"
+      >
+        <span class="shell-nav-label">Connections</span>
+        <span class="shell-nav-meta">Manage linked accounts while the dedicated page is still taking shape</span>
+      </a>
+      <a
+        class="shell-nav-link{% if current_path.startswith('/admin/calendars') %} is-current{% endif %}"
+        href="/admin/calendars"
+      >
+        <span class="shell-nav-label">Availability</span>
+        <span class="shell-nav-meta">Use calendar controls as the safest availability fallback for now</span>
+      </a>
+      <a
+        class="shell-nav-link{% if current_path.startswith('/admin/problems') or current_path.startswith('/admin/review') or current_path.startswith('/admin/events') %} is-current{% endif %}"
+        href="/admin/problems"
+      >
+        <span class="shell-nav-label">Trust</span>
+        <span class="shell-nav-meta">Fix conflicts, duplicates, and review decisions</span>
+      </a>
+      <a
+        class="shell-nav-link{% if current_path.startswith('/admin/providers') %} is-current{% endif %}"
+        href="/admin/providers"
+      >
+        <span class="shell-nav-label">Settings</span>
+        <span class="shell-nav-meta">Provider setup, public URL, and app configuration</span>
+      </a>
     </nav>
 
     <main class="shell-main">

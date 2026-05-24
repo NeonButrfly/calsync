@@ -1,27 +1,46 @@
 {% extends "base.html" %}
 
-{% block title %}CalSync Dashboard{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
+{% block title %}CalSync Home{% endblock %}
+{% block page_title %}Home{% endblock %}
+{% block page_summary %}
+See what is coming up, which calendars are connected, and where CalSync still
+needs attention before anyone feels it in the schedule.
+{% endblock %}
 
 {% block content %}
-<section class="grid">
-  <article class="panel metric-panel">
-    <h2>Connected accounts</h2>
-    <p class="metric">{{ account_count }}</p>
-  </article>
-  <article class="panel metric-panel">
-    <h2>Tracked calendars</h2>
-    <p class="metric">{{ calendar_count }}</p>
-  </article>
-  <article class="panel metric-panel">
-    <h2>Normalized events</h2>
-    <p class="metric">{{ event_count }}</p>
-  </article>
+<section class="dashboard-hero panel">
+  <div class="dashboard-hero__copy">
+    <p class="hero-kicker">Scheduling product shell</p>
+    <h2>A calmer way to run the day</h2>
+    <p>
+      Keep one bright view of the schedule, preserve trust across connected
+      sources, and move from problems to action without digging through an admin
+      maze.
+    </p>
+  </div>
+  <dl class="dashboard-hero__stats">
+    <div>
+      <dt>Connected accounts</dt>
+      <dd>{{ account_count }}</dd>
+    </div>
+    <div>
+      <dt>Tracked calendars</dt>
+      <dd>{{ calendar_count }}</dd>
+    </div>
+    <div>
+      <dt>Normalized events</dt>
+      <dd>{{ event_count }}</dd>
+    </div>
+  </dl>
 </section>
 
 <section class="grid dashboard-grid">
   <article class="panel">
     <h2>Problems to fix</h2>
+    <p class="subtle">
+      Start here when CalSync spots duplicate cleanup, broken syncs, or account
+      issues that could erode confidence.
+    </p>
     <dl class="detail-list">
       <div><dt>Open problems</dt><dd>{{ problem_summary.problem_count }}</dd></div>
       <div><dt>Duplicate cleanup</dt><dd>{{ problem_summary.duplicate_count }}</dd></div>
@@ -66,7 +85,11 @@
 
 <section class="grid dashboard-grid">
   <article class="panel">
-    <h2>Combined calendar view</h2>
+    <h2>Upcoming schedule</h2>
+    <p class="subtle">
+      One combined view of the next commitments, with duplicate sources folded
+      into a single trustworthy row.
+    </p>
     {% if upcoming_events %}
     <ul class="event-list">
       {% for canonical_event in upcoming_events %}
@@ -89,13 +112,16 @@
       {% endfor %}
     </ul>
     {% else %}
-    <p>No normalized events yet.</p>
+    <p>No upcoming schedule yet.</p>
     {% endif %}
   </article>
 
   <article class="panel">
-    <h2>Mock provider mode</h2>
-    <p>Use the built-in mock account to validate the combined calendar flow before real Google or Apple connections are enabled.</p>
+    <h2>Try a sample connection</h2>
+    <p>
+      Use the built-in mock account to validate the combined calendar flow
+      before real Google or Apple connections are enabled.
+    </p>
     <form method="post" action="/admin/accounts/mock/connect">
       <button type="submit">Connect mock provider</button>
     </form>
