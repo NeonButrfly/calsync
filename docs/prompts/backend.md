@@ -431,3 +431,11 @@
 - issue `#17` supersedes the earlier strictly read-only product direction for the long-term architecture
 - the recommended first implementation slice is the product refactor foundation plus the start of writable Google and Microsoft provider architecture
 - the product should keep trust and problem-fix workflows while moving toward a cleaner scheduling-app UX
+- the shipped foundation slice now uses a brighter scheduling workspace shell with `Connections`, `Availability`, `Trust`, and `Settings` framing
+- the current `Connections` experience lives on `/admin/accounts` and groups Google, Microsoft, Apple, and mock onboarding without losing existing account data
+- Apple connector data and stored app-specific passwords are preserved during the redesign
+- calendar roles now exist so operators can mark calendars for `Check availability` or `Receive new bookings`
+- writable booking targets are only valid for writable provider accounts; read-only providers stay availability-only
+- Microsoft is represented honestly as scaffold and configuration groundwork, not as a shipped OAuth connect flow
+- no full booking pages in this slice
+- no real Microsoft OAuth connect, Microsoft calendar discovery, or Microsoft event sync in this slice

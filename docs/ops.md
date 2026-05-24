@@ -116,6 +116,37 @@ Practical verification points:
 
 Dashboard and sync-status timestamps should follow the same Alaska display convention.
 
+## Connections And Calendar Roles
+
+The scheduling-product shell now routes account onboarding through:
+
+- `/admin/accounts` as `Connections`
+- `/admin/calendars` as `Availability`
+
+Operator expectations for this slice:
+
+- Google uses the existing browser-based OAuth connect flow when Provider Settings and callback requirements are satisfied
+- Apple keeps the current CalDAV plus app-specific-password form
+- existing Apple connector rows and encrypted app-specific passwords are preserved while the surrounding shell and tables are refreshed
+- Microsoft is visible in the Connections page so the product IA matches the write-capable direction, but the page is intentionally honest that Microsoft sign-in and calendar permissions are not shipped yet
+- full booking pages are not shipped in this slice
+
+Calendar role behavior:
+
+- `Check availability` means a calendar contributes busy-time and availability signal
+- `Receive new bookings` means the calendar is a writable booking target
+- writable booking target is only valid for a writable provider account and writable calendar
+- read-only connections should continue to offer availability-only behavior instead of pretending booking writes will work
+
+Practical verification points:
+
+- the top navigation includes `Connections` and `Availability`
+- `/admin/accounts` shows Google Calendar, Outlook / Microsoft 365, Apple Calendar, and Mock Provider
+- the Microsoft card says `Microsoft sign-in and calendar permissions` are still coming next
+- `/admin/calendars` shows `Check availability` for connected calendars
+- `/admin/calendars` only shows `Receive new bookings` when the provider account supports writable booking targets
+- existing Apple/iCloud accounts remain visible in the connected-accounts table after the shell refresh
+
 ## Trust Review Operator Notes
 
 The trust review page is available at:
@@ -198,6 +229,7 @@ For each Apple account:
 5. submit the form to discover calendars
 
 The Apple credentials are encrypted at rest in the CalSync database.
+The write-capable redesign foundation keeps existing Apple connector rows and stored app-specific passwords in place instead of replacing them with a fake Apple OAuth path.
 
 ## Backup
 
@@ -261,6 +293,8 @@ After `docker compose up --build -d`, verify:
 3. `/admin/providers` shows or supports `Public App URL` with `https://calsync.neonbutterfly.net`
 4. `/admin/accounts` shows `Connect Google Account` once Google settings and public hostname requirements are satisfied
 5. `/admin/flightboard` is present in the nav and remains private behind admin auth
+6. `/admin/accounts` presents the brighter `Connections` framing and an honest Microsoft scaffold state
+7. `/admin/calendars` exposes `Check availability`, and only writable provider accounts can be assigned `Receive new bookings`
 
 Reboot recovery check:
 

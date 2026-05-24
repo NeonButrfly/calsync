@@ -2,7 +2,9 @@
 
 ## Project Overview
 
-CalSync is a self-hosted, read-only calendar aggregation service for Linux and Unix hosts. This Phase 1 foundation delivers a Dockerized FastAPI application with persistent storage, first-run admin setup, mandatory MFA with TOTP, mock provider sync, protected admin pages, background worker wiring, and read-only ICS publishing.
+CalSync is a self-hosted scheduling workspace for Linux and Unix hosts. The current foundation slice keeps the existing read-only aggregation, trust, and ICS publishing behavior in place while reshaping the product toward write-capable scheduling.
+
+This branch now delivers a brighter scheduling-product shell, a Connections-first calendar onboarding experience, preserved Apple/iCloud connector data, calendar role assignment for future booking flows, protected admin pages, background worker wiring, and the same read-only ICS publishing foundation that earlier slices established.
 
 The application is designed for local and LAN-first operation:
 
@@ -12,7 +14,7 @@ The application is designed for local and LAN-first operation:
 - Default bind port: `APP_PORT=3080`
 - Optional public URL override: `PUBLIC_BASE_URL`
 
-## Current Phase 2 Scope
+## Current Write-Capable Foundation Slice
 
 Implemented today:
 
@@ -30,9 +32,17 @@ Implemented today:
 - protected admin dashboard, calendars management, sync status, and ICS publishing pages
 - protected provider settings and connected-accounts pages for mock, Google, and Apple onboarding
 - separate `web`, `worker`, and `db` services for Docker deployment
+- brighter shell navigation that frames the app as `Home`, `Calendar`, `Connections`, `Availability`, `Trust`, and `Settings`
+- a `Connections` experience on `/admin/accounts` that keeps Google, Microsoft, Apple, and mock onboarding in one scheduling-product surface
+- calendar roles so each discovered calendar can be marked for `Check availability` or, when supported, `Receive new bookings`
+- writable booking targets blocked for read-only provider accounts so booking writes cannot be assigned silently to the wrong calendar
+- Microsoft provider scaffolding and configuration groundwork without claiming a real Microsoft OAuth connect flow yet
 
 Not implemented yet:
 
+- full booking pages, booking links, or public scheduling surfaces
+- provider write-back flows for create, update, reschedule, or cancellation actions
+- real Microsoft OAuth connect, Microsoft calendar discovery, or Microsoft event sync
 - production hardening such as TLS termination, rate limiting, email delivery, and advanced worker retry policy
 
 ## Docker Deployment
@@ -136,17 +146,42 @@ python -m calsync.cli reset-admin-mfa --identifier admin
 Current admin pages:
 
 - `/admin` for the dashboard, combined feed link, and last sync summary
+- brighter shell navigation with `Home`, `Calendar`, `Connections`, `Availability`, `Trust`, and `Settings`
 - `/admin/problems` for the problem-to-fix inbox that gathers duplicate, sync, and account issues in one place
 - `/admin/review` for trust review, duplicate cleanup, and hidden-copy recovery
 - `/admin/events/{event_id}` for explaining why one copy is visible, hidden, or preferred
 - `/admin/flightboard` for the private Flightboard view of enabled calendar events
-- `/admin/providers` for deployment-wide Google OAuth app settings
-- `/admin/accounts` for mock, Google, and Apple/iCloud account connection
-- `/admin/calendars` for provider calendar enable or disable actions
+- `/admin/providers` for deployment-wide Google OAuth app settings plus the public app URL used by the scheduling-product shell
+- `/admin/accounts` for the new `Connections` experience that groups Google, Microsoft, Apple/iCloud, and mock account onboarding
+- `/admin/calendars` for calendar enable or disable actions plus role assignment for availability and future booking targets
 - `/admin/sync` for sync history and manual sync now actions
 - `/admin/feeds` for combined ICS publishing and token rotation
 
 These pages require admin login plus MFA-backed session establishment.
+
+## Connections And Calendar Roles
+
+CalSync now frames account onboarding as a `Connections` experience rather than a narrow provider-setup page.
+
+Current behavior:
+
+- Google stays on the existing browser-based OAuth path and is presented as the first sign-in flow for scheduling-oriented connections
+- Microsoft appears in the same Connections surface so the product information architecture matches the future scheduling direction, but this slice does not yet ship a real Microsoft OAuth connect flow
+- Apple/iCloud stays on the current CalDAV plus app-specific-password path
+- existing Apple connector rows and stored app-specific passwords are preserved while the shell and account tables are refreshed around them
+- mock account connect remains available for offline testing and validation
+- existing connected accounts stay visible in the Connections table so operators can review status and choose calendars without losing the older Apple data model
+
+CalSync also now stores a per-calendar role:
+
+- `Check availability` means the calendar can inform free or busy calculations
+- `Receive new bookings` maps to a writable booking target
+
+Important constraint:
+
+- a writable booking target is only valid when the connected calendar belongs to a writable provider account
+- read-only accounts continue to offer availability-only behavior and do not expose writable booking targets
+- this slice lays the write-capable foundation, but it does not yet ship booking pages or actual booking writes
 
 ## Event Trust And Cleanup
 
@@ -312,6 +347,12 @@ Apple/iCloud onboarding is available from `/admin/accounts`. Each Apple account 
 
 The Apple integration remains read-only and uses CalDAV discovery before calendars can be enabled for aggregation.
 
+For the write-capable redesign foundation, Apple preservation is explicit:
+
+- existing Apple/iCloud account rows stay intact
+- stored Apple app-specific passwords remain preserved in encrypted storage
+- the shell, Connections table, and calendar-role model are allowed to evolve around the Apple connector without replacing it with a fake Apple OAuth flow
+
 ## Port And Bind Configuration
 
 CalSync is intended to bind on all interfaces by default:
@@ -361,6 +402,8 @@ Restore requires:
 ## Known Limitations
 
 - Google OAuth has a real upstream redirect restriction: raw LAN IP callback URIs are not accepted by Google, even though the CalSync app itself works on LAN IPs.
+- the write-capable scheduling foundation does not yet ship booking pages, booking links, or upstream write-back actions
+- Microsoft is represented honestly as groundwork in the Connections experience and provider configuration path; this slice does not yet ship a real Microsoft OAuth connect flow, calendar discovery, or sync
 - The worker loop is intentionally simple and will be expanded with richer retry and provider-specific error handling in later phases.
 - Apple/iCloud sync currently uses straightforward CalDAV discovery and event retrieval and may need provider-specific hardening for broader production use.
 - Local HTTP mode is suitable for localhost and LAN use, but public internet exposure should add TLS and tighter network controls first.

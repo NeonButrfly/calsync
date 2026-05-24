@@ -160,3 +160,33 @@ def test_docs_cover_ranked_utility_roadmap() -> None:
     assert "#16" in prompt_content
     assert "source confidence" in prompt_content
     assert "connector sdk" in prompt_content
+
+
+def test_docs_cover_write_capable_foundation_slice() -> None:
+    readme_content = Path("README.md").read_text(encoding="utf-8").lower()
+    ops_content = Path("docs/ops.md").read_text(encoding="utf-8").lower()
+    prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()
+
+    assert "connections" in readme_content
+    assert "write-capable scheduling" in readme_content
+    assert "apple connector" in readme_content
+    assert "app-specific password" in readme_content
+    assert "check availability" in readme_content
+    assert "writable booking target" in readme_content
+    assert "writable provider" in readme_content
+    assert "microsoft" in readme_content
+    assert "does not yet ship a real microsoft oauth connect flow" in readme_content
+    assert "scheduling workspace" in readme_content
+
+    assert "connections" in ops_content
+    assert "receive new bookings" in ops_content
+    assert "writable booking target" in ops_content
+    assert "writable provider" in ops_content
+    assert "microsoft sign-in and calendar permissions" in ops_content
+    assert "full booking pages are not shipped in this slice" in ops_content
+
+    assert "#17" in prompt_content
+    assert "write-capable scheduling product" in prompt_content
+    assert "apple connector data" in prompt_content
+    assert "calendar roles" in prompt_content
+    assert "no full booking pages in this slice" in prompt_content
