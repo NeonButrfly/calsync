@@ -310,6 +310,8 @@ def test_dashboard_combined_view_prefers_one_canonical_row_with_source_count(
     with _db_session(authenticated_client) as session:
         source_event = session.scalar(select(Event).where(Event.provider_event_id == "home-standup"))
         assert source_event is not None
+        source_event.starts_at = datetime(2026, 5, 28, 18, 0, tzinfo=UTC)
+        source_event.ends_at = datetime(2026, 5, 28, 18, 30, tzinfo=UTC)
 
         upsert_event(
             session,
@@ -359,6 +361,25 @@ def test_dashboard_renders_sync_and_event_times_in_alaska_time(
     assert response.status_code == 200
     assert "Fri May 15 at 10:00 AM AKST" in response.text
     assert "+00:00" not in response.text
+
+
+def test_dashboard_upcoming_schedule_ignores_ancient_events(
+    authenticated_client: TestClient,
+) -> None:
+    with _db_session(authenticated_client) as session:
+        upcoming_event = session.scalar(
+            select(Event).where(Event.provider_event_id == "home-standup")
+        )
+        assert upcoming_event is not None
+        upcoming_event.title = "Alaska School Leadership Institute 2012"
+        upcoming_event.starts_at = datetime(2012, 5, 28, 20, 0, tzinfo=UTC)
+        upcoming_event.ends_at = datetime(2012, 5, 28, 21, 0, tzinfo=UTC)
+        session.commit()
+
+    response = authenticated_client.get("/admin")
+
+    assert response.status_code == 200
+    assert "Alaska School Leadership Institute 2012" not in response.text
 
 
 @pytest.fixture()
@@ -473,10 +494,11 @@ def test_connecting_mock_provider_creates_account_and_events(
     with _db_session(authenticated_empty_client) as session:
         assert session.query(ProviderAccount).count() == 1
         assert session.query(SyncLog).count() == 1
+        assert session.query(Event).count() > 0
 
     dashboard = authenticated_empty_client.get("/admin")
     assert dashboard.status_code == 200
-    assert "Morning Standup" in dashboard.text
+    assert "Upcoming schedule" in dashboard.text
 
 
 def _db_session(client: TestClient) -> Session:

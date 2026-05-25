@@ -9,9 +9,9 @@ from calsync.models import ProviderAccount, ProviderCalendar, SyncLog
 from calsync.services.reconciliation import (
     DuplicateGroupView,
     collect_trust_metrics,
-    is_event_attention_relevant,
     list_duplicate_groups,
 )
+from calsync.web.timezones import format_display_datetime
 
 
 @dataclass
@@ -265,8 +265,7 @@ def _build_duplicate_source_label(
         (event for event in duplicate_group.events if event.id == duplicate_group.group.preferred_event_id),
         duplicate_group.events[0],
     )
-    starts_at = preferred_event.starts_at
-    when = f"{starts_at.strftime('%a %b')} {starts_at.day} at {starts_at.strftime('%I:%M %p').lstrip('0')} UTC"
+    when = format_display_datetime(preferred_event.starts_at)
     return f"{when} · {_account_label(session, preferred_event)}"
 
 

@@ -26,6 +26,9 @@ ADMIN_SESSION_KEY = "admin_session"
 _TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
 _templates = Jinja2Templates(directory=str(_TEMPLATE_DIR))
 _templates.env.filters["alaska_datetime"] = format_display_datetime
+_templates.env.globals["asset_version"] = str(
+    int((Path(__file__).resolve().parent / "static" / "app.css").stat().st_mtime)
+)
 
 
 def get_templates() -> Jinja2Templates:

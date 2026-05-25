@@ -35,7 +35,11 @@ def dashboard_page(
     latest_sync = session.scalar(
         select(SyncLog).order_by(SyncLog.started_at.desc(), SyncLog.id.desc())
     )
-    upcoming_events = list_canonical_events(session, limit=8)
+    upcoming_events = list_canonical_events(
+        session,
+        limit=8,
+        current_and_upcoming_only=True,
+    )
     context = {
         "current_admin": current_admin,
         "account_count": account_count,

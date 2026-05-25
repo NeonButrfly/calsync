@@ -182,6 +182,7 @@ Practical verification points:
 - `/admin/calendars` shows `Check availability` for connected calendars
 - `/admin/calendars` shows inline helper text and select tooltips explaining what each calendar role means
 - `/admin/calendars` only shows `Receive new bookings` when the provider account supports writable booking targets
+- if the shell layout looks wrong after a deploy, confirm the browser picked up the cache-busted `app.css?v=...` URL instead of an older stylesheet
 - existing Apple/iCloud accounts remain visible in the connected-accounts table after the shell refresh
 
 ## Trust Review Operator Notes
@@ -226,6 +227,7 @@ Behavior:
 - duplicate items explain which copy CalSync currently recommends keeping
 - duplicate items show which exact account and calendar copy CalSync currently recommends keeping and which connected sources are involved
 - stale historical duplicates stay in the local reference store, but the active inbox ignores old lookback noise outside the current attention window
+- trust-facing dates show the year whenever an item is not from the current year
 - returns `Sync now` actions back to the problem inbox so the operator can keep working from one page
 
 Practical verification points:

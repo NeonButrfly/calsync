@@ -570,3 +570,26 @@
 - `/admin/calendars` now includes helper copy and tooltip-backed role explanations
 - `/admin/problems` now offers exact-copy actions like keeping a specific Google or Apple calendar copy
 - trust review and the problem inbox ignore stale duplicate history outside the active attention window
+
+---
+
+- GitHub issue: `#27`
+- Scope: fix shell cache regression and remove stale-event leakage from active schedule surfaces
+
+## Interpreted Requirements
+
+- the live shell should not break because browsers cached an older stylesheet while the HTML changed
+- the dashboard `Upcoming schedule` should only show current and upcoming items, not ancient history from many years ago
+- trust-facing dates should show the year whenever an item is not from the current year so stale history is obvious
+
+## Behavioral Boundaries
+
+- old events remain stored locally for feeds and reference workflows
+- only active schedule and trust-attention surfaces should stop treating ancient events as current work
+- the CSS fix should be cache-safe rather than relying on operators to hard refresh manually
+
+## Phase Notes
+
+- issue `#27` adds stylesheet cache busting through an asset-version query string
+- dashboard upcoming rows now filter out events whose end time is already in the past
+- Alaska display formatting now includes the year for non-current-year dates

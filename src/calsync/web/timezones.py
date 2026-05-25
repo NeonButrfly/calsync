@@ -31,7 +31,8 @@ def format_display_datetime(
     # Keep the displayed clock adjusted to Alaska local time while using one
     # stable operator-facing label instead of mixing seasonal abbreviations.
     timezone_label = "AKST"
+    year_suffix = f', {local_value.year}' if local_value.year != datetime.now(UTC).astimezone(ALASKA_TIMEZONE).year else ""
     return (
         f"{local_value.strftime('%a')} {local_value.strftime('%b')} "
-        f"{local_value.day} at {time_text} {timezone_label}"
+        f"{local_value.day}{year_suffix} at {time_text} {timezone_label}"
     )

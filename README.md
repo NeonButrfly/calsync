@@ -183,6 +183,7 @@ Current behavior:
 - mock account connect remains available for offline testing and validation
 - existing connected accounts stay visible in the Connections table so operators can review status and choose calendars without losing the older Apple data model
 - the `Availability` page now explains each calendar role with inline helper copy and select tooltips so operators can understand what a setting means before saving it
+- the shared stylesheet now carries an asset-version query string so browsers refresh the shell correctly after deploys instead of mixing new HTML with stale CSS
 
 CalSync also now stores a per-calendar role:
 
@@ -215,6 +216,7 @@ Current behavior:
 - `Explain this event` opens `/admin/events/{event_id}` so you can see grouped copies, visibility state, and the latest sync context for that appointment
 - hidden duplicate decisions survive later refreshes instead of being lost on the next sync
 - older historical events stay in the local reference store, but duplicate review and the problem inbox now ignore stale lookback noise outside the active attention window so ancient appointments do not keep resurfacing
+- trust-facing dates now include the year whenever an item is outside the current year, making old history obvious at a glance
 
 Current limits:
 

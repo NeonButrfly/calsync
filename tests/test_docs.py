@@ -190,6 +190,22 @@ def test_docs_cover_sidebar_availability_help_and_trust_attention_window() -> No
     assert "exact connected calendar copy" in prompt_content
 
 
+def test_docs_cover_cache_busting_and_non_current_year_dates() -> None:
+    readme_content = Path("README.md").read_text(encoding="utf-8").lower()
+    ops_content = Path("docs/ops.md").read_text(encoding="utf-8").lower()
+    prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()
+
+    assert "asset-version query string" in readme_content
+    assert "outside the current year" in readme_content
+
+    assert "cache-busted `app.css?v=...` url" in ops_content
+    assert "trust-facing dates show the year" in ops_content
+
+    assert "#27" in prompt_content
+    assert "stylesheet cache busting" in prompt_content
+    assert "upcoming schedule" in prompt_content
+
+
 def test_docs_cover_ranked_utility_roadmap() -> None:
     readme_content = Path("README.md").read_text(encoding="utf-8").lower()
     prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()

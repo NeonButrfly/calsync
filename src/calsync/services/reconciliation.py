@@ -91,10 +91,19 @@ def rebuild_duplicate_groups(session: Session) -> list[EventGroup]:
     return created_groups
 
 
-def list_canonical_events(session: Session, *, limit: int | None = None) -> list[CanonicalEventView]:
+def list_canonical_events(
+    session: Session,
+    *,
+    limit: int | None = None,
+    current_and_upcoming_only: bool = False,
+    reference_time: datetime | None = None,
+) -> list[CanonicalEventView]:
     candidate_events = _list_candidate_events(session)
     grouped_counts: dict[str, int] = {}
     active_views: list[CanonicalEventView] = []
+
+    if reference_time is None:
+        reference_time = datetime.now(UTC)
 
     for event in candidate_events:
         group_key = event.canonical_group_id or event.id
@@ -102,6 +111,8 @@ def list_canonical_events(session: Session, *, limit: int | None = None) -> list
 
     for event in candidate_events:
         if event.event_visibility_state != "active":
+            continue
+        if current_and_upcoming_only and event.ends_at < reference_time:
             continue
         group_key = event.canonical_group_id or event.id
         active_views.append(
