@@ -30,8 +30,8 @@ def review_page(
     current_admin: AdminUser = Depends(require_admin),
 ):
     rebuild_duplicate_groups(session)
-    metrics = collect_trust_metrics(session)
-    duplicate_groups = list_duplicate_groups(session)
+    metrics = collect_trust_metrics(session, attention_only=True)
+    duplicate_groups = list_duplicate_groups(session, attention_only=True)
     session.commit()
     return templates.TemplateResponse(
         request,

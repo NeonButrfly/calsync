@@ -170,6 +170,26 @@ def test_docs_cover_trust_ux_and_auth_refresh() -> None:
     assert "preferred-copy guidance" in prompt_content
 
 
+def test_docs_cover_sidebar_availability_help_and_trust_attention_window() -> None:
+    readme_content = Path("README.md").read_text(encoding="utf-8").lower()
+    ops_content = Path("docs/ops.md").read_text(encoding="utf-8").lower()
+    prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()
+
+    assert "persistent left sidebar" in readme_content
+    assert "inline helper copy and select tooltips" in readme_content
+    assert "ignore stale lookback noise" in readme_content
+    assert "exact connected copy" in readme_content
+
+    assert "persistent left sidebar" in ops_content
+    assert "select tooltips" in ops_content
+    assert "active inbox ignores old lookback noise" in ops_content
+
+    assert "#26" in prompt_content
+    assert "tooltip" in prompt_content
+    assert "sidebar" in prompt_content
+    assert "exact connected calendar copy" in prompt_content
+
+
 def test_docs_cover_ranked_utility_roadmap() -> None:
     readme_content = Path("README.md").read_text(encoding="utf-8").lower()
     prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()

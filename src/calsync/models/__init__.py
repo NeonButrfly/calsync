@@ -20,7 +20,7 @@ class Base(DeclarativeBase):
 
 from .admin import AdminUser
 from .app_state import AppState
-from .events import Event
+from .events import EVENT_VISIBILITY_STATES, Event
 from .provider_configurations import ProviderConfiguration
 from .providers import ProviderAccount, ProviderCalendar, SyncLog
 from .publishing import PublishedFeed
@@ -45,6 +45,7 @@ __all__ = [
     "CALENDAR_ROLE_WRITABLE_BOOKING_TARGET",
     "CALENDAR_ROLES",
     "Event",
+    "EVENT_VISIBILITY_STATES",
     "EventGroup",
     "ProviderConfiguration",
     "ProviderAccount",

@@ -35,6 +35,14 @@ CALENDAR_ROLE_OPTIONS = (
     (CALENDAR_ROLE_HIDDEN, "Hidden"),
 )
 
+CALENDAR_ROLE_HELP = {
+    CALENDAR_ROLE_AVAILABILITY_ONLY: "Check availability helps CalSync avoid collisions while keeping the calendar read-only.",
+    CALENDAR_ROLE_CONFLICT_ONLY: "Conflict checking only watches this calendar for overlaps without using it as a preferred personal source.",
+    CALENDAR_ROLE_WRITABLE_BOOKING_TARGET: "Receive new bookings means CalSync can write new appointments here when provider write-back is supported.",
+    CALENDAR_ROLE_PERSONAL_REFERENCE: "Personal reference keeps the calendar visible for context without using it for booking writes.",
+    CALENDAR_ROLE_HIDDEN: "Hidden keeps the calendar connected but removes it from normal scheduling views.",
+}
+
 
 def _calendar_role_options_for_calendar(
     account: ProviderAccount,
@@ -69,10 +77,17 @@ def calendars_page(
         {
             "current_admin": current_admin,
             "accounts": accounts,
+            "calendar_role_help": CALENDAR_ROLE_HELP,
             "calendar_role_options_by_calendar": {
                 calendar.id: _calendar_role_options_for_calendar(account, calendar)
                 for account in accounts
                 for calendar in account.calendars
+            },
+            "provider_names": {
+                "google": "Google",
+                "icloud_caldav": "Apple Calendar",
+                "microsoft": "Outlook / Microsoft 365",
+                "mock": "Mock provider",
             },
         },
     )

@@ -25,8 +25,9 @@ and what CalSync knows about the latest sync behind it.
     <dl class="explain-metadata">
       <div><dt>When</dt><dd>{{ event_view.event.starts_at | alaska_datetime }}</dd></div>
       <div><dt>Location</dt><dd>{{ event_view.event.location or "Location pending" }}</dd></div>
-      <div><dt>Provider</dt><dd>{{ event_view.event.provider_type }} · {{ event_view.event.provider_account_id }}</dd></div>
-      <div><dt>Calendar</dt><dd>{{ event_view.event.provider_calendar_id }}</dd></div>
+      <div><dt>Provider</dt><dd>{{ event_view.current_copy.provider_label }}</dd></div>
+      <div><dt>Account</dt><dd>{{ event_view.current_copy.account_label }}</dd></div>
+      <div><dt>Calendar</dt><dd>{{ event_view.current_copy.calendar_label }}</dd></div>
       <div><dt>Visibility</dt><dd>{{ event_view.event.event_visibility_state | replace("_", " ") | title }}</dd></div>
     </dl>
   </article>
@@ -38,7 +39,7 @@ and what CalSync knows about the latest sync behind it.
       <li class="review-event-card">
         <div class="review-event-main">
           <strong>{{ copy.title }}</strong>
-          <span class="subtle">{{ copy.provider_type }} · {{ copy.provider_account_id }} · {{ copy.provider_calendar_id }}</span>
+          <span class="subtle">{{ copy.provider_label }} · {{ copy.account_label }} · {{ copy.calendar_label }}</span>
           <span class="subtle">Visibility: {{ copy.visibility_state }}</span>
         </div>
         {% if copy.is_preferred %}

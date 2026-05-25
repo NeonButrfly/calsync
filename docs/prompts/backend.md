@@ -542,3 +542,31 @@
 - issue `#25` updates the shared shell, dashboard framing, login page, and MFA challenge styling together
 - the new auth layout is centered and card-based
 - the shell keeps the write-capable product framing while reducing the transitional admin-tool feel
+
+---
+
+- GitHub issue: `#26`
+- Scope: refine calendars UX, trust attention horizon, and duplicate-copy specificity
+
+## Interpreted Requirements
+
+- the `Availability` page should feel cleaner and easier to scan than the earlier dense table layout
+- the navigation shell should move from little top tiles into a cleaner sidebar-driven product layout
+- calendar-role selects should explain what each setting means with inline helper text and a tooltip
+- duplicate review and the problem inbox should stop treating ancient historical events as active trust work
+- trust actions should name the exact connected calendar copy being kept instead of only saying `Keep Google copy`
+- event explain and trust detail surfaces should prefer useful account and calendar labels over raw identifiers
+
+## Behavioral Boundaries
+
+- historical events remain in the local event store for reference and feeds
+- the tighter trust attention window only changes what surfaces as active cleanup work
+- duplicate resolution remains a local preference or visibility decision, not a provider write-back move
+
+## Phase Notes
+
+- issue `#26` builds on the trust and shell refresh work from issues `#24` and `#25`
+- the shell now uses a persistent left sidebar instead of tile-style top navigation
+- `/admin/calendars` now includes helper copy and tooltip-backed role explanations
+- `/admin/problems` now offers exact-copy actions like keeping a specific Google or Apple calendar copy
+- trust review and the problem inbox ignore stale duplicate history outside the active attention window

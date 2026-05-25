@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pyotp
@@ -185,8 +186,8 @@ def test_problem_page_lists_provider_specific_duplicate_actions(tmp_path: Path) 
         response = client.get("/admin/problems")
 
     assert response.status_code == 200
-    assert "Keep Google copy" in response.text
-    assert "Keep iCloud copy" in response.text
+    assert "Keep Google copy from google-primary" in response.text
+    assert "Keep Apple copy from icloud-family" in response.text
     assert "Show all copies" in response.text
     assert "Explain this event" in response.text
     assert "Preferred now" in response.text
@@ -205,8 +206,8 @@ def test_problem_page_lists_provider_specific_duplicate_actions(tmp_path: Path) 
     assert icloud_copy_id is not None
     assert preferred_event_id is not None
     assert hidden_event is not None
-    assert f'<form method="post" action="/admin/problems/actions/event/{preferred_event_id}/provider/google">' in response.text
-    assert f'<form method="post" action="/admin/problems/actions/event/{preferred_event_id}/provider/icloud_caldav">' in response.text
+    assert f'<form method="post" action="/admin/problems/actions/event/{google_copy_id}/prefer">' in response.text
+    assert f'<form method="post" action="/admin/problems/actions/event/{icloud_copy_id}/prefer">' in response.text
     assert f'<form method="post" action="/admin/problems/actions/event/{preferred_event_id}/show-both">' in response.text
     assert f'<a class="button-link button-link--secondary" href="/admin/events/{preferred_event_id}">Explain this event</a>' in response.text
 
@@ -225,7 +226,7 @@ def test_problem_page_hides_provider_specific_action_when_provider_copy_missing(
         response = client.get("/admin/problems")
 
     assert response.status_code == 200
-    assert "Keep Google copy" not in response.text
+    assert "Keep Google copy from" not in response.text
 
 
 def test_problem_page_sync_action_retries_account_and_returns_to_inbox(tmp_path: Path) -> None:
@@ -266,7 +267,6 @@ def test_problem_page_can_keep_google_copy(tmp_path: Path) -> None:
 
         with _db_session(client) as session:
             duplicate_group = list_duplicate_groups(session)[0]
-            preferred_event_id = duplicate_group.group.preferred_event_id
             google_copy = session.scalar(
                 select(Event).where(
                     Event.canonical_group_id == duplicate_group.group.id,
@@ -274,11 +274,10 @@ def test_problem_page_can_keep_google_copy(tmp_path: Path) -> None:
                 )
             )
             anchor_id = duplicate_group.anchor_id
-            assert preferred_event_id is not None
             assert google_copy is not None
 
         response = client.post(
-            f"/admin/problems/actions/event/{preferred_event_id}/provider/google",
+            f"/admin/problems/actions/event/{google_copy.id}/prefer",
             follow_redirects=False,
         )
 
@@ -289,6 +288,53 @@ def test_problem_page_can_keep_google_copy(tmp_path: Path) -> None:
             refreshed_google = session.get(Event, google_copy.id)
             assert refreshed_google is not None
             assert refreshed_google.event_visibility_state == "active"
+
+
+def test_problem_page_ignores_stale_duplicate_history_outside_attention_window(tmp_path: Path) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client)
+
+        old_start = datetime.now(UTC) - timedelta(days=120)
+        old_end = old_start + timedelta(hours=1)
+
+        with _db_session(client) as session:
+            upsert_event(
+                session,
+                {
+                    "provider_type": "google",
+                    "provider_account_id": "old-google@example.com",
+                    "provider_calendar_id": "old-google-cal",
+                    "provider_event_id": "old-duplicate-a",
+                    "title": "Ancient Dentist Appointment",
+                    "starts_at": old_start,
+                    "ends_at": old_end,
+                    "all_day": False,
+                    "status": "confirmed",
+                    "source_payload": {"seed": "old-duplicate-a"},
+                },
+            )
+            upsert_event(
+                session,
+                {
+                    "provider_type": "icloud_caldav",
+                    "provider_account_id": "old-icloud@example.com",
+                    "provider_calendar_id": "old-icloud-cal",
+                    "provider_event_id": "old-duplicate-b",
+                    "title": "Ancient Dentist Appointment",
+                    "starts_at": old_start,
+                    "ends_at": old_end,
+                    "all_day": False,
+                    "status": "confirmed",
+                    "source_payload": {"seed": "old-duplicate-b"},
+                },
+            )
+            rebuild_duplicate_groups(session)
+            session.commit()
+
+        response = client.get("/admin/problems")
+
+    assert response.status_code == 200
+    assert "Ancient Dentist Appointment" not in response.text
 
 
 def test_problem_page_show_all_action_restores_hidden_duplicates_and_lands_on_stable_anchor(tmp_path: Path) -> None:

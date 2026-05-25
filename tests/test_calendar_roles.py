@@ -375,6 +375,8 @@ def test_calendars_page_does_not_offer_writable_booking_target_for_read_only_acc
     response = authenticated_read_only_calendar_client.get("/admin/calendars")
 
     assert response.status_code == 200
+    assert "Choose how CalSync should use each calendar" in response.text
+    assert "Check availability helps CalSync avoid collisions." in response.text
     assert "What this calendar is for" in response.text
     assert "Check availability" in response.text
     assert "Conflict checking only" in response.text

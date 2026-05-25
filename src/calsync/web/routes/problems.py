@@ -59,24 +59,20 @@ def problem_sync_now(
     return RedirectResponse(url="/admin/problems", status_code=303)
 
 
-@router.post("/actions/event/{event_id}/provider/{provider_type}")
-def problem_prefer_provider_copy(
+@router.post("/actions/event/{event_id}/prefer")
+def problem_prefer_exact_copy(
     event_id: str,
-    provider_type: str,
     session: Session = Depends(get_db),
     _: AdminUser = Depends(require_admin),
 ):
-    event = session.get(Event, event_id)
-    if event is None or not event.canonical_group_id:
+    selected_event = session.get(Event, event_id)
+    if selected_event is None or not selected_event.canonical_group_id:
         raise HTTPException(status_code=404, detail="Duplicate event group not found.")
 
-    group_events = list_group_events(session, event.canonical_group_id)
-    provider_event = next((candidate for candidate in group_events if candidate.provider_type == provider_type), None)
-    if provider_event is None:
-        raise HTTPException(status_code=404, detail="Provider copy not found in duplicate group.")
+    group_events = list_group_events(session, selected_event.canonical_group_id)
 
     try:
-        prefer_event_in_group(session, event.canonical_group_id, provider_event.id)
+        prefer_event_in_group(session, selected_event.canonical_group_id, selected_event.id)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     session.commit()

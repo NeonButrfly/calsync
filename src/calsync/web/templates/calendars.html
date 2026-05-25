@@ -2,56 +2,148 @@
 
 {% block title %}CalSync Calendars{% endblock %}
 {% block page_title %}Calendars{% endblock %}
+{% block page_summary %}
+Choose how CalSync should use each calendar, keep availability clean, and make
+sure only the right calendars stay active in the scheduling graph.
+{% endblock %}
 
 {% block content %}
 <section class="stack">
+  <article class="panel panel--soft">
+    <div class="panel-heading">
+      <div>
+        <h2>Choose how CalSync should use each calendar</h2>
+        <p class="subtle">
+          Keep only the calendars you care about active, then assign each one a
+          role so CalSync knows whether it should check availability, keep the
+          calendar as reference, or eventually target it for booking writes.
+        </p>
+      </div>
+    </div>
+    <div class="role-guide">
+      <article class="role-guide__card">
+        <strong>Check availability</strong>
+        <p>Check availability helps CalSync avoid collisions.</p>
+      </article>
+      <article class="role-guide__card">
+        <strong>Conflict checking only</strong>
+        <p>Use this when the calendar matters for busy time but should not shape personal scheduling decisions.</p>
+      </article>
+      <article class="role-guide__card">
+        <strong>Personal reference</strong>
+        <p>Keep the calendar visible for context without letting it drive booking decisions.</p>
+      </article>
+      <article class="role-guide__card">
+        <strong>Hidden</strong>
+        <p>Keep the connection but remove the calendar from normal scheduling views.</p>
+      </article>
+    </div>
+  </article>
+
   {% for account in accounts %}
-  <article class="panel">
-    <h2>{{ account.display_name or account.provider_account_id }}</h2>
-    <p class="subtle">{{ account.provider_type }} account</p>
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Calendar</th>
-          <th>Timezone</th>
-          <th>Status</th>
-          <th>What this calendar is for</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for calendar in account.calendars | sort(attribute="provider_calendar_id") %}
-        <tr>
-          <td>{{ calendar.name or calendar.provider_calendar_id }}</td>
-          <td>{{ calendar.timezone or "Unknown" }}</td>
-          <td>{{ "Enabled" if calendar.enabled else "Disabled" }}</td>
-          <td>
-            <form method="post" action="/admin/calendars/{{ calendar.id }}/role">
-              <select id="calendar-role-{{ calendar.id }}" name="calendar_role">
-                {% for role_value, role_label in calendar_role_options_by_calendar[calendar.id] %}
-                <option value="{{ role_value }}" {% if calendar.calendar_role == role_value %}selected{% endif %}>
-                  {{ role_label }}
-                </option>
-                {% endfor %}
-              </select>
-              <button type="submit">Save role</button>
-            </form>
-          </td>
-          <td>
-            <form method="post" action="/admin/calendars/{{ calendar.id }}/toggle">
-              <button type="submit">{{ "Disable" if calendar.enabled else "Enable" }}</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <article class="panel account-calendar-panel">
+    <header class="account-calendar-panel__header">
+      <div>
+        <h2>{{ account.display_name or account.provider_account_id }}</h2>
+        <p class="subtle">
+          {{ provider_names.get(account.provider_type, account.provider_type) }}
+          ·
+          {{ account.calendars | length }} calendar{{ "" if account.calendars|length == 1 else "s" }}
+        </p>
+      </div>
+      <div class="account-calendar-panel__meta">
+        <span class="review-chip">{{ "Writable account" if account.can_write else "Read-only account" }}</span>
+      </div>
+    </header>
+
+    <div class="calendar-table-wrap">
+      <table class="data-table data-table--calendars">
+        <thead>
+          <tr>
+            <th>Calendar</th>
+            <th>Timezone</th>
+            <th>Status</th>
+            <th>What this calendar is for</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for calendar in account.calendars | sort(attribute="provider_calendar_id") %}
+          <tr>
+            <td data-label="Calendar">
+              <div class="calendar-name-cell">
+                <strong>{{ calendar.name or calendar.provider_calendar_id }}</strong>
+                <span class="subtle">{{ calendar.provider_calendar_id }}</span>
+              </div>
+            </td>
+            <td data-label="Timezone">{{ calendar.timezone or "Unknown" }}</td>
+            <td data-label="Status">
+              <span class="status-pill {{ 'status-pill--active' if calendar.enabled else 'status-pill--muted' }}">
+                {{ "Enabled" if calendar.enabled else "Disabled" }}
+              </span>
+            </td>
+            <td data-label="What this calendar is for">
+              <form method="post" action="/admin/calendars/{{ calendar.id }}/role" class="calendar-role-form">
+                <div class="calendar-role-form__row">
+                  <select
+                    id="calendar-role-{{ calendar.id }}"
+                    name="calendar_role"
+                    data-role-select
+                    data-help-target="calendar-role-help-{{ calendar.id }}"
+                    title="{{ calendar_role_help[calendar.calendar_role] }}"
+                  >
+                    {% for role_value, role_label in calendar_role_options_by_calendar[calendar.id] %}
+                    <option
+                      value="{{ role_value }}"
+                      data-help="{{ calendar_role_help[role_value] }}"
+                      {% if calendar.calendar_role == role_value %}selected{% endif %}
+                    >
+                      {{ role_label }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="secondary-button">Save role</button>
+                </div>
+                <p id="calendar-role-help-{{ calendar.id }}" class="calendar-role-help">
+                  {{ calendar_role_help[calendar.calendar_role] }}
+                </p>
+              </form>
+            </td>
+            <td data-label="Action">
+              <form method="post" action="/admin/calendars/{{ calendar.id }}/toggle">
+                <button type="submit">{{ "Disable" if calendar.enabled else "Enable" }}</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </article>
   {% else %}
   <article class="panel">
     <h2>No connected accounts yet</h2>
-    <p>Connect a mock, Google, or Apple/iCloud account from the Accounts page to start discovering calendars for aggregation.</p>
+    <p>Connect a mock, Google, Microsoft, or Apple/iCloud account from the Connections page to start discovering calendars for aggregation.</p>
   </article>
   {% endfor %}
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  for (const select of document.querySelectorAll("[data-role-select]")) {
+    const targetId = select.getAttribute("data-help-target");
+    const target = targetId ? document.getElementById(targetId) : null;
+    const updateHelp = () => {
+      const selectedOption = select.options[select.selectedIndex];
+      const helpText = selectedOption?.dataset.help || "";
+      select.title = helpText;
+      if (target) {
+        target.textContent = helpText;
+      }
+    };
+    select.addEventListener("change", updateHelp);
+    updateHelp();
+  }
+</script>
 {% endblock %}

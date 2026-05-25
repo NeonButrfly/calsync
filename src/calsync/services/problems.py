@@ -5,10 +5,11 @@ from dataclasses import dataclass, field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from calsync.models import ProviderAccount, SyncLog
+from calsync.models import ProviderAccount, ProviderCalendar, SyncLog
 from calsync.services.reconciliation import (
     DuplicateGroupView,
     collect_trust_metrics,
+    is_event_attention_relevant,
     list_duplicate_groups,
 )
 
@@ -39,7 +40,7 @@ class ProblemItem:
 def list_operator_problems(session: Session) -> list[ProblemItem]:
     problems: list[ProblemItem] = []
 
-    duplicate_groups = list_duplicate_groups(session)
+    duplicate_groups = list_duplicate_groups(session, attention_only=True)
     for duplicate_group in duplicate_groups:
         preferred_event = next(
             (event for event in duplicate_group.events if event.id == duplicate_group.group.preferred_event_id),
@@ -50,20 +51,20 @@ def list_operator_problems(session: Session) -> list[ProblemItem]:
                 id=duplicate_group.anchor_id,
                 category="duplicate",
                 severity="medium",
-                title="Possible duplicate appointment",
+                title=f"Possible duplicate appointment: {duplicate_group.group.display_title}",
                 summary=(
-                    f"{duplicate_group.group.display_title} looks like the same appointment in "
-                    f"{len(duplicate_group.events)} synced copies."
+                    f"{duplicate_group.group.display_title} appears in {len(duplicate_group.events)} "
+                    f"calendar copies around the same time."
                 ),
-                source_label=f"{preferred_event.provider_type} · {preferred_event.provider_account_id}",
+                source_label=_build_duplicate_source_label(session, duplicate_group),
                 primary_action=ProblemAction(
                     label="Resolve duplicate",
                     target=f"/admin/review#{duplicate_group.anchor_id}",
                 ),
-                extra_actions=_duplicate_problem_actions(duplicate_group),
+                extra_actions=_duplicate_problem_actions(session, duplicate_group),
                 event_id=duplicate_group.group.preferred_event_id,
-                preferred_label=_build_duplicate_preferred_label(preferred_event),
-                context_lines=_build_duplicate_context_lines(duplicate_group),
+                preferred_label=_build_duplicate_preferred_label(session, preferred_event),
+                context_lines=_build_duplicate_context_lines(session, duplicate_group),
             )
         )
 
@@ -83,7 +84,7 @@ def count_operator_problems(session: Session) -> int:
 
 
 def build_problem_summary(session: Session) -> dict[str, int]:
-    trust_metrics = collect_trust_metrics(session)
+    trust_metrics = collect_trust_metrics(session, attention_only=True)
     problems = list_operator_problems(session)
     return {
         "problem_count": len(problems),
@@ -200,24 +201,19 @@ def _problem_sort_key(problem: ProblemItem) -> tuple[int, str, str]:
     return (severity_rank, problem.category, problem.title)
 
 
-def _duplicate_problem_actions(duplicate_group: DuplicateGroupView) -> list[ProblemAction]:
+def _duplicate_problem_actions(
+    session: Session,
+    duplicate_group: DuplicateGroupView,
+) -> list[ProblemAction]:
     actions: list[ProblemAction] = []
 
-    provider_actions = {
-        "google": "Keep Google copy",
-        "icloud_caldav": "Keep iCloud copy",
-    }
-    for provider_type, label in provider_actions.items():
-        matching_event = next(
-            (event for event in duplicate_group.events if event.provider_type == provider_type),
-            None,
-        )
-        if matching_event is None:
+    for event in duplicate_group.events:
+        if event.id == duplicate_group.group.preferred_event_id:
             continue
         actions.append(
             ProblemAction(
-                label=label,
-                target=f"/admin/problems/actions/event/{duplicate_group.group.preferred_event_id}/provider/{provider_type}",
+                label=f"Keep {_format_event_copy_label(session, event)}",
+                target=f"/admin/problems/actions/event/{event.id}/prefer",
                 method="post",
             )
         )
@@ -243,24 +239,70 @@ def _duplicate_problem_actions(duplicate_group: DuplicateGroupView) -> list[Prob
     return actions
 
 
-def _build_duplicate_preferred_label(preferred_event) -> str:
-    provider_name = {
+def _build_duplicate_preferred_label(session: Session, preferred_event) -> str:
+    provider_name = _friendly_provider_name(preferred_event.provider_type)
+    return (
+        f"CalSync recommends keeping the {provider_name} copy from "
+        f"{_account_label(session, preferred_event)} · {_calendar_label(session, preferred_event)}."
+    )
+
+
+def _build_duplicate_context_lines(
+    session: Session,
+    duplicate_group: DuplicateGroupView,
+) -> list[str]:
+    providers = []
+    for event in duplicate_group.events:
+        providers.append(_format_event_context_line(session, event))
+    return providers
+
+
+def _build_duplicate_source_label(
+    session: Session,
+    duplicate_group: DuplicateGroupView,
+) -> str:
+    preferred_event = next(
+        (event for event in duplicate_group.events if event.id == duplicate_group.group.preferred_event_id),
+        duplicate_group.events[0],
+    )
+    starts_at = preferred_event.starts_at
+    when = f"{starts_at.strftime('%a %b')} {starts_at.day} at {starts_at.strftime('%I:%M %p').lstrip('0')} UTC"
+    return f"{when} · {_account_label(session, preferred_event)}"
+
+
+def _format_event_copy_label(session: Session, event) -> str:
+    provider_name = _friendly_provider_name(event.provider_type)
+    calendar_label = _calendar_label(session, event)
+    return f"{provider_name} copy from {calendar_label}"
+
+
+def _format_event_context_line(session: Session, event) -> str:
+    provider_name = _friendly_provider_name(event.provider_type)
+    account_label = _account_label(session, event)
+    calendar_label = _calendar_label(session, event)
+    return f"{provider_name}: {account_label} - {calendar_label}"
+
+
+def _friendly_provider_name(provider_type: str) -> str:
+    return {
         "google": "Google",
         "icloud_caldav": "Apple",
         "microsoft": "Microsoft",
         "mock": "Mock",
-    }.get(preferred_event.provider_type, preferred_event.provider_type.replace("_", " ").title())
-    return f"CalSync recommends keeping the {provider_name} copy right now."
+    }.get(provider_type, provider_type.replace("_", " ").title())
 
 
-def _build_duplicate_context_lines(duplicate_group: DuplicateGroupView) -> list[str]:
-    providers = []
-    for event in duplicate_group.events:
-        label = {
-            "google": "Google",
-            "icloud_caldav": "Apple",
-            "microsoft": "Microsoft",
-            "mock": "Mock",
-        }.get(event.provider_type, event.provider_type.replace("_", " ").title())
-        providers.append(f"{label}: {event.provider_account_id}")
-    return providers
+def _account_label(session: Session, event) -> str:
+    if event.provider_account_pk:
+        account = session.get(ProviderAccount, event.provider_account_pk)
+        if account is not None and account.display_name:
+            return account.display_name
+    return event.provider_account_id
+
+
+def _calendar_label(session: Session, event) -> str:
+    if event.provider_calendar_pk:
+        calendar = session.get(ProviderCalendar, event.provider_calendar_pk)
+        if calendar is not None and calendar.name:
+            return calendar.name
+    return event.provider_calendar_id

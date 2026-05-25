@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -217,6 +217,47 @@ def test_review_page_restore_single_duplicate_redirects_to_group_anchor(tmp_path
 
         assert response.status_code == 303
         assert response.headers["location"] == f"/admin/review#{anchor_id}"
+
+
+def test_review_page_ignores_old_duplicate_history_outside_attention_window(tmp_path: Path) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client)
+
+        old_start = datetime.now(UTC) - timedelta(days=120)
+        old_end = old_start + timedelta(hours=1)
+
+        with _db_session(client) as session:
+            upsert_event(
+                session,
+                _make_event(
+                    provider_type="google",
+                    provider_account_id="old-google@example.com",
+                    provider_calendar_id="old-google-cal",
+                    provider_event_id="evt-old-google",
+                    title="Old Cleanup Case",
+                    starts_at=old_start,
+                    ends_at=old_end,
+                ),
+            )
+            upsert_event(
+                session,
+                _make_event(
+                    provider_type="icloud_caldav",
+                    provider_account_id="old-icloud@example.com",
+                    provider_calendar_id="old-icloud-cal",
+                    provider_event_id="evt-old-icloud",
+                    title="Old Cleanup Case",
+                    starts_at=old_start,
+                    ends_at=old_end,
+                ),
+            )
+            rebuild_duplicate_groups(session)
+            session.commit()
+
+        response = client.get("/admin/review")
+
+    assert response.status_code == 200
+    assert "Old Cleanup Case" not in response.text
 
 
 def _db_session(client: TestClient) -> Session:

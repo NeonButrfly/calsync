@@ -27,7 +27,7 @@ def dashboard_page(
 ):
     rebuild_duplicate_groups(session)
     combined_feed = ensure_combined_feed(session)
-    trust_metrics = collect_trust_metrics(session)
+    trust_metrics = collect_trust_metrics(session, attention_only=True)
     problem_summary = build_problem_summary(session)
     session.commit()
 

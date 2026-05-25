@@ -33,6 +33,7 @@ Implemented today:
 - protected provider settings and connected-accounts pages for mock, Google, and Apple onboarding
 - separate `web`, `worker`, and `db` services for Docker deployment
 - brighter shell navigation that frames the app as `Home`, `Calendar`, `Connections`, `Availability`, `Trust`, and `Settings`
+- a persistent left sidebar replaces the older tile-style navigation so the main product areas stay visible without crowding the page body
 - a `Connections` experience on `/admin/accounts` that keeps Google, Microsoft, Apple, and mock onboarding in one scheduling-product surface
 - calendar roles so each discovered calendar can be marked for `Check availability` or, when supported, `Receive new bookings`
 - writable booking targets blocked for read-only provider accounts so booking writes cannot be assigned silently to the wrong calendar
@@ -181,6 +182,7 @@ Current behavior:
 - existing Apple connector rows and stored app-specific passwords are preserved while the shell and account tables are refreshed around them
 - mock account connect remains available for offline testing and validation
 - existing connected accounts stay visible in the Connections table so operators can review status and choose calendars without losing the older Apple data model
+- the `Availability` page now explains each calendar role with inline helper copy and select tooltips so operators can understand what a setting means before saving it
 
 CalSync also now stores a per-calendar role:
 
@@ -206,11 +208,13 @@ Current behavior:
 - the dashboard combined view keeps one visible row for a trusted appointment and shows when that row comes from multiple synced sources
 - the problem-to-fix inbox gives you one obvious list of duplicate, sync, and account issues with the safest next action
 - duplicate items now explain which copy CalSync currently recommends keeping and list the source accounts involved
+- duplicate items now name the exact connected copy CalSync recommends keeping, including the specific account and calendar, instead of only saying `Keep Google copy`
 - the review page acts as a `Needs attention` queue so you can keep the right copy and hide the extra one when you accidentally add the same appointment twice
 - the review page now explicitly explains why a pair of events was grouped as a duplicate and which copy CalSync is currently keeping visible
 - duplicate fixes now include provider-aware actions like `Keep Google copy`, `Keep iCloud copy`, and `Show all copies`
 - `Explain this event` opens `/admin/events/{event_id}` so you can see grouped copies, visibility state, and the latest sync context for that appointment
 - hidden duplicate decisions survive later refreshes instead of being lost on the next sync
+- older historical events stay in the local reference store, but duplicate review and the problem inbox now ignore stale lookback noise outside the active attention window so ancient appointments do not keep resurfacing
 
 Current limits:
 

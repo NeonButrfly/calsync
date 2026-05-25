@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 import re
 
 from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
 
-from calsync.models import Event, EventGroup, ProviderCalendar
+from calsync.models import EVENT_VISIBILITY_STATES, Event, EventGroup, ProviderCalendar
 
 
 VISIBLE_RECONCILIATION_STATES = frozenset({"active", "hidden_duplicate"})
@@ -25,6 +25,8 @@ TITLE_TOKEN_ALIASES = {
     "appts": "appointment",
 }
 NEAR_DUPLICATE_TIME_DRIFT = timedelta(minutes=15)
+TRUST_ATTENTION_LOOKBACK = timedelta(days=30)
+TRUST_ATTENTION_LOOKAHEAD = timedelta(days=180)
 
 
 @dataclass
@@ -205,7 +207,12 @@ def _count_events_in_state(session: Session, state: str) -> int:
     )
 
 
-def list_duplicate_groups(session: Session) -> list[DuplicateGroupView]:
+def list_duplicate_groups(
+    session: Session,
+    *,
+    attention_only: bool = False,
+    reference_time: datetime | None = None,
+) -> list[DuplicateGroupView]:
     groups = session.scalars(
         select(EventGroup).order_by(EventGroup.preferred_starts_at, EventGroup.display_title, EventGroup.id)
     ).all()
@@ -214,6 +221,11 @@ def list_duplicate_groups(session: Session) -> list[DuplicateGroupView]:
     for group in groups:
         events = list_group_events(session, group.id)
         if len(events) < 2:
+            continue
+        if attention_only and not is_duplicate_group_attention_relevant(
+            events,
+            reference_time=reference_time,
+        ):
             continue
         duplicate_groups.append(
             DuplicateGroupView(
@@ -306,14 +318,54 @@ def _duplicate_group_anchor_id(events: list[Event]) -> str:
     return f"duplicate-group-{stable_event_id}"
 
 
-def collect_trust_metrics(session: Session) -> dict[str, int]:
+def collect_trust_metrics(
+    session: Session,
+    *,
+    attention_only: bool = False,
+    reference_time: datetime | None = None,
+) -> dict[str, int]:
+    candidate_events = _list_attention_events(session)
+    if attention_only:
+        candidate_events = [
+            event
+            for event in candidate_events
+            if is_event_attention_relevant(event, reference_time=reference_time)
+        ]
     return {
-        "duplicate_groups": len(list_duplicate_groups(session)),
-        "hidden_duplicates": _count_events_in_state(session, "hidden_duplicate"),
-        "deleted_upstream": _count_events_in_state(session, "deleted_upstream"),
-        "cancelled": _count_events_in_state(session, "cancelled"),
-        "stale_unverified": _count_events_in_state(session, "stale_unverified"),
+        "duplicate_groups": len(
+            list_duplicate_groups(
+                session,
+                attention_only=attention_only,
+                reference_time=reference_time,
+            )
+        ),
+        "hidden_duplicates": _count_events_in_collection(candidate_events, "hidden_duplicate"),
+        "deleted_upstream": _count_events_in_collection(candidate_events, "deleted_upstream"),
+        "cancelled": _count_events_in_collection(candidate_events, "cancelled"),
+        "stale_unverified": _count_events_in_collection(candidate_events, "stale_unverified"),
     }
+
+
+def is_event_attention_relevant(
+    event: Event,
+    *,
+    reference_time: datetime | None = None,
+) -> bool:
+    window_start, window_end = trust_attention_window(reference_time)
+    return event.ends_at >= window_start and event.starts_at <= window_end
+
+
+def is_duplicate_group_attention_relevant(
+    events: list[Event],
+    *,
+    reference_time: datetime | None = None,
+) -> bool:
+    return any(is_event_attention_relevant(event, reference_time=reference_time) for event in events)
+
+
+def trust_attention_window(reference_time: datetime | None = None) -> tuple[datetime, datetime]:
+    anchor = reference_time or datetime.now(UTC)
+    return (anchor - TRUST_ATTENTION_LOOKBACK, anchor + TRUST_ATTENTION_LOOKAHEAD)
 
 
 def _list_candidate_events(session: Session) -> list[Event]:
@@ -322,6 +374,25 @@ def _list_candidate_events(session: Session) -> list[Event]:
         .outerjoin(ProviderCalendar, Event.provider_calendar_pk == ProviderCalendar.id)
         .where(
             Event.event_visibility_state.in_(VISIBLE_RECONCILIATION_STATES),
+            or_(
+                Event.provider_calendar_pk.is_(None),
+                ProviderCalendar.enabled.is_(True),
+            ),
+        )
+        .order_by(Event.starts_at, Event.provider_type, Event.provider_account_id, Event.provider_event_id)
+    ).all()
+
+
+def _count_events_in_collection(events: list[Event], state: str) -> int:
+    return sum(1 for event in events if event.event_visibility_state == state)
+
+
+def _list_attention_events(session: Session) -> list[Event]:
+    return session.scalars(
+        select(Event)
+        .outerjoin(ProviderCalendar, Event.provider_calendar_pk == ProviderCalendar.id)
+        .where(
+            Event.event_visibility_state.in_(EVENT_VISIBILITY_STATES),
             or_(
                 Event.provider_calendar_pk.is_(None),
                 ProviderCalendar.enabled.is_(True),

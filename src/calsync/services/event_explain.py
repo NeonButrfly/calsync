@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from calsync.models import Event, EventGroup, SyncLog
+from calsync.models import Event, EventGroup, ProviderAccount, ProviderCalendar, SyncLog
 from calsync.services.reconciliation import list_group_events
 
 
@@ -13,9 +13,9 @@ from calsync.services.reconciliation import list_group_events
 class EventExplainCopy:
     id: str
     title: str
-    provider_type: str
-    provider_account_id: str
-    provider_calendar_id: str
+    provider_label: str
+    account_label: str
+    calendar_label: str
     visibility_state: str
     is_preferred: bool
 
@@ -23,6 +23,7 @@ class EventExplainCopy:
 @dataclass
 class EventExplainView:
     event: Event
+    current_copy: EventExplainCopy
     copies: list[EventExplainCopy]
     preferred_copy_id: str
     preferred_reason: str
@@ -42,20 +43,24 @@ def build_event_explain_view(session: Session, event_id: str) -> EventExplainVie
     )
     latest_sync = _latest_sync_log(session, event)
 
-    return EventExplainView(
-        event=event,
-        copies=[
+    copies = [
             EventExplainCopy(
                 id=copy.id,
                 title=copy.title,
-                provider_type=copy.provider_type,
-                provider_account_id=copy.provider_account_id,
-                provider_calendar_id=copy.provider_calendar_id,
+                provider_label=_friendly_provider_name(copy.provider_type),
+                account_label=_account_label(session, copy),
+                calendar_label=_calendar_label(session, copy),
                 visibility_state=copy.event_visibility_state,
                 is_preferred=copy.id == preferred_copy.id,
             )
             for copy in copies
-        ],
+        ]
+    current_copy = next(copy for copy in copies if copy.id == event.id)
+
+    return EventExplainView(
+        event=event,
+        current_copy=current_copy,
+        copies=copies,
         preferred_copy_id=preferred_copy.id,
         preferred_reason=_describe_preference(event=event, preferred_copy=preferred_copy),
         latest_sync=latest_sync,
@@ -92,3 +97,28 @@ def _describe_preference(*, event: Event, preferred_copy: Event) -> str:
     if event.provider_type == "icloud_caldav":
         return "This copy is preferred because it is the best remaining iCloud match for this appointment."
     return "This copy is preferred based on the current duplicate grouping rules."
+
+
+def _friendly_provider_name(provider_type: str) -> str:
+    return {
+        "google": "Google",
+        "icloud_caldav": "Apple",
+        "microsoft": "Microsoft",
+        "mock": "Mock",
+    }.get(provider_type, provider_type.replace("_", " ").title())
+
+
+def _account_label(session: Session, event: Event) -> str:
+    if event.provider_account_pk:
+        account = session.get(ProviderAccount, event.provider_account_pk)
+        if account is not None and account.display_name:
+            return account.display_name
+    return event.provider_account_id
+
+
+def _calendar_label(session: Session, event: Event) -> str:
+    if event.provider_calendar_pk:
+        calendar = session.get(ProviderCalendar, event.provider_calendar_pk)
+        if calendar is not None and calendar.name:
+            return calendar.name
+    return event.provider_calendar_id

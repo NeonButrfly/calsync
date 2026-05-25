@@ -174,11 +174,13 @@ Calendar role behavior:
 Practical verification points:
 
 - the top navigation includes `Connections` and `Availability`
+- the product shell now uses a persistent left sidebar instead of a row of navigation tiles
 - `/admin/accounts` shows Google Calendar, Outlook / Microsoft 365, Apple Calendar, and Mock Provider
 - `/admin/accounts` offers `Connect Microsoft Account` once the shared Microsoft OAuth app is configured
 - `/admin/providers` shows `Microsoft OAuth App` and the active callback URL for the Outlook account connection flow
 - connected Microsoft accounts can discover calendars and then sync read-only events after the operator enables the desired calendars
 - `/admin/calendars` shows `Check availability` for connected calendars
+- `/admin/calendars` shows inline helper text and select tooltips explaining what each calendar role means
 - `/admin/calendars` only shows `Receive new bookings` when the provider account supports writable booking targets
 - existing Apple/iCloud accounts remain visible in the connected-accounts table after the shell refresh
 
@@ -221,7 +223,9 @@ Behavior:
 - gathers duplicate cleanup, sync retry, and account authentication problems into one list
 - sorts higher-risk sync and auth items ahead of lower-risk cleanup items
 - offers the safest next action for each problem, such as `Review duplicates`, `Keep Google copy`, `Keep iCloud copy`, `Show all copies`, `Explain this event`, `Sync now`, or `Reconnect in accounts`
-- duplicate items show which copy CalSync currently recommends keeping and which connected sources are involved
+- duplicate items explain which copy CalSync currently recommends keeping
+- duplicate items show which exact account and calendar copy CalSync currently recommends keeping and which connected sources are involved
+- stale historical duplicates stay in the local reference store, but the active inbox ignores old lookback noise outside the current attention window
 - returns `Sync now` actions back to the problem inbox so the operator can keep working from one page
 
 Practical verification points:

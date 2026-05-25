@@ -147,8 +147,10 @@ def test_event_explain_page_shows_grouped_copies_and_preferred_state(tmp_path: P
     assert "Why CalSync is showing this appointment" in response.text
     assert "Preferred copy" in response.text
     assert "Grouped source copies" in response.text
-    assert "google" in response.text.lower()
-    assert "icloud" in response.text.lower()
+    assert "google-user@example.com" in response.text.lower()
+    assert "google-primary" in response.text.lower()
+    assert "icloud-user@icloud.com" in response.text.lower()
+    assert "icloud-family" in response.text.lower()
     assert "Latest sync status" in response.text
 
 
