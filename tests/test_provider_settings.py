@@ -101,11 +101,7 @@ def test_microsoft_provider_settings_can_be_saved_from_admin_ui(tmp_path: Path) 
 
         accounts_page = client.get("/admin/accounts")
         assert accounts_page.status_code == 200
-        assert (
-            "Microsoft OAuth app settings are saved. Account connection is still"
-            in accounts_page.text
-        )
-        assert "Open Provider Settings" in accounts_page.text
+        assert "Connect Microsoft Account" in accounts_page.text
 
         with _db_session(client) as session:
             configuration = session.scalar(
@@ -336,7 +332,7 @@ def test_provider_settings_page_shows_microsoft_oauth_section_with_scaffold_stat
     assert "Microsoft OAuth callback URL:" in response.text
     assert "auth/microsoft/callback" in response.text
     assert "Connection flow status:" in response.text
-    assert "This release only stores the shared Microsoft OAuth app settings." in response.text
+    assert "connect Outlook / Microsoft 365 accounts from the Connections page" in response.text
 
 
 def _build_client(

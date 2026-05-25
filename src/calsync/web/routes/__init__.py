@@ -9,6 +9,7 @@ from .events import router as events_router
 from .feeds import router as feeds_router
 from .flightboard import router as flightboard_router
 from .google import router as google_router
+from .microsoft import router as microsoft_router
 from .problems import router as problems_router
 from .providers import router as providers_router
 from .review import router as review_router
@@ -20,6 +21,7 @@ router = APIRouter()
 router.include_router(setup_router)
 router.include_router(auth_router)
 router.include_router(google_router)
+router.include_router(microsoft_router)
 router.include_router(feeds_router)
 router.include_router(dashboard_router)
 router.include_router(events_router)

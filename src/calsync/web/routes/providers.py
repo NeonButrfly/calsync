@@ -128,6 +128,7 @@ def save_microsoft_provider_settings(
             client_secret=client_secret,
             scopes=scopes,
             encryption_key=encryption_key,
+            settings=request.app.state.settings,
         )
     except ValueError as exc:
         return _render_provider_settings_page(
@@ -184,7 +185,10 @@ def _render_provider_settings_page(
         session,
         settings=settings,
     )
-    microsoft_snapshot = get_microsoft_provider_configuration_snapshot(session)
+    microsoft_snapshot = get_microsoft_provider_configuration_snapshot(
+        session,
+        settings=settings,
+    )
     callback_url = build_google_callback_url(
         request,
         session=session,
@@ -193,7 +197,7 @@ def _render_provider_settings_page(
     callback_error = validate_google_callback_url(callback_url)
     microsoft_callback_url = build_external_url(
         request,
-        "/auth/microsoft/callback",
+        settings.microsoft_oauth_redirect_path,
         session=session,
         settings=settings,
     )

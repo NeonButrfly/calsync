@@ -1,13 +1,51 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+from typing import Any
+from urllib.parse import quote, urlencode
+
+import httpx
 from sqlalchemy.orm import Session
 
-from calsync.config import Settings, get_settings
-from calsync.models import ProviderAccount, ProviderCalendar
+from calsync.config import (
+    Settings,
+    build_microsoft_callback_url_from_base,
+    get_microsoft_oauth_scopes,
+    get_settings,
+)
+from calsync.crypto import decrypt_text, encrypt_text
+from calsync.models import ProviderAccount, ProviderCalendar, utcnow
+from calsync.repos.events import get_event_by_provider_identity
+from calsync.repos.providers import (
+    get_provider_account_by_identity,
+    upsert_provider_account,
+)
 from calsync.schemas.providers import DiscoveredCalendar, NormalizedEvent
+from calsync.services.provider_config import (
+    MicrosoftOAuthConfiguration,
+    resolve_microsoft_oauth_configuration,
+)
 
 
 MICROSOFT_PROVIDER_TYPE = "microsoft"
+MICROSOFT_OAUTH_AUTHORIZE_URL = (
+    "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+)
+MICROSOFT_OAUTH_TOKEN_URL = (
+    "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+)
+MICROSOFT_ME_URL = "https://graph.microsoft.com/v1.0/me"
+MICROSOFT_CALENDARS_URL = "https://graph.microsoft.com/v1.0/me/calendars"
+MICROSOFT_EVENTS_URL_TEMPLATE = (
+    "https://graph.microsoft.com/v1.0/me/calendars/{calendar_id}/events"
+)
+ACCOUNT_EMAIL_KEY = "microsoft_email"
+ACCOUNT_SUBJECT_KEY = "microsoft_subject"
+ACCOUNT_SCOPES_KEY = "microsoft_scopes"
+ACCOUNT_TOKEN_EXPIRY_KEY = "microsoft_access_token_expires_at"
+ACCOUNT_AUTH_STATUS_KEY = "microsoft_auth_status"
+ACCOUNT_RECONNECT_REQUIRED_KEY = "microsoft_reconnect_required"
+ACCOUNT_LAST_AUTH_ERROR_KEY = "microsoft_last_auth_error"
 MICROSOFT_WRITABLE_SCOPES = {
     "Calendars.ReadWrite",
     "Calendars.ReadWrite.Shared",
@@ -16,11 +54,15 @@ MICROSOFT_WRITABLE_SCOPES = {
 }
 
 
+class MicrosoftOAuthError(RuntimeError):
+    pass
+
+
 def infer_microsoft_account_capabilities(
     account: ProviderAccount,
 ) -> tuple[str, bool, bool]:
-    metadata = dict(account.provider_metadata or {})
-    scopes = _metadata_scope_values(metadata.get("microsoft_scopes"))
+    metadata = _account_metadata(account)
+    scopes = _metadata_scope_values(metadata.get(ACCOUNT_SCOPES_KEY))
     can_write = bool(
         metadata.get("can_write") is True
         or metadata.get("supports_write") is True
@@ -34,6 +76,8 @@ class MicrosoftProviderAdapter:
     provider_type = MICROSOFT_PROVIDER_TYPE
     auth_mode = "oauth"
     supports_write_back = True
+    last_calendar_discovery_was_incremental = False
+    last_events_fetch_was_incremental = False
 
     def __init__(
         self,
@@ -48,14 +92,466 @@ class MicrosoftProviderAdapter:
         self,
         account: ProviderAccount,
     ) -> list[DiscoveredCalendar]:
-        raise NotImplementedError("Microsoft calendar discovery is not implemented yet.")
+        payload = self._authorized_get_paginated_json(account, MICROSOFT_CALENDARS_URL)
+        calendars: list[DiscoveredCalendar] = []
+        for item in payload:
+            if not isinstance(item, dict) or not item.get("id"):
+                continue
+            can_edit = bool(item.get("canEdit", False))
+            calendars.append(
+                DiscoveredCalendar(
+                    external_id=str(item["id"]),
+                    name=str(item.get("name") or item["id"]),
+                    timezone=_optional_str(item.get("timeZone")),
+                    default_enabled=False,
+                    metadata={
+                        "can_write": can_edit,
+                        "can_edit": can_edit,
+                        "is_default_calendar": bool(item.get("isDefaultCalendar", False)),
+                        "owner_name": _nested_str(item.get("owner"), "name"),
+                        "owner_address": _nested_str(item.get("owner"), "address"),
+                    },
+                )
+            )
+        return calendars
 
     def fetch_events(
         self,
         account: ProviderAccount,
         calendar: ProviderCalendar,
     ) -> list[NormalizedEvent]:
-        raise NotImplementedError("Microsoft event fetch is not implemented yet.")
+        url = MICROSOFT_EVENTS_URL_TEMPLATE.format(
+            calendar_id=quote(calendar.provider_calendar_id, safe="")
+        )
+        payload = self._authorized_get_paginated_json(
+            account,
+            url,
+            headers={'Prefer': 'outlook.timezone="UTC"'},
+        )
+        events: list[NormalizedEvent] = []
+        for item in payload:
+            if not isinstance(item, dict) or not item.get("id"):
+                continue
+            normalized = _normalize_microsoft_event(
+                account,
+                calendar,
+                item,
+                session=self.session,
+            )
+            if normalized is not None:
+                events.append(normalized)
+        return events
+
+    def _authorized_get_paginated_json(
+        self,
+        account: ProviderAccount,
+        url: str,
+        *,
+        headers: dict[str, str] | None = None,
+    ) -> list[object]:
+        access_token = ensure_microsoft_access_token(
+            account,
+            settings=self.settings,
+            session=self.session,
+        )
+        aggregated_items: list[object] = []
+        next_url: str | None = url
+        request_headers = {"Authorization": f"Bearer {access_token}"}
+        if headers:
+            request_headers.update(headers)
+
+        with _build_http_client() as client:
+            while next_url:
+                response = client.get(next_url, headers=request_headers)
+                if response.status_code == 401:
+                    access_token = ensure_microsoft_access_token(
+                        account,
+                        settings=self.settings,
+                        session=self.session,
+                        force_refresh=True,
+                    )
+                    request_headers["Authorization"] = f"Bearer {access_token}"
+                    response = client.get(next_url, headers=request_headers)
+                response.raise_for_status()
+                payload = response.json()
+                if not isinstance(payload, dict):
+                    raise MicrosoftOAuthError(
+                        "Microsoft provider returned an invalid response."
+                    )
+                items = payload.get("value")
+                if isinstance(items, list):
+                    aggregated_items.extend(items)
+                maybe_next_url = payload.get("@odata.nextLink")
+                next_url = str(maybe_next_url) if isinstance(maybe_next_url, str) and maybe_next_url else None
+        return aggregated_items
+
+
+def build_microsoft_authorization_url(
+    callback_url: str,
+    state: str,
+    *,
+    settings: Settings | None = None,
+    session: Session | None = None,
+) -> str:
+    resolved_settings = settings or get_settings()
+    oauth_configuration = _require_microsoft_config(
+        session=session,
+        settings=resolved_settings,
+        encryption_key=resolved_settings.encryption_key,
+    )
+    query = {
+        "client_id": oauth_configuration.client_id,
+        "redirect_uri": callback_url,
+        "response_type": "code",
+        "response_mode": "query",
+        "scope": " ".join(oauth_configuration.scopes),
+        "state": state,
+    }
+    return f"{MICROSOFT_OAUTH_AUTHORIZE_URL}?{urlencode(query)}"
+
+
+def connect_microsoft_account_from_callback(
+    session: Session,
+    *,
+    code: str,
+    callback_base_url: str,
+    settings: Settings | None = None,
+    encryption_key: str,
+) -> ProviderAccount:
+    resolved_settings = settings or get_settings()
+    callback_url = build_microsoft_callback_url_from_base(
+        callback_base_url,
+        settings=resolved_settings,
+    )
+    token_payload = exchange_microsoft_code_for_tokens(
+        code,
+        callback_url,
+        settings=resolved_settings,
+        session=session,
+    )
+    access_token = _required_str(token_payload.get("access_token"))
+    user_info = fetch_microsoft_user_info(access_token)
+    provider_account_id = _required_str(user_info.get("id"))
+    existing_account = get_provider_account_by_identity(
+        session,
+        provider_type=MICROSOFT_PROVIDER_TYPE,
+        provider_account_id=provider_account_id,
+    )
+    return persist_microsoft_oauth_account(
+        session,
+        account=existing_account,
+        token_payload=token_payload,
+        user_info=user_info,
+        encryption_key=encryption_key,
+    )
+
+
+def exchange_microsoft_code_for_tokens(
+    code: str,
+    callback_url: str,
+    *,
+    settings: Settings | None = None,
+    session: Session | None = None,
+) -> dict[str, object]:
+    resolved_settings = settings or get_settings()
+    oauth_configuration = _require_microsoft_config(
+        session=session,
+        settings=resolved_settings,
+        encryption_key=resolved_settings.encryption_key,
+    )
+    with _build_http_client() as client:
+        response = client.post(
+            MICROSOFT_OAUTH_TOKEN_URL,
+            data={
+                "client_id": oauth_configuration.client_id,
+                "client_secret": oauth_configuration.client_secret,
+                "code": code,
+                "redirect_uri": callback_url,
+                "grant_type": "authorization_code",
+            },
+        )
+        if response.status_code >= 400:
+            raise MicrosoftOAuthError(_safe_microsoft_oauth_error(response))
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise MicrosoftOAuthError(
+                "Microsoft token exchange returned an invalid response."
+            )
+        return payload
+
+
+def fetch_microsoft_user_info(access_token: str) -> dict[str, object]:
+    with _build_http_client() as client:
+        response = client.get(
+            MICROSOFT_ME_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        if response.status_code >= 400:
+            raise MicrosoftOAuthError("Microsoft account identity lookup failed.")
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise MicrosoftOAuthError(
+                "Microsoft account identity lookup returned an invalid response."
+            )
+        return payload
+
+
+def persist_microsoft_oauth_account(
+    session: Session,
+    *,
+    account: ProviderAccount | None,
+    token_payload: dict[str, object],
+    user_info: dict[str, object],
+    encryption_key: str,
+) -> ProviderAccount:
+    provider_account_id = _required_str(user_info.get("id"))
+    resolved_account = account or upsert_provider_account(
+        session,
+        provider_type=MICROSOFT_PROVIDER_TYPE,
+        provider_account_id=provider_account_id,
+    )
+    is_new_account = account is None
+    refresh_token = _optional_str(token_payload.get("refresh_token"))
+    if is_new_account and not refresh_token:
+        raise MicrosoftOAuthError(
+            "Microsoft did not return a refresh token. Retry the connection and grant consent again."
+        )
+
+    access_token = _required_str(token_payload.get("access_token"))
+    resolved_account.access_token_encrypted = encrypt_text(encryption_key, access_token)
+    if refresh_token:
+        resolved_account.refresh_token_encrypted = encrypt_text(
+            encryption_key,
+            refresh_token,
+        )
+    elif not resolved_account.refresh_token_encrypted:
+        raise MicrosoftOAuthError(
+            "Microsoft did not return a refresh token. Retry the connection and grant consent again."
+        )
+
+    metadata = _account_metadata(resolved_account)
+    email = (
+        _optional_str(user_info.get("mail"))
+        or _optional_str(user_info.get("userPrincipalName"))
+    )
+    metadata[ACCOUNT_EMAIL_KEY] = email
+    metadata[ACCOUNT_SUBJECT_KEY] = provider_account_id
+    scope_text = _optional_str(token_payload.get("scope"))
+    if scope_text:
+        metadata[ACCOUNT_SCOPES_KEY] = scope_text.split()
+    expires_in = token_payload.get("expires_in")
+    if isinstance(expires_in, (int, float)):
+        metadata[ACCOUNT_TOKEN_EXPIRY_KEY] = (
+            utcnow() + timedelta(seconds=int(expires_in))
+        ).isoformat()
+    metadata[ACCOUNT_AUTH_STATUS_KEY] = "connected"
+    metadata[ACCOUNT_RECONNECT_REQUIRED_KEY] = False
+    metadata.pop(ACCOUNT_LAST_AUTH_ERROR_KEY, None)
+    resolved_account.provider_metadata = metadata
+    resolved_account.display_name = (
+        email
+        or _optional_str(user_info.get("displayName"))
+        or resolved_account.provider_account_id
+    )
+    session.add(resolved_account)
+    session.flush()
+    return resolved_account
+
+
+def ensure_microsoft_access_token(
+    account: ProviderAccount,
+    *,
+    settings: Settings | None = None,
+    session: Session | None = None,
+    force_refresh: bool = False,
+) -> str:
+    resolved_settings = settings or get_settings()
+    encryption_key = resolved_settings.encryption_key
+    if not encryption_key:
+        raise RuntimeError("CalSync encryption_key must be configured explicitly.")
+
+    if (
+        not force_refresh
+        and account.access_token_encrypted
+        and _token_is_still_fresh(account)
+    ):
+        return decrypt_text(encryption_key, account.access_token_encrypted)
+
+    refresh_token = None
+    if account.refresh_token_encrypted:
+        refresh_token = decrypt_text(encryption_key, account.refresh_token_encrypted)
+    if not refresh_token:
+        _mark_microsoft_reconnect_required(
+            account,
+            "Microsoft account requires reconnection because no refresh token is available.",
+        )
+        raise MicrosoftOAuthError("Microsoft account requires reconnection.")
+
+    try:
+        token_payload = refresh_microsoft_access_token(
+            refresh_token,
+            settings=resolved_settings,
+            session=session,
+        )
+    except MicrosoftOAuthError as exc:
+        _mark_microsoft_reconnect_required(account, str(exc))
+        raise
+
+    new_access_token = _required_str(token_payload.get("access_token"))
+    account.access_token_encrypted = encrypt_text(encryption_key, new_access_token)
+    metadata = _account_metadata(account)
+    expires_in = token_payload.get("expires_in")
+    if isinstance(expires_in, (int, float)):
+        metadata[ACCOUNT_TOKEN_EXPIRY_KEY] = (
+            utcnow() + timedelta(seconds=int(expires_in))
+        ).isoformat()
+    scope_text = _optional_str(token_payload.get("scope"))
+    if scope_text:
+        metadata[ACCOUNT_SCOPES_KEY] = scope_text.split()
+    metadata[ACCOUNT_AUTH_STATUS_KEY] = "connected"
+    metadata[ACCOUNT_RECONNECT_REQUIRED_KEY] = False
+    metadata.pop(ACCOUNT_LAST_AUTH_ERROR_KEY, None)
+    account.provider_metadata = metadata
+    return new_access_token
+
+
+def refresh_microsoft_access_token(
+    refresh_token: str,
+    *,
+    settings: Settings | None = None,
+    session: Session | None = None,
+) -> dict[str, object]:
+    resolved_settings = settings or get_settings()
+    oauth_configuration = _require_microsoft_config(
+        session=session,
+        settings=resolved_settings,
+        encryption_key=resolved_settings.encryption_key,
+    )
+    with _build_http_client() as client:
+        response = client.post(
+            MICROSOFT_OAUTH_TOKEN_URL,
+            data={
+                "client_id": oauth_configuration.client_id,
+                "client_secret": oauth_configuration.client_secret,
+                "refresh_token": refresh_token,
+                "grant_type": "refresh_token",
+            },
+        )
+        if response.status_code >= 400:
+            raise MicrosoftOAuthError(_safe_microsoft_refresh_error(response))
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise MicrosoftOAuthError(
+                "Microsoft token refresh returned an invalid response."
+            )
+        return payload
+
+
+def _normalize_microsoft_event(
+    account: ProviderAccount,
+    calendar: ProviderCalendar,
+    payload: dict[str, object],
+    *,
+    session: Session | None = None,
+) -> NormalizedEvent | None:
+    start_info = payload.get("start")
+    end_info = payload.get("end")
+    status = "cancelled" if payload.get("isCancelled") is True else "confirmed"
+
+    if not isinstance(start_info, dict) or not isinstance(end_info, dict):
+        if status != "cancelled" or session is None:
+            return None
+        existing_event = get_event_by_provider_identity(
+            session,
+            provider_type=MICROSOFT_PROVIDER_TYPE,
+            provider_account_id=account.provider_account_id,
+            provider_calendar_id=calendar.provider_calendar_id,
+            provider_event_id=str(payload["id"]),
+        )
+        if existing_event is None:
+            return None
+        return NormalizedEvent(
+            provider_type=MICROSOFT_PROVIDER_TYPE,
+            provider_account_id=account.provider_account_id,
+            provider_calendar_id=calendar.provider_calendar_id,
+            provider_event_id=str(payload["id"]),
+            title=existing_event.title,
+            description=existing_event.description,
+            location=existing_event.location,
+            starts_at=existing_event.starts_at,
+            ends_at=existing_event.ends_at,
+            all_day=existing_event.all_day,
+            status=status,
+            source_payload=dict(payload),
+        )
+
+    starts_at, all_day = _parse_microsoft_event_datetime(
+        start_info,
+        all_day=bool(payload.get("isAllDay", False)),
+    )
+    ends_at, _ = _parse_microsoft_event_datetime(
+        end_info,
+        all_day=bool(payload.get("isAllDay", False)),
+    )
+    location_payload = payload.get("location")
+    return NormalizedEvent(
+        provider_type=MICROSOFT_PROVIDER_TYPE,
+        provider_account_id=account.provider_account_id,
+        provider_calendar_id=calendar.provider_calendar_id,
+        provider_event_id=str(payload["id"]),
+        title=_optional_str(payload.get("subject")) or "Untitled event",
+        description=_optional_str(payload.get("bodyPreview")),
+        location=_nested_str(location_payload, "displayName"),
+        starts_at=starts_at,
+        ends_at=ends_at,
+        all_day=all_day,
+        status=status,
+        source_payload=dict(payload),
+    )
+
+
+def _parse_microsoft_event_datetime(
+    payload: dict[str, object],
+    *,
+    all_day: bool,
+) -> tuple[datetime, bool]:
+    value = _required_str(payload.get("dateTime"))
+    timezone_name = _optional_str(payload.get("timeZone")) or "UTC"
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        if timezone_name.upper() == "UTC":
+            parsed = parsed.replace(tzinfo=UTC)
+        else:
+            raise MicrosoftOAuthError(
+                "Microsoft event datetime must be timezone-aware or explicitly UTC."
+            )
+    return parsed, all_day
+
+
+def _build_http_client() -> httpx.Client:
+    return httpx.Client(timeout=30)
+
+
+def _require_microsoft_config(
+    *,
+    session: Session | None,
+    settings: Settings,
+    encryption_key: str | None,
+) -> MicrosoftOAuthConfiguration:
+    oauth_configuration = resolve_microsoft_oauth_configuration(
+        session,
+        settings=settings,
+        encryption_key=encryption_key,
+    )
+    if oauth_configuration is not None:
+        return oauth_configuration
+    raise MicrosoftOAuthError(
+        "Microsoft OAuth is not configured. Add the Microsoft client ID and secret on the Provider Settings page."
+    )
+
+
+def _account_metadata(account: ProviderAccount) -> dict[str, object]:
+    return dict(account.provider_metadata or {})
 
 
 def _metadata_scope_values(raw_scopes: object) -> tuple[str, ...]:
@@ -64,3 +560,70 @@ def _metadata_scope_values(raw_scopes: object) -> tuple[str, ...]:
     if isinstance(raw_scopes, (list, tuple, set)):
         return tuple(str(scope).strip() for scope in raw_scopes if str(scope).strip())
     return ()
+
+
+def _token_is_still_fresh(account: ProviderAccount) -> bool:
+    metadata = _account_metadata(account)
+    expires_at = metadata.get(ACCOUNT_TOKEN_EXPIRY_KEY)
+    if not isinstance(expires_at, str):
+        return False
+    try:
+        expiry = datetime.fromisoformat(expires_at)
+    except ValueError:
+        return False
+    if expiry.tzinfo is None or expiry.utcoffset() is None:
+        expiry = expiry.replace(tzinfo=UTC)
+    return expiry > (utcnow() + timedelta(minutes=2))
+
+
+def _mark_microsoft_reconnect_required(account: ProviderAccount, message: str) -> None:
+    metadata = _account_metadata(account)
+    metadata[ACCOUNT_AUTH_STATUS_KEY] = "reconnect_required"
+    metadata[ACCOUNT_RECONNECT_REQUIRED_KEY] = True
+    metadata[ACCOUNT_LAST_AUTH_ERROR_KEY] = message
+    account.provider_metadata = metadata
+
+
+def _safe_microsoft_oauth_error(response: httpx.Response) -> str:
+    try:
+        payload = response.json()
+    except ValueError:
+        return "Microsoft OAuth token exchange failed."
+    if isinstance(payload, dict):
+        error_description = payload.get("error_description")
+        if isinstance(error_description, str) and error_description:
+            return error_description
+    return "Microsoft OAuth token exchange failed."
+
+
+def _safe_microsoft_refresh_error(response: httpx.Response) -> str:
+    try:
+        payload = response.json()
+    except ValueError:
+        return "Microsoft access refresh failed. Reconnect the account."
+    if isinstance(payload, dict):
+        error_description = payload.get("error_description")
+        if isinstance(error_description, str) and error_description:
+            return error_description
+    return "Microsoft access refresh failed. Reconnect the account."
+
+
+def _optional_str(value: object) -> str | None:
+    if value is None:
+        return None
+    return str(value)
+
+
+def _required_str(value: object) -> str:
+    if value is None:
+        raise MicrosoftOAuthError(
+            "Microsoft provider response is missing a required value."
+        )
+    return str(value)
+
+
+def _nested_str(value: object, key: str) -> str | None:
+    if isinstance(value, dict):
+        nested = value.get(key)
+        return _optional_str(nested)
+    return None

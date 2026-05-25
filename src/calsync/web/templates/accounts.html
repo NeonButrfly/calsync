@@ -47,20 +47,20 @@ Choose the calendars CalSync can read today and prepare the sign-ins that will p
     <article class="panel stack">
       <h2>Outlook / Microsoft 365</h2>
       <p class="subtle">
-        Prepare for Microsoft calendar sign-in next without overstating what is live today.
+        Use Microsoft sign-in to connect Outlook calendars for availability, discovery, and shared scheduling readiness.
       </p>
-      {% if microsoft_configured %}
-      <p><strong>Connection flow status:</strong> Microsoft OAuth app settings are saved. Account connection is still scaffold-only in this slice.</p>
-      <p class="subtle">
-        You do not need to re-enter the shared app unless you are rotating credentials or changing scopes. The Outlook account connect flow is the remaining step.
-      </p>
-      {% else %}
-      <p><strong>Coming next:</strong> Save the shared Microsoft OAuth app, then add the actual Outlook sign-in flow in a later slice.</p>
-      {% endif %}
-      <p class="subtle">
-        Provider Settings shows the callback URL and shared Microsoft app fields now, while account connection and calendar permissions still remain ahead.
-      </p>
+      <p><strong>Microsoft sign-in callback URL:</strong> {{ microsoft_callback_url }}</p>
+      {% if not microsoft_configured %}
+      <p>Microsoft OAuth is not configured yet. Add the Microsoft client ID and secret on the Provider Settings page first.</p>
       <p><a href="{{ google_settings_url }}">Open Provider Settings</a></p>
+      {% else %}
+      <form method="get" action="/auth/microsoft/start">
+        <button type="submit">Connect Microsoft Account</button>
+      </form>
+      <p class="subtle">
+        One shared Microsoft Entra app can be reused for multiple Outlook or Microsoft 365 accounts in this deployment.
+      </p>
+      {% endif %}
     </article>
 
     <article class="panel stack">

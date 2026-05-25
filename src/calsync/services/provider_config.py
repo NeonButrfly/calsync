@@ -5,7 +5,12 @@ import re
 
 from sqlalchemy.orm import Session
 
-from calsync.config import Settings, get_google_oauth_scopes, get_settings
+from calsync.config import (
+    Settings,
+    get_google_oauth_scopes,
+    get_microsoft_oauth_scopes,
+    get_settings,
+)
 from calsync.crypto import decrypt_text, encrypt_text
 from calsync.repos.provider_config import (
     get_provider_configuration,
@@ -85,13 +90,16 @@ def has_google_oauth_configuration(
 
 def get_microsoft_provider_configuration_snapshot(
     session: Session,
+    *,
+    settings: Settings | None = None,
 ) -> dict[str, object]:
+    resolved_settings = settings or get_settings()
     configuration = get_provider_configuration(session, MICROSOFT_OAUTH_PROVIDER_TYPE)
     if configuration is not None:
         public_config = dict(configuration.public_config_json or {})
         normalized_scopes = _normalize_scope_text(
             str(public_config.get("scopes") or ""),
-            default_text=DEFAULT_MICROSOFT_OAUTH_SCOPES_TEXT,
+            default_text=" ".join(get_microsoft_oauth_scopes(resolved_settings)),
         )
         return {
             "client_id": str(public_config.get("client_id") or ""),
@@ -104,11 +112,19 @@ def get_microsoft_provider_configuration_snapshot(
         }
 
     return {
-        "client_id": "",
-        "scopes": DEFAULT_MICROSOFT_OAUTH_SCOPES_TEXT,
-        "configured": False,
-        "source": None,
-        "has_secret": False,
+        "client_id": str(resolved_settings.microsoft_oauth_client_id or ""),
+        "scopes": " ".join(get_microsoft_oauth_scopes(resolved_settings)),
+        "configured": bool(
+            resolved_settings.microsoft_oauth_client_id
+            and resolved_settings.microsoft_oauth_client_secret
+        ),
+        "source": "environment"
+        if (
+            resolved_settings.microsoft_oauth_client_id
+            or resolved_settings.microsoft_oauth_client_secret
+        )
+        else None,
+        "has_secret": bool(resolved_settings.microsoft_oauth_client_secret),
     }
 
 
@@ -198,14 +214,26 @@ def save_google_oauth_configuration(
 def resolve_microsoft_oauth_configuration(
     session: Session | None,
     *,
+    settings: Settings | None = None,
     encryption_key: str | None = None,
 ) -> MicrosoftOAuthConfiguration | None:
+    resolved_settings = settings or get_settings()
     configuration = (
         get_provider_configuration(session, MICROSOFT_OAUTH_PROVIDER_TYPE)
         if session is not None
         else None
     )
     if configuration is None:
+        if (
+            resolved_settings.microsoft_oauth_client_id
+            and resolved_settings.microsoft_oauth_client_secret
+        ):
+            return MicrosoftOAuthConfiguration(
+                client_id=resolved_settings.microsoft_oauth_client_id,
+                client_secret=resolved_settings.microsoft_oauth_client_secret,
+                scopes=get_microsoft_oauth_scopes(resolved_settings),
+                source="environment",
+            )
         return None
 
     public_config = dict(configuration.public_config_json or {})
@@ -222,7 +250,7 @@ def resolve_microsoft_oauth_configuration(
     scopes = _split_scopes(
         _normalize_scope_text(
             str(public_config.get("scopes") or ""),
-            default_text=DEFAULT_MICROSOFT_OAUTH_SCOPES_TEXT,
+            default_text=" ".join(get_microsoft_oauth_scopes(resolved_settings)),
         )
     )
     return MicrosoftOAuthConfiguration(
@@ -232,6 +260,8 @@ def resolve_microsoft_oauth_configuration(
         source="database",
     )
 
+    return None
+
 
 def save_microsoft_oauth_configuration(
     session: Session,
@@ -240,7 +270,9 @@ def save_microsoft_oauth_configuration(
     client_secret: str | None,
     scopes: str,
     encryption_key: str,
+    settings: Settings | None = None,
 ) -> None:
+    resolved_settings = settings or get_settings()
     existing = get_provider_configuration(session, MICROSOFT_OAUTH_PROVIDER_TYPE)
     existing_secret = existing.secret_config_encrypted if existing is not None else None
     normalized_secret = (client_secret or "").strip()
@@ -254,7 +286,7 @@ def save_microsoft_oauth_configuration(
             "client_id": client_id.strip(),
             "scopes": _normalize_scope_text(
                 scopes,
-                default_text=DEFAULT_MICROSOFT_OAUTH_SCOPES_TEXT,
+                default_text=" ".join(get_microsoft_oauth_scopes(resolved_settings)),
             ),
         },
         secret_config_encrypted=(

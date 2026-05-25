@@ -13,6 +13,7 @@ from calsync.models import Base
 from calsync.repos.providers import upsert_provider_account
 from calsync.repos.state import set_app_state
 from calsync.repos.users import create_admin_user
+from calsync.services.provider_config import save_microsoft_oauth_configuration
 from calsync.services.auth import (
     generate_recovery_codes,
     hash_password,
@@ -37,6 +38,19 @@ def test_connections_page_shows_google_microsoft_and_apple_cards(
     assert "Google Calendar" in response.text
     assert "Outlook / Microsoft 365" in response.text
     assert "Apple Calendar" in response.text
+
+
+def test_connections_page_shows_connect_microsoft_action_when_configured(
+    tmp_path: Path,
+) -> None:
+    with _build_client(tmp_path, seed_microsoft_provider_settings=True) as client:
+        _login(client, client.app.state.test_totp_secret)
+
+        response = client.get("/admin/connections")
+
+    assert response.status_code == 200
+    assert "Connect Microsoft Account" in response.text
+    assert "auth/microsoft/callback" in response.text
 
 
 def test_connections_page_keeps_existing_apple_account_visible(
@@ -74,7 +88,11 @@ def test_accounts_route_remains_a_safe_alias_for_connections(
     assert "Connect a calendar" in response.text
 
 
-def _build_client(tmp_path: Path) -> TestClient:
+def _build_client(
+    tmp_path: Path,
+    *,
+    seed_microsoft_provider_settings: bool = False,
+) -> TestClient:
     database_path = tmp_path / "connections-page.sqlite3"
     settings = Settings(
         database_url=f"sqlite+pysqlite:///{database_path}",
@@ -106,6 +124,15 @@ def _build_client(tmp_path: Path) -> TestClient:
         )
         admin_user.mfa_enrolled = True
         store_recovery_codes(session, admin_user, generate_recovery_codes(count=2))
+        if seed_microsoft_provider_settings:
+            save_microsoft_oauth_configuration(
+                session,
+                client_id="microsoft-client-id",
+                client_secret="microsoft-client-secret",
+                scopes="openid offline_access User.Read Calendars.Read",
+                encryption_key=ENCRYPTION_KEY,
+                settings=settings,
+            )
         session.commit()
 
     app = create_app(settings)

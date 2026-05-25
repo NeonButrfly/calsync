@@ -28,6 +28,10 @@ class Settings(BaseSettings):
         "openid,email,profile,https://www.googleapis.com/auth/calendar.readonly"
     )
     google_oauth_redirect_path: str = "/auth/google/callback"
+    microsoft_oauth_client_id: str | None = None
+    microsoft_oauth_client_secret: str | None = None
+    microsoft_oauth_scopes: str = "openid,offline_access,User.Read,Calendars.Read"
+    microsoft_oauth_redirect_path: str = "/auth/microsoft/callback"
 
 
 @lru_cache(maxsize=1)
@@ -92,11 +96,46 @@ def build_google_callback_url_from_base(
     return join_url(base_url, resolved_settings.google_oauth_redirect_path)
 
 
+def build_microsoft_callback_url(
+    request: Request,
+    *,
+    settings: Settings | None = None,
+    public_base_url: str | None = None,
+) -> str:
+    resolved_settings = settings or get_settings()
+    return build_microsoft_callback_url_from_base(
+        _resolve_public_base_url(
+            request,
+            settings=resolved_settings,
+            public_base_url=public_base_url,
+        ),
+        settings=resolved_settings,
+    )
+
+
+def build_microsoft_callback_url_from_base(
+    base_url: str,
+    *,
+    settings: Settings | None = None,
+) -> str:
+    resolved_settings = settings or get_settings()
+    return join_url(base_url, resolved_settings.microsoft_oauth_redirect_path)
+
+
 def get_google_oauth_scopes(settings: Settings | None = None) -> tuple[str, ...]:
     resolved_settings = settings or get_settings()
     return tuple(
         scope.strip()
         for scope in resolved_settings.google_oauth_scopes.split(",")
+        if scope.strip()
+    )
+
+
+def get_microsoft_oauth_scopes(settings: Settings | None = None) -> tuple[str, ...]:
+    resolved_settings = settings or get_settings()
+    return tuple(
+        scope.strip()
+        for scope in resolved_settings.microsoft_oauth_scopes.split(",")
         if scope.strip()
     )
 

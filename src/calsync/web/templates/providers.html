@@ -85,12 +85,11 @@
   <article class="panel">
     <h2>Microsoft OAuth App</h2>
     <p class="subtle">
-      Save the shared Microsoft Entra app settings here so this deployment is ready for Outlook / Microsoft 365 sign-in.
-      This release only stores the shared Microsoft OAuth app settings. It does not yet launch the Outlook account connection flow.
+      Save the shared Microsoft Entra app settings here, then connect Outlook / Microsoft 365 accounts from the Connections page.
     </p>
-    <p><strong>Planned Microsoft OAuth callback URL:</strong> {{ microsoft_callback_url }}</p>
+    <p><strong>Microsoft OAuth callback URL:</strong> {{ microsoft_callback_url }}</p>
     <p class="subtle">
-      This is the callback URL CalSync plans to use once the Outlook account connection flow ships. It is shown here so operators can prepare their Microsoft app settings without treating the account connection flow as live today.
+      Register this exact callback URL on the shared Microsoft Entra web app. After you save the app settings here, each Outlook account can authorize separately from the Connections page.
     </p>
     <p><strong>Connection flow status:</strong> {{ "Shared Microsoft OAuth app settings are saved." if microsoft_configured else "Waiting for Microsoft OAuth app settings." }}</p>
     <form method="post" action="/admin/providers/microsoft" class="stack">
@@ -114,12 +113,12 @@
     {% if microsoft_source %}
     <p class="subtle">
       Current source:
-      <strong>Admin UI</strong>
+      <strong>{{ "Admin UI" if microsoft_source == "database" else "Environment fallback" }}</strong>
     </p>
     {% endif %}
     <p class="subtle">
-      After these settings are saved, keep using the Connections page as the operator entry point.
-      Outlook account sign-in, calendar permissions, and the active callback route are still scaffold-only in this slice, so no Microsoft accounts can be connected yet.
+      Keep using the Connections page as the operator entry point once the shared app is saved.
+      CalSync will use these settings for Microsoft sign-in, calendar discovery, and sync.
     </p>
   </article>
 

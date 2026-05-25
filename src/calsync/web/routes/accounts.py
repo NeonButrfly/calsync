@@ -11,7 +11,7 @@ from calsync.config import validate_google_callback_url
 from calsync.crypto import encrypt_text
 from calsync.models import AdminUser, ProviderAccount
 from calsync.repos.providers import upsert_provider_account
-from calsync.services.app_settings import build_google_callback_url
+from calsync.services.app_settings import build_external_url, build_google_callback_url
 from calsync.services.provider_config import (
     get_google_provider_configuration_snapshot,
     get_microsoft_provider_configuration_snapshot,
@@ -189,7 +189,16 @@ def render_connections_page(
         session,
         settings=settings,
     )
-    microsoft_snapshot = get_microsoft_provider_configuration_snapshot(session)
+    microsoft_snapshot = get_microsoft_provider_configuration_snapshot(
+        session,
+        settings=settings,
+    )
+    microsoft_callback_url = build_external_url(
+        request,
+        settings.microsoft_oauth_redirect_path,
+        session=session,
+        settings=settings,
+    )
     google_block_message = None
     if bool(google_snapshot["configured"]) and callback_error is not None:
         google_block_message = (
@@ -216,6 +225,7 @@ def render_connections_page(
             and callback_error is None,
             "google_configuration_source": google_snapshot["source"],
             "microsoft_configured": microsoft_snapshot["configured"],
+            "microsoft_callback_url": microsoft_callback_url,
             "google_settings_url": "/admin/providers",
             "account_rows": account_rows,
             "apple_account_rows": [
@@ -240,14 +250,19 @@ def _build_account_row(account: ProviderAccount) -> dict[str, object]:
     provider_name = {
         "mock": "Mock",
         "google": "Google",
+        "microsoft": "Microsoft",
         "icloud_caldav": "Apple/iCloud",
     }.get(provider_type, provider_type)
 
     status = "Connected"
-    if metadata.get("google_reconnect_required"):
+    if metadata.get("google_reconnect_required") or metadata.get(
+        "microsoft_reconnect_required"
+    ):
         status = "Reconnect required"
     elif isinstance(metadata.get("google_auth_status"), str):
         status = str(metadata["google_auth_status"]).replace("_", " ").title()
+    elif isinstance(metadata.get("microsoft_auth_status"), str):
+        status = str(metadata["microsoft_auth_status"]).replace("_", " ").title()
     elif isinstance(metadata.get("auth_status"), str):
         status = str(metadata["auth_status"]).replace("_", " ").title()
 
@@ -256,6 +271,10 @@ def _build_account_row(account: ProviderAccount) -> dict[str, object]:
         "account_name": account.display_name or account.provider_account_id,
         "calendar_count": len(account.calendars),
         "status": status,
-        "last_error": metadata.get("last_auth_error") or metadata.get("google_last_auth_error"),
+        "last_error": (
+            metadata.get("last_auth_error")
+            or metadata.get("google_last_auth_error")
+            or metadata.get("microsoft_last_auth_error")
+        ),
         "manage_calendars_url": "/admin/calendars" if account.calendars else None,
     }
