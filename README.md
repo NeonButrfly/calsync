@@ -21,6 +21,7 @@ Implemented today:
 - first-run admin setup with username or email, strong password, mandatory MFA, QR enrollment, and recovery codes
 - password plus TOTP login for the admin UI
 - local break-glass commands for `reset-admin-password` and `reset-admin-mfa`
+- a local `ensure-break-glass-admin` command for a controlled MFA-exempt operator account
 - mock provider discovery and event import into the normalized event store
 - Google provider settings in the admin UI for deployment-wide OAuth credentials
 - Google account connection through browser-based OAuth with multiple account support
@@ -122,6 +123,8 @@ Normal login requires:
 
 Recovery codes are hashed in storage and are valid only once.
 
+A designated break-glass admin created through `ensure-break-glass-admin` is the only exception to the MFA challenge. Standard admin accounts remain password plus MFA.
+
 ## Emergency Local Recovery
 
 Break-glass commands are local operator tools. They do not destroy provider configuration, feed tokens, or sync history.
@@ -144,6 +147,14 @@ These same commands can be run directly on the host if the app dependencies are 
 python -m calsync.cli reset-admin-password --identifier admin
 python -m calsync.cli reset-admin-mfa --identifier admin
 ```
+
+Create or refresh a controlled break-glass admin account for emergency operator access or rendered browser verification:
+
+```bash
+docker compose exec web python -m calsync.cli ensure-break-glass-admin --username browser-admin --email browser-admin@example.com
+```
+
+This account is explicitly MFA-exempt. Treat it as a controlled local operator credential rather than a normal daily-use admin.
 
 ## Admin UI
 

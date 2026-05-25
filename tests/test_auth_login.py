@@ -59,6 +59,13 @@ def client(tmp_path: Path) -> TestClient:
         admin_user.mfa_enrolled = True
         recovery_codes = generate_recovery_codes(count=2)
         store_recovery_codes(session, admin_user, recovery_codes)
+        break_glass_user = create_admin_user(
+            session,
+            username="browser-admin",
+            email="browser-admin@example.com",
+            password_hash=hash_password("BrowserAdminPass1!"),
+        )
+        break_glass_user.mfa_bypass_enabled = True
         session.commit()
 
     app = create_app(settings)
@@ -144,6 +151,29 @@ def test_login_allows_recovery_code_as_second_factor(
         },
     )
     assert reused_code.status_code == 400
+
+
+def test_break_glass_admin_can_log_in_without_mfa_challenge(
+    client: TestClient,
+) -> None:
+    password_step = client.post(
+        "/login",
+        data={
+            "identifier": "browser-admin",
+            "password": "BrowserAdminPass1!",
+        },
+        follow_redirects=False,
+    )
+
+    assert password_step.status_code == 303
+    assert password_step.headers["location"] == "/admin"
+
+    mfa_page = client.get("/login/mfa")
+    assert mfa_page.status_code == 400
+
+    admin = client.get("/admin")
+    assert admin.status_code == 200
+    assert "Combined feed" in admin.text
 
 
 def test_login_rejects_replayed_totp_code_after_counter_is_persisted(

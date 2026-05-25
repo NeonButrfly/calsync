@@ -73,6 +73,14 @@ def submit_login(
             message="Invalid identifier or password.",
         )
 
+    if admin_user.mfa_bypass_enabled:
+        request.session[ADMIN_SESSION_KEY] = {
+            "user_id": admin_user.id,
+            "session_version": admin_user.session_version,
+        }
+        request.session.pop(PENDING_MFA_SESSION_KEY, None)
+        return RedirectResponse(url="/admin", status_code=303)
+
     request.session[PENDING_MFA_SESSION_KEY] = {
         "user_id": admin_user.id,
         "session_version": admin_user.session_version,

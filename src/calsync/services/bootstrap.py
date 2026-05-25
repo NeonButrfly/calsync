@@ -60,6 +60,12 @@ class AdminMfaResetResult:
     recovery_codes: list[str]
 
 
+@dataclass(slots=True)
+class BreakGlassAdminResult:
+    user: AdminUser
+    created: bool
+
+
 def is_setup_complete(session: Session) -> bool:
     state = get_app_state(session, SETUP_COMPLETED_STATE_KEY)
     if state is not None and state.value_text == "true":
@@ -112,6 +118,55 @@ def reset_admin_mfa(
     session.add(user)
     session.commit()
     return AdminMfaResetResult(user=user, recovery_codes=recovery_codes)
+
+
+def ensure_break_glass_admin(
+    session: Session,
+    *,
+    username: str,
+    email: str,
+    password: str,
+) -> BreakGlassAdminResult:
+    normalized_username = username.strip()
+    normalized_email = email.strip().lower()
+    if not normalized_username:
+        raise ValueError("Username is required.")
+    if not normalized_email:
+        raise ValueError("Email is required.")
+
+    password_errors = validate_password_strength(password)
+    if password_errors:
+        raise ValueError(" ".join(password_errors))
+
+    existing_user = get_admin_by_username(session, normalized_username)
+    if existing_user is None:
+        conflicting_email_user = get_admin_by_email(session, normalized_email)
+        if conflicting_email_user is not None:
+            existing_user = conflicting_email_user
+    elif existing_user.email != normalized_email:
+        conflicting_email_user = get_admin_by_email(session, normalized_email)
+        if conflicting_email_user is not None and conflicting_email_user.id != existing_user.id:
+            raise ValueError("That email is already used by a different admin user.")
+
+    created = existing_user is None
+    user = existing_user or create_admin_user(
+        session,
+        username=normalized_username,
+        email=normalized_email,
+    )
+
+    user.username = normalized_username
+    user.email = normalized_email
+    user.password_hash = hash_password(password)
+    user.mfa_secret_encrypted = None
+    user.mfa_enrolled = False
+    user.mfa_bypass_enabled = True
+    user.recovery_codes_json = None
+    user.mfa_last_accepted_counter = None
+    _invalidate_admin_sessions(user)
+    session.add(user)
+    session.commit()
+    return BreakGlassAdminResult(user=user, created=created)
 
 
 def require_setup_incomplete(session: Session) -> None:

@@ -248,6 +248,8 @@ Behavior:
 
 - `/login` renders a centered card-based sign-in experience
 - the primary path remains username or email plus password
+- standard admin accounts continue into `/login/mfa` after the password step
+- a designated break-glass admin created through `ensure-break-glass-admin` can establish an admin session after the password step alone
 - the page also shows planned invited-user social sign-in options for Google, Microsoft, Apple, and Facebook without implying those identity providers are live for CalSync user auth yet
 - `/login/mfa` renders the second-factor challenge in the same card-based layout
 
@@ -380,6 +382,14 @@ docker compose exec web python -m calsync.cli reset-admin-mfa --identifier admin
 ```
 
 These commands preserve provider accounts, calendar selections, feed tokens, and sync state.
+
+Create or refresh a controlled break-glass admin account:
+
+```bash
+docker compose exec web python -m calsync.cli ensure-break-glass-admin --username browser-admin --email browser-admin@example.com
+```
+
+The break-glass admin is explicitly MFA-exempt after the password step. Use it only for local operator recovery or rendered browser verification when the normal MFA-backed admin flow would block automated QA.
 
 ## Worker Notes
 

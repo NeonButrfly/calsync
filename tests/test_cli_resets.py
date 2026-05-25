@@ -220,6 +220,44 @@ def test_reset_admin_mfa_replaces_second_factor_with_recovery_codes_and_preserve
         assert published_feed.token == "feed-token-123"
 
 
+def test_ensure_break_glass_admin_creates_mfa_exempt_operator_account(
+    database_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{database_path}")
+    monkeypatch.setenv("ENCRYPTION_KEY", ENCRYPTION_KEY)
+    from calsync.cli import app
+
+    runner = CliRunner()
+
+    result = runner.invoke(
+        app,
+        [
+            "ensure-break-glass-admin",
+            "--username",
+            "browser-admin",
+            "--email",
+            "browser-admin@example.com",
+        ],
+        input="BrowserAdminPass1!\nBrowserAdminPass1!\n",
+    )
+
+    assert result.exit_code == 0
+    assert "BrowserAdminPass1!" not in result.output
+    assert "browser-admin" in result.output
+
+    with _db_session(database_path) as session:
+        admin_user = session.scalar(
+            select(AdminUser).where(AdminUser.username == "browser-admin")
+        )
+        assert admin_user is not None
+        assert admin_user.email == "browser-admin@example.com"
+        assert verify_password("BrowserAdminPass1!", admin_user.password_hash or "")
+        assert admin_user.mfa_enrolled is False
+        assert admin_user.mfa_secret_encrypted is None
+        assert getattr(admin_user, "mfa_bypass_enabled", False) is True
+
+
 def _db_session(database_path: Path) -> Session:
     engine = create_engine(
         f"sqlite+pysqlite:///{database_path}",

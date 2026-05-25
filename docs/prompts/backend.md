@@ -593,3 +593,29 @@
 - issue `#27` adds stylesheet cache busting through an asset-version query string
 - dashboard upcoming rows now filter out events whose end time is already in the past
 - Alaska display formatting now includes the year for non-current-year dates
+
+---
+
+- GitHub issue: `#28`
+- Scope: add a controlled break-glass admin login for rendered browser verification and emergency operator access
+
+## Interpreted Requirements
+
+- the system should support one explicitly designated break-glass admin account for operator use
+- that account should be creatable or refreshable locally through a CLI flow
+- the break-glass account should bypass the MFA challenge after the password step
+- standard admin accounts must remain password plus MFA
+- the new account path should be usable for rendered browser login verification on private admin pages
+
+## Behavioral Boundaries
+
+- mandatory MFA remains the normal rule for admin access
+- the MFA bypass applies only to admins explicitly marked as break-glass users
+- the break-glass account is an operator tool, not a public or invited-user sign-in flow
+- provider behavior remains unchanged
+
+## Phase Notes
+
+- issue `#28` introduces a persisted `mfa_bypass_enabled` flag for designated admin users
+- the operator entry point is `python -m calsync.cli ensure-break-glass-admin --username ... --email ...`
+- the break-glass account should clear stored MFA material and recovery-code state when refreshed so the account remains a clean password-only operator credential

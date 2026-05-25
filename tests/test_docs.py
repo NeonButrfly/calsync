@@ -206,6 +206,24 @@ def test_docs_cover_cache_busting_and_non_current_year_dates() -> None:
     assert "upcoming schedule" in prompt_content
 
 
+def test_docs_cover_break_glass_admin_login() -> None:
+    readme_content = Path("README.md").read_text(encoding="utf-8").lower()
+    ops_content = Path("docs/ops.md").read_text(encoding="utf-8").lower()
+    prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()
+
+    assert "ensure-break-glass-admin" in readme_content
+    assert "mfa-exempt" in readme_content
+    assert "standard admin accounts remain password plus mfa" in readme_content
+
+    assert "ensure-break-glass-admin" in ops_content
+    assert "mfa-exempt after the password step" in ops_content
+    assert "rendered browser verification" in ops_content
+
+    assert "#28" in prompt_content
+    assert "mfa bypass" in prompt_content
+    assert "break-glass account" in prompt_content
+
+
 def test_docs_cover_ranked_utility_roadmap() -> None:
     readme_content = Path("README.md").read_text(encoding="utf-8").lower()
     prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()

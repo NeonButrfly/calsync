@@ -5,7 +5,11 @@ import typer
 from calsync.config import Settings
 from calsync.db import create_session_factory
 from calsync.services.auth import validate_password_strength
-from calsync.services.bootstrap import reset_admin_mfa, reset_admin_password
+from calsync.services.bootstrap import (
+    ensure_break_glass_admin,
+    reset_admin_mfa,
+    reset_admin_password,
+)
 
 
 app = typer.Typer(
@@ -63,6 +67,38 @@ def reset_admin_mfa_command(
     typer.echo("New recovery codes:")
     for recovery_code in result.recovery_codes:
         typer.echo(f"- {recovery_code}")
+
+
+@app.command("ensure-break-glass-admin")
+def ensure_break_glass_admin_command(
+    username: str = typer.Option(..., "--username", help="Break-glass admin username."),
+    email: str = typer.Option(..., "--email", help="Break-glass admin email."),
+) -> None:
+    password = typer.prompt(
+        "Break-glass admin password",
+        hide_input=True,
+        confirmation_prompt=True,
+    )
+    password_errors = validate_password_strength(password)
+    if password_errors:
+        raise typer.BadParameter(" ".join(password_errors))
+
+    session_factory = create_session_factory(Settings())
+    with session_factory() as session:
+        try:
+            result = ensure_break_glass_admin(
+                session,
+                username=username,
+                email=email,
+                password=password,
+            )
+        except ValueError as error:
+            raise typer.Exit(code=_print_error(str(error))) from error
+
+    action = "created" if result.created else "updated"
+    typer.echo(
+        f"Break-glass admin {result.user.username} {action}. MFA bypass is enabled and existing sessions were invalidated."
+    )
 
 
 def _print_error(message: str) -> int:

@@ -17,6 +17,11 @@ class AdminUser(Base):
     password_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
     mfa_secret_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     mfa_enrolled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    mfa_bypass_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
     recovery_codes_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     mfa_last_accepted_counter: Mapped[int | None] = mapped_column(
         Integer,
