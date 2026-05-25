@@ -74,6 +74,11 @@ def test_login_requires_password_then_totp_before_session_is_established(
 ) -> None:
     login_page = client.get("/login")
     assert login_page.status_code == 200
+    assert "Welcome back" in login_page.text
+    assert "Continue with Google" in login_page.text
+    assert "Continue with Microsoft" in login_page.text
+    assert "Continue with Apple" in login_page.text
+    assert "Continue with Facebook" in login_page.text
 
     password_step = client.post(
         "/login",
@@ -86,7 +91,10 @@ def test_login_requires_password_then_totp_before_session_is_established(
 
     assert password_step.status_code == 303
     assert password_step.headers["location"] == "/login/mfa"
-    assert client.get("/login/mfa").status_code == 200
+    mfa_page = client.get("/login/mfa")
+    assert mfa_page.status_code == 200
+    assert "Two-step verification" in mfa_page.text
+    assert "Check your authenticator app" in mfa_page.text
 
     mfa_step = client.post(
         "/login/mfa",

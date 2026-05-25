@@ -148,6 +148,28 @@ def test_docs_cover_event_explain_and_richer_problem_actions() -> None:
     assert "explain this event" in prompt_content
 
 
+def test_docs_cover_trust_ux_and_auth_refresh() -> None:
+    readme_content = Path("README.md").read_text(encoding="utf-8").lower()
+    ops_content = Path("docs/ops.md").read_text(encoding="utf-8").lower()
+    prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()
+
+    assert "continue with google" in readme_content
+    assert "continue with facebook" in readme_content
+    assert "calsync currently recommends keeping" in readme_content
+    assert "why a pair of events was grouped" in readme_content
+
+    assert "/login" in ops_content
+    assert "welcome back" in ops_content
+    assert "continue with microsoft" in ops_content
+    assert "fix what needs attention" in ops_content
+    assert "which copy calsync currently recommends keeping" in ops_content
+
+    assert "#24" in prompt_content
+    assert "#25" in prompt_content
+    assert "social sign-in options" in prompt_content
+    assert "preferred-copy guidance" in prompt_content
+
+
 def test_docs_cover_ranked_utility_roadmap() -> None:
     readme_content = Path("README.md").read_text(encoding="utf-8").lower()
     prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()

@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 
 {% block title %}CalSync Problems{% endblock %}
-{% block page_title %}Problem To Fix{% endblock %}
+{% block page_title %}Problems{% endblock %}
+{% block page_summary %}
+Start with the items that would make the schedule feel wrong to a real person:
+duplicates, stale sign-ins, broken syncs, and source conflicts.
+{% endblock %}
 
 {% block content %}
 <section class="grid dashboard-grid">
@@ -26,8 +30,8 @@
   <article class="panel">
     <div class="panel-heading">
       <div>
-        <h2>Problem to fix list</h2>
-        <p class="subtle">Start here when something feels off. Each item explains the problem and offers the safest next action.</p>
+        <h2>Fix what needs attention</h2>
+        <p class="subtle">Each item explains what CalSync sees, which copy or source it currently trusts, and the safest next action.</p>
       </div>
     </div>
 
@@ -40,12 +44,25 @@
             <div class="problem-card__chips">
               <span class="review-chip review-chip--severity-{{ problem.severity }}">{{ problem.severity | title }}</span>
               <span class="review-chip">{{ problem.category | replace("_", " ") | title }}</span>
+              {% if problem.preferred_label %}
+              <span class="review-chip review-chip--preferred">Preferred now</span>
+              {% endif %}
             </div>
             <h3>{{ problem.title }}</h3>
             <p class="subtle">{{ problem.source_label }}</p>
           </div>
         </div>
         <p>{{ problem.summary }}</p>
+        {% if problem.preferred_label %}
+        <p class="problem-card__preferred">{{ problem.preferred_label }}</p>
+        {% endif %}
+        {% if problem.context_lines %}
+        <ul class="problem-card__context">
+          {% for line in problem.context_lines %}
+          <li>{{ line }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
         <div class="problem-card__actions">
           {% if problem.primary_action.method == "post" %}
           <form method="post" action="{{ problem.primary_action.target }}">

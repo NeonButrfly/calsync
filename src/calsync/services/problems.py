@@ -32,6 +32,8 @@ class ProblemItem:
     secondary_action: ProblemAction | None = None
     extra_actions: list[ProblemAction] = field(default_factory=list)
     event_id: str | None = None
+    preferred_label: str | None = None
+    context_lines: list[str] = field(default_factory=list)
 
 
 def list_operator_problems(session: Session) -> list[ProblemItem]:
@@ -55,11 +57,13 @@ def list_operator_problems(session: Session) -> list[ProblemItem]:
                 ),
                 source_label=f"{preferred_event.provider_type} · {preferred_event.provider_account_id}",
                 primary_action=ProblemAction(
-                    label="Review duplicates",
+                    label="Resolve duplicate",
                     target=f"/admin/review#{duplicate_group.anchor_id}",
                 ),
                 extra_actions=_duplicate_problem_actions(duplicate_group),
                 event_id=duplicate_group.group.preferred_event_id,
+                preferred_label=_build_duplicate_preferred_label(preferred_event),
+                context_lines=_build_duplicate_context_lines(duplicate_group),
             )
         )
 
@@ -237,3 +241,26 @@ def _duplicate_problem_actions(duplicate_group: DuplicateGroupView) -> list[Prob
         )
     )
     return actions
+
+
+def _build_duplicate_preferred_label(preferred_event) -> str:
+    provider_name = {
+        "google": "Google",
+        "icloud_caldav": "Apple",
+        "microsoft": "Microsoft",
+        "mock": "Mock",
+    }.get(preferred_event.provider_type, preferred_event.provider_type.replace("_", " ").title())
+    return f"CalSync recommends keeping the {provider_name} copy right now."
+
+
+def _build_duplicate_context_lines(duplicate_group: DuplicateGroupView) -> list[str]:
+    providers = []
+    for event in duplicate_group.events:
+        label = {
+            "google": "Google",
+            "icloud_caldav": "Apple",
+            "microsoft": "Microsoft",
+            "mock": "Mock",
+        }.get(event.provider_type, event.provider_type.replace("_", " ").title())
+        providers.append(f"{label}: {event.provider_account_id}")
+    return providers

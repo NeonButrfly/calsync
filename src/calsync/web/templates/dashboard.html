@@ -10,12 +10,11 @@ needs attention before anyone feels it in the schedule.
 {% block content %}
 <section class="dashboard-hero panel">
   <div class="dashboard-hero__copy">
-    <p class="hero-kicker">Scheduling product shell</p>
-    <h2>A calmer way to run the day</h2>
+    <p class="hero-kicker">Scheduling command center</p>
+    <h2>See the schedule clearly and fix the weird stuff fast</h2>
     <p>
-      Keep one bright view of the schedule, preserve trust across connected
-      sources, and move from problems to action without digging through an admin
-      maze.
+      Keep one clean view of every connected calendar, know what CalSync is
+      confident about, and jump straight to the fixes when something looks off.
     </p>
   </div>
   <dl class="dashboard-hero__stats">
@@ -38,8 +37,8 @@ needs attention before anyone feels it in the schedule.
   <article class="panel">
     <h2>Problems to fix</h2>
     <p class="subtle">
-      Start here when CalSync spots duplicate cleanup, broken syncs, or account
-      issues that could erode confidence.
+      Start here when CalSync spots duplicates, stale account sign-ins, or sync
+      issues that could make the schedule feel wrong.
     </p>
     <dl class="detail-list">
       <div><dt>Open problems</dt><dd>{{ problem_summary.problem_count }}</dd></div>
@@ -58,6 +57,7 @@ needs attention before anyone feels it in the schedule.
 
   <article class="panel">
     <h2>Trust review</h2>
+    <p class="subtle">Use the review queue when you want to inspect why CalSync grouped two appointments together.</p>
     <dl class="detail-list">
       <div><dt>Possible duplicates</dt><dd>{{ trust_metrics.duplicate_groups }}</dd></div>
       <div><dt>Hidden duplicates</dt><dd>{{ trust_metrics.hidden_duplicates }}</dd></div>

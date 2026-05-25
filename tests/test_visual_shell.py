@@ -36,6 +36,7 @@ def test_admin_shell_uses_scheduling_navigation_labels(
     response = authenticated_client.get("/admin")
 
     assert response.status_code == 200
+    assert "Scheduling that feels calm and obvious" in response.text
     assert 'href="/admin"' in response.text
     assert ">Home<" in response.text
     assert 'href="/admin/flightboard"' in response.text
@@ -50,3 +51,5 @@ def test_admin_shell_uses_scheduling_navigation_labels(
     assert ">Settings<" in response.text
     assert "/admin/sync" in response.text
     assert "/admin/feeds" in response.text
+    assert "Review queue" in response.text
+    assert "Connect calendars" in response.text

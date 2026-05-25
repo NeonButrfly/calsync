@@ -2,25 +2,47 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CalSync MFA Challenge</title>
+    <link rel="stylesheet" href="/static/app.css" />
   </head>
-  <body>
-    <h1>Enter your MFA code</h1>
+  <body class="auth-body">
+    <main class="auth-shell auth-shell--narrow">
+      <section class="auth-card auth-card--compact" aria-label="Two-step verification">
+        <div class="auth-card__header">
+          <p class="auth-kicker">Two-step verification</p>
+          <h1>Check your authenticator app</h1>
+          <p class="subtle">
+            Enter the current verification code or one of your recovery codes to
+            finish signing in.
+          </p>
+        </div>
 
-    {% if errors %}
-    <ul>
-      {% for error in errors %}
-      <li>{{ error }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
+        {% if errors %}
+        <div class="auth-alert" role="alert">
+          <strong>That code did not work.</strong>
+          <ul>
+            {% for error in errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
 
-    <form method="post" action="/login/mfa">
-      <label>
-        MFA or recovery code
-        <input name="code" type="text" />
-      </label>
-      <button type="submit">Sign in</button>
-    </form>
+        <form method="post" action="/login/mfa" class="auth-form">
+          <label class="field">
+            <span>MFA or recovery code</span>
+            <input
+              name="code"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              placeholder="123456"
+            />
+          </label>
+          <button type="submit" class="auth-submit">Sign in</button>
+        </form>
+      </section>
+    </main>
   </body>
 </html>

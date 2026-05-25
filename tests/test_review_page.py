@@ -133,6 +133,8 @@ def test_review_page_lists_duplicate_groups_and_resolution_actions(tmp_path: Pat
     assert "Possible duplicates" in response.text
     assert "Orthodontist Appointment" in response.text
     assert "Keep this copy" in response.text
+    assert "CalSync is currently keeping" in response.text
+    assert "Why this looks duplicated" in response.text
     assert f'id="{anchor_id}"' in response.text
 
 

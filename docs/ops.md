@@ -205,6 +205,7 @@ Practical verification points:
 - the dashboard shows a `Trust review` summary card
 - the dashboard combined calendar collapses duplicate copies into one row and shows a multi-source badge when more than one provider copy exists
 - `/admin/review` shows `Needs attention` and `Possible duplicates` when matching copies exist
+- `/admin/review` explains why the grouped copies look duplicated and which copy CalSync is currently keeping visible
 - choosing `Keep this copy` hides the extra copy from active dashboard, flightboard, and ICS surfaces
 - restoring a hidden duplicate should keep that copy visible even after the page recalculates duplicate groups
 - if a calendar disappears from provider discovery, its old events become `deleted_upstream` instead of staying active forever
@@ -220,16 +221,35 @@ Behavior:
 - gathers duplicate cleanup, sync retry, and account authentication problems into one list
 - sorts higher-risk sync and auth items ahead of lower-risk cleanup items
 - offers the safest next action for each problem, such as `Review duplicates`, `Keep Google copy`, `Keep iCloud copy`, `Show all copies`, `Explain this event`, `Sync now`, or `Reconnect in accounts`
+- duplicate items show which copy CalSync currently recommends keeping and which connected sources are involved
 - returns `Sync now` actions back to the problem inbox so the operator can keep working from one page
 
 Practical verification points:
 
 - the top navigation includes `Problems`
 - the dashboard shows a `Problems to fix` summary card
-- `/admin/problems` shows `Problem to fix list`
+- `/admin/problems` is the private problem to fix list
+- `/admin/problems` shows `Fix what needs attention`
 - duplicate items link into `/admin/review`
 - duplicate items also provide `Explain this event` links into `/admin/events/{event_id}`
 - sync retry items can run directly from the inbox and redirect back to `/admin/problems`
+
+## Auth Experience
+
+The private admin auth flow now uses the same visual system as the main product shell.
+
+Behavior:
+
+- `/login` renders a centered card-based sign-in experience
+- the primary path remains username or email plus password
+- the page also shows planned invited-user social sign-in options for Google, Microsoft, Apple, and Facebook without implying those identity providers are live for CalSync user auth yet
+- `/login/mfa` renders the second-factor challenge in the same card-based layout
+
+Practical verification points:
+
+- `/login` renders `Welcome back`
+- `/login` includes `Continue with Google`, `Continue with Microsoft`, `Continue with Apple`, and `Continue with Facebook`
+- `/login/mfa` renders `Two-step verification`
 
 ## Event Explain View
 

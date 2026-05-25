@@ -2,29 +2,81 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CalSync Login</title>
+    <link rel="stylesheet" href="/static/app.css" />
   </head>
-  <body>
-    <h1>Admin login</h1>
+  <body class="auth-body">
+    <main class="auth-shell">
+      <section class="auth-hero">
+        <p class="eyebrow">CalSync</p>
+        <h1>Welcome back</h1>
+        <p class="auth-summary">
+          Sign in to keep calendars aligned, resolve scheduling mistakes quickly,
+          and move from connection to booking with less friction.
+        </p>
+        <ul class="auth-benefits">
+          <li>One clean schedule across every connected calendar</li>
+          <li>Trust tools that surface duplicates and sync issues fast</li>
+          <li>Write-capable scheduling foundations already taking shape</li>
+        </ul>
+      </section>
 
-    {% if errors %}
-    <ul>
-      {% for error in errors %}
-      <li>{{ error }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
+      <section class="auth-card" aria-label="Sign in">
+        <div class="auth-card__header">
+          <p class="auth-kicker">Admin access</p>
+          <h2>Sign in to CalSync</h2>
+          <p class="subtle">
+            Use your invited email or username and password. Social sign-in is
+            planned for invited users and is shown here to match the future flow.
+          </p>
+        </div>
 
-    <form method="post" action="/login">
-      <label>
-        Username or email
-        <input name="identifier" type="text" value="{{ identifier }}" />
-      </label>
-      <label>
-        Password
-        <input name="password" type="password" />
-      </label>
-      <button type="submit">Continue</button>
-    </form>
+        {% if errors %}
+        <div class="auth-alert" role="alert">
+          <strong>We could not sign you in.</strong>
+          <ul>
+            {% for error in errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        <div class="social-grid" aria-label="Planned social sign-in options">
+          <button type="button" class="social-button" disabled>Continue with Google</button>
+          <button type="button" class="social-button" disabled>Continue with Microsoft</button>
+          <button type="button" class="social-button" disabled>Continue with Apple</button>
+          <button type="button" class="social-button" disabled>Continue with Facebook</button>
+        </div>
+
+        <div class="auth-divider">
+          <span>or continue with email and password</span>
+        </div>
+
+        <form method="post" action="/login" class="auth-form">
+          <label class="field">
+            <span>Username or email</span>
+            <input
+              name="identifier"
+              type="text"
+              value="{{ identifier }}"
+              autocomplete="username"
+              placeholder="you@example.com"
+            />
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Enter your password"
+            />
+          </label>
+          <button type="submit" class="auth-submit">Continue</button>
+        </form>
+      </section>
+    </main>
   </body>
 </html>

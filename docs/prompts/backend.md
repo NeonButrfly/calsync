@@ -495,3 +495,50 @@
 - `/admin/accounts` now exposes live Outlook / Microsoft 365 account connection
 - `/admin/calendars` remains the operator surface for enabling discovered Microsoft calendars
 - the worker sync loop now refreshes Microsoft provider accounts alongside Google and Apple read-only accounts
+
+---
+
+- GitHub issue: `#24`
+- Scope: refine trust workflow so duplicate and problem state feels obvious and fixable
+
+## Interpreted Requirements
+
+- the trust experience should feel like a calm fix workflow instead of a backend debug surface
+- `/admin/problems` should explain which copy CalSync currently recommends keeping for duplicate items
+- `/admin/review` should explain why grouped copies look duplicated and which copy is currently visible in the combined schedule
+- dashboard and trust surfaces should use clearer action-first wording
+
+## Behavioral Boundaries
+
+- duplicate cleanup remains local visibility and preference management only
+- no provider write-back or event deletion is introduced in this issue
+
+## Phase Notes
+
+- issue `#24` keeps the existing reconciliation engine but improves how trust state is explained in the UI
+- problem items now surface preferred-copy guidance and source context inline
+- review groups now explain why a duplicate match happened and what CalSync is keeping visible
+
+---
+
+- GitHub issue: `#25`
+- Scope: modernize the CalSync shell and auth experience with a cleaner SaaS-style UI
+
+## Interpreted Requirements
+
+- the app should feel more professional, centered, and modern without a frontend rewrite
+- login and MFA should move onto the shared visual system instead of remaining raw forms
+- `/login` should be designed around email or username plus password as the primary path
+- `/login` should also show the planned social sign-in options typical of modern SaaS products: Google, Microsoft, Apple, and Facebook
+
+## Behavioral Boundaries
+
+- email or username plus password plus MFA remains the only live CalSync admin authentication path in this issue
+- social sign-in buttons are presented honestly as planned identity entry points rather than active user-auth providers
+- no provider calendar-connect behavior changes are implied by the login-page refresh
+
+## Phase Notes
+
+- issue `#25` updates the shared shell, dashboard framing, login page, and MFA challenge styling together
+- the new auth layout is centered and card-based
+- the shell keeps the write-capable product framing while reducing the transitional admin-tool feel

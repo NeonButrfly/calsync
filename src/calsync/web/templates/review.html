@@ -2,6 +2,10 @@
 
 {% block title %}CalSync Review{% endblock %}
 {% block page_title %}Review{% endblock %}
+{% block page_summary %}
+Use this queue to understand why CalSync matched copies together, which one it
+is currently keeping visible, and when you want to override that choice.
+{% endblock %}
 
 {% block content %}
 <section class="grid dashboard-grid">
@@ -49,9 +53,18 @@
           <div>
             <h3>{{ duplicate_group.group.display_title }}</h3>
             <p class="subtle">{{ duplicate_group.group.preferred_starts_at | alaska_datetime }}</p>
+            <p class="review-summary">
+              CalSync is currently keeping the copy with the strongest detail and trust score visible in the combined schedule.
+            </p>
           </div>
           <span class="review-chip">Group of {{ duplicate_group.events | length }}</span>
         </header>
+        <div class="review-why">
+          <strong>Why this looks duplicated</strong>
+          <p class="subtle">
+            These copies share nearly the same title and timing, so CalSync grouped them as one real-world appointment until you choose otherwise.
+          </p>
+        </div>
         <ul class="review-event-list">
           {% for event in duplicate_group.events %}
           <li class="review-event-card">

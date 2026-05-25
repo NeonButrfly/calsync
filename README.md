@@ -162,6 +162,12 @@ Current admin pages:
 
 These pages require admin login plus MFA-backed session establishment.
 
+The auth flow now uses a centered card layout instead of a raw form:
+
+- `/login` leads with email or username plus password
+- `/login` also shows the planned invited-user social entry points for `Continue with Google`, `Continue with Microsoft`, `Continue with Apple`, and `Continue with Facebook` without pretending those identity flows are live yet
+- `/login/mfa` uses the same visual system for the second-factor step
+
 ## Connections And Calendar Roles
 
 CalSync now frames account onboarding as a `Connections` experience rather than a narrow provider-setup page.
@@ -199,7 +205,9 @@ Current behavior:
 - conservative duplicate grouping now also catches small title drift and small time drift for obvious cross-provider copies of the same appointment
 - the dashboard combined view keeps one visible row for a trusted appointment and shows when that row comes from multiple synced sources
 - the problem-to-fix inbox gives you one obvious list of duplicate, sync, and account issues with the safest next action
+- duplicate items now explain which copy CalSync currently recommends keeping and list the source accounts involved
 - the review page acts as a `Needs attention` queue so you can keep the right copy and hide the extra one when you accidentally add the same appointment twice
+- the review page now explicitly explains why a pair of events was grouped as a duplicate and which copy CalSync is currently keeping visible
 - duplicate fixes now include provider-aware actions like `Keep Google copy`, `Keep iCloud copy`, and `Show all copies`
 - `Explain this event` opens `/admin/events/{event_id}` so you can see grouped copies, visibility state, and the latest sync context for that appointment
 - hidden duplicate decisions survive later refreshes instead of being lost on the next sync

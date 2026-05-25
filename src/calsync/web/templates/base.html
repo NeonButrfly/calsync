@@ -8,9 +8,25 @@
   </head>
   <body>
     {% set current_path = request.url.path %}
-    <header class="shell-header">
+    <header class="shell-header shell-header--app">
+      <div class="shell-header__bar">
+        <div class="shell-brand">
+          <p class="eyebrow">CalSync</p>
+          <span class="shell-brand__tag">Scheduling that feels calm and obvious</span>
+        </div>
+        <div class="shell-header__meta">
+          <div class="admin-badge">
+            Signed in as <strong>{{ current_admin.username }}</strong>
+          </div>
+          <div class="shell-shortcuts" aria-label="Quick links">
+            <a href="/admin/review">Review queue</a>
+            <a href="/admin/accounts">Connect calendars</a>
+            <a href="/admin/sync">Sync status</a>
+            <a href="/admin/feeds">ICS publishing</a>
+          </div>
+        </div>
+      </div>
       <div class="shell-header__copy">
-        <p class="eyebrow">CalSync</p>
         <h1>{% block page_title %}Scheduling workspace{% endblock %}</h1>
         <p class="shell-summary">
           {% block page_summary %}
@@ -18,16 +34,6 @@
           fix trust issues before they affect the day.
           {% endblock %}
         </p>
-      </div>
-      <div class="shell-header__meta">
-        <div class="admin-badge">
-          Signed in as <strong>{{ current_admin.username }}</strong>
-        </div>
-        <div class="shell-shortcuts" aria-label="Quick links">
-          <a href="/admin/review">Review queue</a>
-          <a href="/admin/sync">Sync status</a>
-          <a href="/admin/feeds">ICS publishing</a>
-        </div>
       </div>
     </header>
 

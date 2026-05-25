@@ -171,11 +171,12 @@ def test_problem_page_lists_duplicate_and_reconnect_items(tmp_path: Path) -> Non
         response = client.get("/admin/problems")
 
     assert response.status_code == 200
-    assert "Problem to fix list" in response.text
+    assert "Fix what needs attention" in response.text
     assert "Possible duplicate appointment" in response.text
     assert "Google account needs reconnection" in response.text
-    assert "Review duplicates" in response.text
+    assert "Resolve duplicate" in response.text
     assert "Reconnect in accounts" in response.text
+    assert "CalSync recommends keeping" in response.text
 
 
 def test_problem_page_lists_provider_specific_duplicate_actions(tmp_path: Path) -> None:
@@ -188,6 +189,7 @@ def test_problem_page_lists_provider_specific_duplicate_actions(tmp_path: Path) 
     assert "Keep iCloud copy" in response.text
     assert "Show all copies" in response.text
     assert "Explain this event" in response.text
+    assert "Preferred now" in response.text
     with _db_session(client) as session:
         duplicate_group = list_duplicate_groups(session)[0]
         duplicate_group_id = duplicate_group.group.id
