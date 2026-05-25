@@ -51,7 +51,7 @@ Choose the calendars CalSync can read today and prepare the sign-ins that will p
       </p>
       <p><strong>Microsoft sign-in callback URL:</strong> {{ microsoft_callback_url }}</p>
       {% if not microsoft_configured %}
-      <p>Microsoft OAuth is not configured yet. Add the Microsoft client ID and secret on the Provider Settings page first.</p>
+      <p>Microsoft OAuth is not configured yet. Add the Microsoft client ID and secret in Provider Settings first.</p>
       <p><a href="{{ google_settings_url }}">Open Provider Settings</a></p>
       {% else %}
       <form method="get" action="/auth/microsoft/start">

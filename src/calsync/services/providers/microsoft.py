@@ -5,6 +5,7 @@ from typing import Any
 from urllib.parse import quote, urlencode
 
 import httpx
+from dateutil import tz
 from sqlalchemy.orm import Session
 
 from calsync.config import (
@@ -61,15 +62,7 @@ class MicrosoftOAuthError(RuntimeError):
 def infer_microsoft_account_capabilities(
     account: ProviderAccount,
 ) -> tuple[str, bool, bool]:
-    metadata = _account_metadata(account)
-    scopes = _metadata_scope_values(metadata.get(ACCOUNT_SCOPES_KEY))
-    can_write = bool(
-        metadata.get("can_write") is True
-        or metadata.get("supports_write") is True
-        or metadata.get("supports_writes") is True
-        or any(scope in MICROSOFT_WRITABLE_SCOPES for scope in scopes)
-    )
-    return "oauth", True, can_write
+    return "oauth", True, False
 
 
 class MicrosoftProviderAdapter:
@@ -399,6 +392,12 @@ def ensure_microsoft_access_token(
 
     new_access_token = _required_str(token_payload.get("access_token"))
     account.access_token_encrypted = encrypt_text(encryption_key, new_access_token)
+    new_refresh_token = _optional_str(token_payload.get("refresh_token"))
+    if new_refresh_token:
+        account.refresh_token_encrypted = encrypt_text(
+            encryption_key,
+            new_refresh_token,
+        )
     metadata = _account_metadata(account)
     expires_in = token_payload.get("expires_in")
     if isinstance(expires_in, (int, float)):
@@ -519,11 +518,16 @@ def _parse_microsoft_event_datetime(
     timezone_name = _optional_str(payload.get("timeZone")) or "UTC"
     parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     if parsed.tzinfo is None or parsed.utcoffset() is None:
+        timezone_info = None
         if timezone_name.upper() == "UTC":
-            parsed = parsed.replace(tzinfo=UTC)
+            timezone_info = UTC
+        else:
+            timezone_info = tz.gettz(timezone_name)
+        if timezone_info is not None:
+            parsed = parsed.replace(tzinfo=timezone_info)
         else:
             raise MicrosoftOAuthError(
-                "Microsoft event datetime must be timezone-aware or explicitly UTC."
+                "Microsoft event datetime must include a recognized timezone."
             )
     return parsed, all_day
 

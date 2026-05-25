@@ -647,7 +647,7 @@ def test_get_provider_account_hydrates_google_capabilities_from_current_scopes(
         assert hydrated.can_write is False
 
 
-def test_get_provider_account_hydrates_microsoft_capabilities_from_current_scopes(
+def test_get_provider_account_keeps_microsoft_read_only_in_this_slice(
     migrated_session_factory: sessionmaker[Session],
 ) -> None:
     with migrated_session_factory() as write_session:
@@ -673,7 +673,7 @@ def test_get_provider_account_hydrates_microsoft_capabilities_from_current_scope
         assert hydrated is not None
         assert hydrated.auth_mode == "oauth"
         assert hydrated.can_read is True
-        assert hydrated.can_write is True
+        assert hydrated.can_write is False
 
 
 def test_get_provider_account_hydrates_icloud_defaults(

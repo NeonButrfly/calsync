@@ -9,7 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from calsync.config import Settings
-from calsync.crypto import encrypt_text
+from calsync.crypto import decrypt_text, encrypt_text
 from calsync.models import Base, ProviderAccount, ProviderCalendar
 from calsync.repos.provider_config import get_provider_configuration
 from calsync.services.provider_config import (
@@ -114,7 +114,7 @@ def test_microsoft_provider_configuration_round_trip_supports_space_delimited_sc
     account.provider_metadata = {
         "microsoft_scopes": list(configuration.scopes),
     }
-    assert infer_microsoft_account_capabilities(account) == ("oauth", True, True)
+    assert infer_microsoft_account_capabilities(account) == ("oauth", True, False)
 
 
 def test_build_microsoft_authorization_url_uses_callback_and_scopes(
@@ -203,6 +203,14 @@ def test_connect_microsoft_account_from_callback_persists_tokens_and_metadata(
 
     assert account.provider_type == "microsoft"
     assert account.display_name == "owner@example.com"
+    assert account.access_token_encrypted is not None
+    assert account.refresh_token_encrypted is not None
+    assert decrypt_text(ENCRYPTION_KEY, account.access_token_encrypted) == (
+        "microsoft-access-token"
+    )
+    assert decrypt_text(ENCRYPTION_KEY, account.refresh_token_encrypted) == (
+        "microsoft-refresh-token"
+    )
     assert account.provider_metadata is not None
     assert account.provider_metadata[ACCOUNT_AUTH_STATUS_KEY] == "connected"
     assert account.provider_metadata["microsoft_email"] == "owner@example.com"
@@ -254,6 +262,61 @@ def test_microsoft_refresh_marks_reconnect_required_on_invalid_grant(
 
     assert account.provider_metadata is not None
     assert account.provider_metadata[ACCOUNT_RECONNECT_REQUIRED_KEY] is True
+
+
+def test_microsoft_refresh_rotates_new_refresh_token_when_returned(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    settings = _build_settings(tmp_path)
+    with _build_session(tmp_path) as session:
+        save_microsoft_oauth_configuration(
+            session,
+            client_id="microsoft-client-id",
+            client_secret="microsoft-client-secret",
+            scopes="openid offline_access User.Read Calendars.Read",
+            encryption_key=ENCRYPTION_KEY,
+        )
+        session.commit()
+
+        account = ProviderAccount(
+            provider_type="microsoft",
+            provider_account_id="microsoft-sub",
+            access_token_encrypted=None,
+            refresh_token_encrypted=encrypt_text(ENCRYPTION_KEY, "old-refresh-token"),
+            provider_metadata={},
+        )
+        session.add(account)
+        session.flush()
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url == httpx.URL(
+                "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+            ):
+                return httpx.Response(
+                    200,
+                    json={
+                        "access_token": "new-access-token",
+                        "refresh_token": "new-refresh-token",
+                        "expires_in": 3600,
+                        "scope": "openid offline_access User.Read Calendars.Read",
+                    },
+                    request=request,
+                )
+            raise AssertionError(f"Unexpected request: {request.method} {request.url}")
+
+        monkeypatch.setattr(
+            "calsync.services.providers.microsoft._build_http_client",
+            lambda: httpx.Client(transport=httpx.MockTransport(handler)),
+        )
+
+        token = ensure_microsoft_access_token(account, session=session, settings=settings)
+
+    assert token == "new-access-token"
+    assert account.refresh_token_encrypted is not None
+    assert decrypt_text(ENCRYPTION_KEY, account.refresh_token_encrypted) == (
+        "new-refresh-token"
+    )
 
 
 def test_microsoft_discovery_maps_calendars(
@@ -350,6 +413,81 @@ def test_microsoft_fetch_events_normalizes_graph_events(
     assert events[0].provider_event_id == "evt-1"
     assert events[0].title == "Checkup"
     assert events[0].location == "Clinic"
+
+
+def test_microsoft_fetch_events_normalizes_windows_timezone_payloads(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    settings = _build_settings(tmp_path)
+    with _build_session(tmp_path) as session:
+        account = _seed_connected_account(session)
+        adapter = MicrosoftProviderAdapter(session=session, settings=settings)
+        calendar_obj = ProviderCalendar(
+            provider_account_pk=account.id,
+            provider_calendar_id="primary",
+            name="Calendar",
+            enabled=True,
+        )
+        session.add(calendar_obj)
+        session.commit()
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url == httpx.URL(
+                "https://graph.microsoft.com/v1.0/me/calendars/primary/events"
+            ):
+                return httpx.Response(
+                    200,
+                    json={
+                        "value": [
+                            {
+                                "id": "evt-2",
+                                "subject": "Dentist",
+                                "isAllDay": False,
+                                "isCancelled": False,
+                                "start": {
+                                    "dateTime": "2026-05-26T09:00:00",
+                                    "timeZone": "Pacific Standard Time",
+                                },
+                                "end": {
+                                    "dateTime": "2026-05-26T10:00:00",
+                                    "timeZone": "Pacific Standard Time",
+                                },
+                                "location": {"displayName": "Office"},
+                            }
+                        ]
+                    },
+                    request=request,
+                )
+            raise AssertionError(f"Unexpected request: {request.method} {request.url}")
+
+        monkeypatch.setattr(
+            "calsync.services.providers.microsoft._build_http_client",
+            lambda: httpx.Client(transport=httpx.MockTransport(handler)),
+        )
+
+        events = adapter.fetch_events(account, calendar_obj)
+
+    assert len(events) == 1
+    assert events[0].provider_event_id == "evt-2"
+    assert events[0].starts_at.tzinfo is not None
+    assert events[0].ends_at.tzinfo is not None
+
+
+def test_microsoft_oauth_scope_capabilities_stay_read_only_in_this_slice() -> None:
+    account = ProviderAccount(
+        provider_type="microsoft",
+        provider_account_id="microsoft-user",
+        provider_metadata={
+            "microsoft_scopes": [
+                "openid",
+                "offline_access",
+                "https://graph.microsoft.com/Calendars.ReadWrite",
+            ]
+        },
+    )
+
+    assert infer_microsoft_account_capabilities(account) == ("oauth", True, False)
 
 
 def test_microsoft_provider_configuration_defaults_blank_scopes(

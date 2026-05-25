@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from calsync.config import Settings
 from calsync.main import create_app
 from calsync.models import Base, ProviderAccount, ProviderCalendar
+from calsync.crypto import decrypt_text
 from calsync.repos.state import set_app_state
 from calsync.repos.users import create_admin_user
 from calsync.services.auth import (
@@ -246,6 +247,14 @@ def test_microsoft_callback_persists_account_and_discovers_calendars(
             )
             assert account is not None
             assert account.display_name == "owner@example.com"
+            assert account.access_token_encrypted is not None
+            assert account.refresh_token_encrypted is not None
+            assert decrypt_text(ENCRYPTION_KEY, account.access_token_encrypted) == (
+                "microsoft-access-token"
+            )
+            assert decrypt_text(ENCRYPTION_KEY, account.refresh_token_encrypted) == (
+                "microsoft-refresh-token"
+            )
             calendar = session.scalar(
                 select(ProviderCalendar).where(
                     ProviderCalendar.provider_account_pk == account.id
@@ -254,3 +263,69 @@ def test_microsoft_callback_persists_account_and_discovers_calendars(
             assert calendar is not None
             assert calendar.provider_calendar_id == "primary"
             assert calendar.enabled is False
+
+
+def test_microsoft_callback_rejects_state_mismatch(
+    tmp_path: Path,
+) -> None:
+    with _build_client(
+        tmp_path,
+        microsoft_client_id=None,
+        microsoft_client_secret=None,
+        base_url="http://localhost:3080",
+        seed_provider_settings=True,
+    ) as client:
+        start_response = client.get("/auth/microsoft/start", follow_redirects=False)
+        assert start_response.status_code == 303
+
+        callback_response = client.get(
+            "/auth/microsoft/callback?state=wrong-state&code=microsoft-code",
+            follow_redirects=False,
+        )
+
+    assert callback_response.status_code == 400
+    assert "Microsoft OAuth state mismatch" in callback_response.text
+
+
+def test_microsoft_callback_handles_denied_sign_in(
+    tmp_path: Path,
+) -> None:
+    with _build_client(
+        tmp_path,
+        microsoft_client_id=None,
+        microsoft_client_secret=None,
+        base_url="http://localhost:3080",
+        seed_provider_settings=True,
+    ) as client:
+        start_response = client.get("/auth/microsoft/start", follow_redirects=False)
+        state = parse_qs(urlsplit(start_response.headers["location"]).query)["state"][0]
+
+        callback_response = client.get(
+            f"/auth/microsoft/callback?state={state}&error=access_denied",
+            follow_redirects=False,
+        )
+
+    assert callback_response.status_code == 400
+    assert "Microsoft sign-in was cancelled or denied." in callback_response.text
+
+
+def test_microsoft_callback_requires_authorization_code(
+    tmp_path: Path,
+) -> None:
+    with _build_client(
+        tmp_path,
+        microsoft_client_id=None,
+        microsoft_client_secret=None,
+        base_url="http://localhost:3080",
+        seed_provider_settings=True,
+    ) as client:
+        start_response = client.get("/auth/microsoft/start", follow_redirects=False)
+        state = parse_qs(urlsplit(start_response.headers["location"]).query)["state"][0]
+
+        callback_response = client.get(
+            f"/auth/microsoft/callback?state={state}",
+            follow_redirects=False,
+        )
+
+    assert callback_response.status_code == 400
+    assert "Microsoft did not return an authorization code." in callback_response.text
