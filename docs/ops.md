@@ -4,7 +4,7 @@
 
 1. Copy `.env.example` to `.env`
 2. Set `SESSION_SECRET` and `ENCRYPTION_KEY`
-3. Review `APP_HOST`, `APP_PORT`, `PUBLIC_BASE_URL`, and the provider onboarding plan for Google and Apple accounts
+3. Review `APP_HOST`, `APP_PORT`, `PUBLIC_BASE_URL`, and the provider onboarding plan for Google, Microsoft, and Apple accounts
 4. Run `docker compose up --build`
 
 For local rebuilds:
@@ -87,6 +87,37 @@ If operators need to connect Google from another device on the LAN, they should 
 
 In the admin-managed flow, saving `Public App URL` in `/admin/providers` is the preferred way to do this because the Accounts page will then use that saved hostname for the Google callback and consent start.
 
+## Microsoft OAuth Operator Notes
+
+Before connecting Outlook / Microsoft 365 from a browser, open `Provider Settings` and save the canonical external hostname in `Public App URL` when the deployment should use a stable HTTPS hostname.
+
+Set these values in `Provider Settings` for the shared Microsoft OAuth app:
+
+- client ID
+- client secret
+- scopes
+
+Normal operator flow:
+
+1. sign in to CalSync
+2. open `/admin/providers`
+3. save the `Public App URL` there when the deployment should use a stable HTTPS hostname
+4. save the shared Microsoft OAuth client ID and secret there
+5. confirm the callback URL shown on the page matches the saved public hostname when present
+6. open `/admin/accounts`
+7. use `Connect Microsoft Account`
+8. complete Outlook / Microsoft 365 consent for one or more accounts
+9. open `/admin/calendars`
+10. enable the discovered Microsoft calendars that should participate in availability or future booking selection
+
+Operational note:
+
+- one Microsoft OAuth app is enough for multiple connected Outlook / Microsoft 365 accounts in the same CalSync deployment
+- each Microsoft account still has to complete its own consent flow
+- Microsoft calendar discovery is live after account connection, with discovered calendars disabled by default until the operator enables them
+- Microsoft sync is read-only in this slice and imports events into the normalized local event store
+- provider write-back is not shipped yet and remains future work under issue `#23`
+
 ## Flightboard Operator Notes
 
 The private Flightboard is available at:
@@ -128,9 +159,9 @@ Operator expectations for this slice:
 - Google uses the existing browser-based OAuth connect flow when Provider Settings and callback requirements are satisfied
 - Apple keeps the current CalDAV plus app-specific-password form
 - existing Apple connector rows and encrypted app-specific passwords are preserved while the surrounding shell and tables are refreshed
-- Microsoft is visible in the Connections page so the product IA matches the write-capable direction
-- `/admin/providers` now stores the shared Microsoft OAuth app fields and shows the planned callback URL for the future Outlook connect flow
-- the page is intentionally honest that Microsoft sign-in and calendar permissions are not shipped yet
+- Microsoft uses a live browser-based OAuth account-connect flow for Outlook / Microsoft 365 accounts
+- `/admin/providers` stores the shared Microsoft OAuth app fields and shows the active callback URL for that connect flow
+- connected Microsoft accounts can discover calendars and sync read-only events into the normalized local event store
 - full booking pages are not shipped in this slice
 
 Calendar role behavior:
@@ -144,8 +175,9 @@ Practical verification points:
 
 - the top navigation includes `Connections` and `Availability`
 - `/admin/accounts` shows Google Calendar, Outlook / Microsoft 365, Apple Calendar, and Mock Provider
-- the Microsoft card starts by saying `Microsoft sign-in and calendar permissions` are still coming next, then changes to a saved-state scaffold message after the shared Microsoft app is stored
-- `/admin/providers` shows `Microsoft OAuth App` and a planned callback URL without claiming the Outlook account connection flow is already live
+- `/admin/accounts` offers `Connect Microsoft Account` once the shared Microsoft OAuth app is configured
+- `/admin/providers` shows `Microsoft OAuth App` and the active callback URL for the Outlook account connection flow
+- connected Microsoft accounts can discover calendars and then sync read-only events after the operator enables the desired calendars
 - `/admin/calendars` shows `Check availability` for connected calendars
 - `/admin/calendars` only shows `Receive new bookings` when the provider account supports writable booking targets
 - existing Apple/iCloud accounts remain visible in the connected-accounts table after the shell refresh
@@ -296,8 +328,9 @@ After `docker compose up --build -d`, verify:
 3. `/admin/providers` shows or supports `Public App URL` with `https://calsync.neonbutterfly.net`
 4. `/admin/accounts` shows `Connect Google Account` once Google settings and public hostname requirements are satisfied
 5. `/admin/flightboard` is present in the nav and remains private behind admin auth
-6. `/admin/accounts` presents the brighter `Connections` framing and an honest Microsoft scaffold state
+6. `/admin/accounts` presents the brighter `Connections` framing and offers `Connect Microsoft Account` after the shared Microsoft OAuth app is configured
 7. `/admin/calendars` exposes `Check availability`, and only writable provider accounts can be assigned `Receive new bookings`
+8. Microsoft callback registration, account connection, calendar discovery, and read-only sync all work without implying write-back support
 
 Reboot recovery check:
 
@@ -335,4 +368,5 @@ Current Phase 1 behavior:
 Current Phase 2 addition:
 
 - refreshes and syncs Google provider accounts through the same worker loop
+- refreshes and syncs Microsoft provider accounts through the same worker loop
 - refreshes and syncs Apple/iCloud CalDAV accounts through the same worker loop

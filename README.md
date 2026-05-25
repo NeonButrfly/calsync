@@ -36,13 +36,16 @@ Implemented today:
 - a `Connections` experience on `/admin/accounts` that keeps Google, Microsoft, Apple, and mock onboarding in one scheduling-product surface
 - calendar roles so each discovered calendar can be marked for `Check availability` or, when supported, `Receive new bookings`
 - writable booking targets blocked for read-only provider accounts so booking writes cannot be assigned silently to the wrong calendar
-- Microsoft provider scaffolding plus shared OAuth app settings in `Provider Settings`, without claiming a real Microsoft OAuth connect flow yet
+- Microsoft OAuth app settings in `Provider Settings`
+- Outlook / Microsoft 365 account connection through browser-based OAuth with multiple account support
+- Microsoft calendar discovery with calendars disabled by default until explicitly enabled
+- Microsoft read-only event sync into the normalized event store
 
 Not implemented yet:
 
 - full booking pages, booking links, or public scheduling surfaces
 - provider write-back flows for create, update, reschedule, or cancellation actions
-- real Microsoft OAuth connect, Microsoft calendar discovery, or Microsoft event sync
+- Microsoft write-back flows for create, update, reschedule, or cancellation actions
 - production hardening such as TLS termination, rate limiting, email delivery, and advanced worker retry policy
 
 ## Docker Deployment
@@ -151,7 +154,7 @@ Current admin pages:
 - `/admin/review` for trust review, duplicate cleanup, and hidden-copy recovery
 - `/admin/events/{event_id}` for explaining why one copy is visible, hidden, or preferred
 - `/admin/flightboard` for the private Flightboard view of enabled calendar events
-- `/admin/providers` for the public app URL, deployment-wide Google OAuth app settings, and shared Microsoft OAuth app settings plus the planned callback URL for a future Outlook connect flow
+- `/admin/providers` for the public app URL, deployment-wide Google OAuth app settings, and shared Microsoft OAuth app settings plus the active Microsoft callback URL used for Outlook / Microsoft 365 account connection
 - `/admin/accounts` for the new `Connections` experience that groups Google, Microsoft, Apple/iCloud, and mock account onboarding
 - `/admin/calendars` for calendar enable or disable actions plus role assignment for availability and future booking targets
 - `/admin/sync` for sync history and manual sync now actions
@@ -166,8 +169,8 @@ CalSync now frames account onboarding as a `Connections` experience rather than 
 Current behavior:
 
 - Google stays on the existing browser-based OAuth path and is presented as the first sign-in flow for scheduling-oriented connections
-- Microsoft appears in the same Connections surface so the product information architecture matches the future scheduling direction, and `Provider Settings` now stores the shared Microsoft OAuth app fields and planned callback URL
-- Microsoft still does not ship a real Microsoft OAuth connect flow in this slice, so Outlook accounts cannot be connected yet
+- Microsoft now uses the same Connections surface for live Outlook / Microsoft 365 OAuth account connection, while `Provider Settings` stores the shared Microsoft OAuth app fields and callback URL
+- Microsoft account discovery and sync are live, but remain read-only in this slice
 - Apple/iCloud stays on the current CalDAV plus app-specific-password path
 - existing Apple connector rows and stored app-specific passwords are preserved while the shell and account tables are refreshed around them
 - mock account connect remains available for offline testing and validation
@@ -404,8 +407,8 @@ Restore requires:
 
 - Google OAuth has a real upstream redirect restriction: raw LAN IP callback URIs are not accepted by Google, even though the CalSync app itself works on LAN IPs.
 - the write-capable scheduling foundation does not yet ship booking pages, booking links, or upstream write-back actions
-- Microsoft is represented honestly as groundwork in the Connections experience and provider configuration path; this slice does not yet ship a real Microsoft OAuth connect flow, calendar discovery, or sync
-- the Microsoft callback URL shown in `Provider Settings` is a planned future callback target, not an active account-connect route in this slice
+- Microsoft OAuth account connection, calendar discovery, and event sync are now live, but remain read-only in this slice
+- provider write-back and booking-page behavior remain unshipped follow-on work under issue `#23`
 - The worker loop is intentionally simple and will be expanded with richer retry and provider-specific error handling in later phases.
 - Apple/iCloud sync currently uses straightforward CalDAV discovery and event retrieval and may need provider-specific hardening for broader production use.
 - Local HTTP mode is suitable for localhost and LAN use, but public internet exposure should add TLS and tighter network controls first.

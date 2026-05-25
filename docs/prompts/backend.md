@@ -436,26 +436,26 @@
 - Apple connector data and stored app-specific passwords are preserved during the redesign
 - calendar roles now exist so operators can mark calendars for `Check availability` or `Receive new bookings`
 - writable booking targets are only valid for writable provider accounts; read-only providers stay availability-only
-- Microsoft is represented honestly as scaffold and configuration groundwork, not as a shipped OAuth connect flow
+- Microsoft begins as shared OAuth app and connection groundwork in this umbrella, with live account connection, discovery, and read-only sync later shipped under issue `#22`
 - no full booking pages in this slice
-- no real Microsoft OAuth connect, Microsoft calendar discovery, or Microsoft event sync in this slice
+- provider write-back remains follow-on work under issue `#23`
 
 ---
 
 - GitHub issue: `#21`
-- Scope: expose Microsoft OAuth app settings in Provider Settings without overstating Microsoft account-connect readiness
+- Scope: expose Microsoft OAuth app settings in Provider Settings as the groundwork step before Microsoft account-connect ships in issue `#22`
 
 ## Interpreted Requirements
 
 - the shared Microsoft OAuth client ID, secret, and scopes should be operator-visible and editable in `Provider Settings`
 - the app should show the planned Microsoft callback URL so operators can understand the future deployment shape
 - the Connections page should reflect whether the shared Microsoft app has already been saved
-- the product must stay honest that Outlook account sign-in is still scaffold-only in this slice
+- the product must stay honest that this issue only delivers the shared app-settings groundwork, not the later account-connect slice
 
 ## Behavioral Boundaries
 
-- no real Microsoft OAuth connect flow is introduced in this issue
-- no Microsoft calendar discovery or event sync is introduced in this issue
+- no real Microsoft OAuth connect flow is introduced in this issue itself
+- no Microsoft calendar discovery or event sync is introduced in this issue itself
 - the callback URL shown in `Provider Settings` is a planned future callback target, not an active live route for account connection
 
 ## Phase Notes
@@ -463,4 +463,35 @@
 - issue `#21` builds on the write-capable foundation in issue `#17`
 - `Provider Settings` now exposes a `Microsoft OAuth App` section
 - blank or malformed Microsoft scope input should normalize to the default shared scopes instead of persisting a misleading broken configuration
-- Connections should show whether the shared Microsoft app settings are already saved while still directing operators to wait for the later connect-flow slice
+- Connections should show whether the shared Microsoft app settings are already saved while still treating live Microsoft account connection as later work that lands in issue `#22`
+
+---
+
+- GitHub issue: `#22`
+- Scope: ship Microsoft OAuth account connection, calendar discovery, and read-only sync on the write-capable foundation slice
+
+## Interpreted Requirements
+
+- use the shared Microsoft OAuth app settings from `Provider Settings` to support real Outlook / Microsoft 365 account connection
+- support one shared Microsoft OAuth app with multiple connected Microsoft accounts
+- allow connected Microsoft accounts to discover calendars before operators choose which calendars to enable
+- import Microsoft calendar events read-only into the normalized local event store through the existing worker loop
+- keep the Connections and Availability product framing aligned with the live Microsoft slice
+- make the latest shipped reality clear without collapsing the broader redesign umbrella in issue `#17`
+
+## Behavioral Boundaries
+
+- Microsoft account connection, calendar discovery, and sync are now live in this slice
+- Microsoft access remains read-only
+- no Microsoft event creation, update, reschedule, or cancellation is introduced here
+- no booking pages or public scheduling surfaces are introduced here
+- provider write-back remains future work under issue `#23`
+
+## Phase Notes
+
+- issue `#22` builds directly on the Microsoft OAuth app groundwork from issue `#21`
+- issue `#17` remains the umbrella redesign for the write-capable scheduling product direction
+- `Provider Settings` is the shared Microsoft OAuth configuration surface
+- `/admin/accounts` now exposes live Outlook / Microsoft 365 account connection
+- `/admin/calendars` remains the operator surface for enabling discovered Microsoft calendars
+- the worker sync loop now refreshes Microsoft provider accounts alongside Google and Apple read-only accounts

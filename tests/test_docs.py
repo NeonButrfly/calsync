@@ -175,24 +175,31 @@ def test_docs_cover_write_capable_foundation_slice() -> None:
     assert "writable booking target" in readme_content
     assert "writable provider" in readme_content
     assert "microsoft" in readme_content
-    assert "does not yet ship a real microsoft oauth connect flow" in readme_content
+    assert "outlook / microsoft 365 account connection through browser-based oauth" in readme_content
+    assert "microsoft calendar discovery" in readme_content
+    assert "microsoft read-only event sync" in readme_content
     assert "shared microsoft oauth app settings" in readme_content
-    assert "planned future callback target" in readme_content
+    assert "write-back and booking-page behavior remain unshipped follow-on work under issue `#23`" in readme_content
     assert "scheduling workspace" in readme_content
 
     assert "connections" in ops_content
     assert "receive new bookings" in ops_content
     assert "writable booking target" in ops_content
     assert "writable provider" in ops_content
-    assert "microsoft sign-in and calendar permissions" in ops_content
+    assert "connect microsoft account" in ops_content
+    assert "microsoft calendar discovery is live" in ops_content
+    assert "microsoft sync is read-only in this slice" in ops_content
     assert "microsoft oauth app" in ops_content
-    assert "planned callback url" in ops_content
+    assert "active callback url" in ops_content
     assert "full booking pages are not shipped in this slice" in ops_content
 
     assert "#17" in prompt_content
     assert "#21" in prompt_content
+    assert "#22" in prompt_content
+    assert "#23" in prompt_content
     assert "write-capable scheduling product" in prompt_content
     assert "apple connector data" in prompt_content
     assert "calendar roles" in prompt_content
-    assert "no full booking pages in this slice" in prompt_content
+    assert "no booking pages or public scheduling surfaces are introduced here" in prompt_content
     assert "microsoft oauth app" in prompt_content
+    assert "microsoft account connection, calendar discovery, and sync are now live in this slice" in prompt_content
