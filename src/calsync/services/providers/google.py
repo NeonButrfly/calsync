@@ -24,7 +24,7 @@ from calsync.services.provider_config import (
     GoogleOAuthConfiguration,
     resolve_google_oauth_configuration,
 )
-from calsync.schemas.providers import DiscoveredCalendar, NormalizedEvent
+from calsync.schemas.providers import DiscoveredCalendar, NormalizedEvent, WritableEventInput
 
 
 GOOGLE_OAUTH_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -155,6 +155,76 @@ class GoogleProviderAdapter:
             events.append(normalized)
         return events
 
+    def create_event(
+        self,
+        account: ProviderAccount,
+        calendar: ProviderCalendar,
+        event_input: WritableEventInput,
+    ) -> NormalizedEvent:
+        payload = self._authorized_write_json(
+            account,
+            "POST",
+            GOOGLE_EVENTS_URL_TEMPLATE.format(
+                calendar_id=quote(calendar.provider_calendar_id, safe="")
+            ),
+            json=self._serialize_event_input(event_input),
+        )
+        normalized = _normalize_google_event(
+            account,
+            calendar,
+            payload,
+            session=self.session,
+        )
+        if normalized is None:
+            raise GoogleOAuthError("Google create event response did not include event timing.")
+        return normalized
+
+    def update_event(
+        self,
+        account: ProviderAccount,
+        calendar: ProviderCalendar,
+        provider_event_id: str,
+        event_input: WritableEventInput,
+        *,
+        source_payload: dict[str, object] | None = None,
+    ) -> NormalizedEvent:
+        payload = self._authorized_write_json(
+            account,
+            "PATCH",
+            self._event_url(calendar.provider_calendar_id, provider_event_id),
+            json=self._serialize_event_input(event_input),
+        )
+        normalized = _normalize_google_event(
+            account,
+            calendar,
+            payload,
+            session=self.session,
+        )
+        if normalized is None:
+            raise GoogleOAuthError("Google update event response did not include event timing.")
+        return normalized
+
+    def cancel_event(
+        self,
+        account: ProviderAccount,
+        calendar: ProviderCalendar,
+        provider_event_id: str,
+        *,
+        source_payload: dict[str, object] | None = None,
+    ) -> NormalizedEvent | None:
+        payload = self._authorized_write_json(
+            account,
+            "PATCH",
+            self._event_url(calendar.provider_calendar_id, provider_event_id),
+            json={"status": "cancelled"},
+        )
+        return _normalize_google_event(
+            account,
+            calendar,
+            payload,
+            session=self.session,
+        )
+
     def _get_calendar_list(self, account: ProviderAccount) -> dict[str, object]:
         metadata = _account_metadata(account)
         params: dict[str, Any] = {"maxResults": 250}
@@ -284,6 +354,63 @@ class GoogleProviderAdapter:
             if not isinstance(payload, dict):
                 raise GoogleOAuthError("Google provider returned an invalid response.")
             return payload
+
+    def _authorized_write_json(
+        self,
+        account: ProviderAccount,
+        method: str,
+        url: str,
+        *,
+        json: dict[str, object],
+    ) -> dict[str, object]:
+        access_token = ensure_google_access_token(
+            account,
+            settings=self.settings,
+            session=self.session,
+        )
+        headers = {"Authorization": f"Bearer {access_token}"}
+        with _build_http_client() as client:
+            response = client.request(method, url, json=json, headers=headers)
+            if response.status_code == 401:
+                access_token = ensure_google_access_token(
+                    account,
+                    settings=self.settings,
+                    session=self.session,
+                    force_refresh=True,
+                )
+                response = client.request(
+                    method,
+                    url,
+                    json=json,
+                    headers={"Authorization": f"Bearer {access_token}"},
+                )
+            if response.status_code >= 400:
+                raise GoogleOAuthError("Google calendar write request failed.")
+            payload = response.json()
+            if not isinstance(payload, dict):
+                raise GoogleOAuthError("Google calendar write returned an invalid response.")
+            return payload
+
+    def _serialize_event_input(self, event_input: WritableEventInput) -> dict[str, object]:
+        return {
+            "summary": event_input.title,
+            "description": event_input.description,
+            "location": event_input.location,
+            "start": _serialize_google_datetime(
+                event_input.starts_at,
+                all_day=event_input.all_day,
+            ),
+            "end": _serialize_google_datetime(
+                event_input.ends_at,
+                all_day=event_input.all_day,
+            ),
+        }
+
+    def _event_url(self, calendar_id: str, provider_event_id: str) -> str:
+        return (
+            GOOGLE_EVENTS_URL_TEMPLATE.format(calendar_id=quote(calendar_id, safe=""))
+            + f"/{quote(provider_event_id, safe='')}"
+        )
 
 
 def build_google_authorization_url(
@@ -472,8 +599,9 @@ def ensure_google_access_token(
     if not encryption_key:
         raise RuntimeError("CalSync encryption_key must be configured explicitly.")
 
-    if not force_refresh and account.access_token_encrypted and _token_is_still_fresh(account):
-        return decrypt_text(encryption_key, account.access_token_encrypted)
+    if not force_refresh and account.access_token_encrypted:
+        if _token_is_still_fresh(account) or not _token_expiry_is_known(account):
+            return decrypt_text(encryption_key, account.access_token_encrypted)
 
     refresh_token = None
     if account.refresh_token_encrypted:
@@ -594,6 +722,11 @@ def _token_is_still_fresh(account: ProviderAccount) -> bool:
     return expiry > (utcnow() + timedelta(minutes=2))
 
 
+def _token_expiry_is_known(account: ProviderAccount) -> bool:
+    metadata = _account_metadata(account)
+    return isinstance(metadata.get(ACCOUNT_TOKEN_EXPIRY_KEY), str)
+
+
 def _mark_google_reconnect_required(account: ProviderAccount, message: str) -> None:
     metadata = _account_metadata(account)
     metadata[ACCOUNT_AUTH_STATUS_KEY] = "reconnect_required"
@@ -675,6 +808,14 @@ def _parse_rfc3339_datetime(value: str) -> datetime:
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise GoogleOAuthError("Google event datetime must be timezone-aware.")
     return parsed
+
+
+def _serialize_google_datetime(value: datetime, *, all_day: bool) -> dict[str, str]:
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise GoogleOAuthError("Writable Google events require timezone-aware datetimes.")
+    if all_day:
+        return {"date": value.astimezone(UTC).date().isoformat()}
+    return {"dateTime": value.astimezone(UTC).isoformat().replace("+00:00", "Z")}
 
 
 def _safe_google_oauth_error(response: httpx.Response) -> str:

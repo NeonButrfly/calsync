@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from .accounts import router as accounts_router
+from .appointments import router as appointments_router
 from .auth import router as auth_router
 from .calendars import router as calendars_router
 from .connections import router as connections_router
@@ -24,6 +25,7 @@ router.include_router(google_router)
 router.include_router(microsoft_router)
 router.include_router(feeds_router)
 router.include_router(dashboard_router)
+router.include_router(appointments_router)
 router.include_router(events_router)
 router.include_router(problems_router)
 router.include_router(flightboard_router)

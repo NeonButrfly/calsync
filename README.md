@@ -46,13 +46,17 @@ Implemented today:
 - Outlook / Microsoft 365 account connection through browser-based OAuth with multiple account support
 - Microsoft calendar discovery with calendars disabled by default until explicitly enabled
 - Microsoft read-only event sync into the normalized event store
+- a first writable appointment editor at `/admin/appointments/new`
+- create, edit, and cancel appointment flows that write back to writable Google calendars
+- create, edit, and cancel appointment flows that write back to writable Apple/iCloud calendars
+- event detail pages now expose `Edit appointment` and `Cancel appointment` actions when the owning calendar is writable
 - `/admin/events/{event_id}` now leads with a clearer `Current recommendation` explanation and keeps low-level source identifiers behind an explicit disclosure
 
 Not implemented yet:
 
 - full booking pages, booking links, or public scheduling surfaces
-- provider write-back flows for create, update, reschedule, or cancellation actions
 - Microsoft write-back flows for create, update, reschedule, or cancellation actions
+- cross-calendar move actions from the trust inbox
 - production hardening such as TLS termination, rate limiting, email delivery, and advanced worker retry policy
 
 ## Docker Deployment
@@ -170,6 +174,7 @@ Current admin pages:
 - `/admin/problems` for the problem-to-fix inbox that gathers duplicate, sync, and account issues in one place
 - `/admin/review` for trust review, duplicate cleanup, and hidden-copy recovery
 - `/admin/events/{event_id}` for explaining why one copy is visible, hidden, or preferred
+- `/admin/appointments/new` for creating a writable appointment on a booking-target calendar
 - `/admin/flightboard` for the private Flightboard view of enabled calendar events
 - `/admin/providers` for the public app URL, deployment-wide Google OAuth app settings, and shared Microsoft OAuth app settings plus the active Microsoft callback URL used for Outlook / Microsoft 365 account connection
 - `/admin/accounts` for the new `Connections` experience that groups Google, Microsoft, Apple/iCloud, and mock account onboarding
@@ -205,12 +210,13 @@ CalSync also now stores a per-calendar role:
 
 - `Check availability` means the calendar can inform free or busy calculations
 - `Receive new bookings` maps to a writable booking target
+- writable Google and Apple/iCloud calendars can now receive create, edit, and cancel actions from CalSync's appointment editor
 
 Important constraint:
 
 - a writable booking target is only valid when the connected calendar belongs to a writable provider account
 - read-only accounts continue to offer availability-only behavior and do not expose writable booking targets
-- this slice lays the write-capable foundation, but it does not yet ship booking pages or actual booking writes
+- this slice now ships the first operator-facing booking writes through the appointment editor, but it does not yet ship public booking pages or booking links
 
 ## Event Trust And Cleanup
 
@@ -231,6 +237,7 @@ Current behavior:
 - the review page now explicitly explains why a pair of events was grouped as a duplicate and which copy CalSync is currently keeping visible
 - duplicate fixes now include provider-aware actions like `Keep Google copy`, `Keep iCloud copy`, and `Show all copies`
 - `Explain this event` opens `/admin/events/{event_id}` so you can see grouped copies, visibility state, and the latest sync context for that appointment
+- writable event detail pages now let you jump straight into `Edit appointment` or `Cancel appointment` when the underlying source calendar supports write-back
 - hidden duplicate decisions survive later refreshes instead of being lost on the next sync
 - older historical events stay in the local reference store, but duplicate review and the problem inbox now ignore stale lookback noise outside the active attention window so ancient appointments do not keep resurfacing
 - trust-facing dates now include the year whenever an item is outside the current year, making old history obvious at a glance
@@ -439,9 +446,9 @@ Restore requires:
 ## Known Limitations
 
 - Google OAuth has a real upstream redirect restriction: raw LAN IP callback URIs are not accepted by Google, even though the CalSync app itself works on LAN IPs.
-- the write-capable scheduling foundation does not yet ship booking pages, booking links, or upstream write-back actions
+- the write-capable scheduling foundation does not yet ship booking pages, booking links, or Microsoft write-back actions
 - Microsoft OAuth account connection, calendar discovery, and event sync are now live, but remain read-only in this slice
-- provider write-back and booking-page behavior remain unshipped follow-on work under issue `#23`
+- Google and Apple/iCloud now support first-party create, edit, and cancel writes through the appointment editor, but broader provider write-back and booking-page behavior remain follow-on work under issue `#23`
 - The worker loop is intentionally simple and will be expanded with richer retry and provider-specific error handling in later phases.
 - Apple/iCloud sync currently uses straightforward CalDAV discovery and event retrieval and may need provider-specific hardening for broader production use.
 - Local HTTP mode is suitable for localhost and LAN use, but public internet exposure should add TLS and tighter network controls first.

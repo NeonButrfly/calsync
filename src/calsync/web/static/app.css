@@ -1291,10 +1291,51 @@ code {
   padding: 0.9rem 1rem;
 }
 
+.field textarea,
+.field select {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 0.95rem;
+  color: var(--text);
+  font: inherit;
+  min-height: 3.25rem;
+  padding: 0.9rem 1rem;
+}
+
 .field input:focus {
   border-color: rgba(11, 118, 102, 0.38);
   box-shadow: 0 0 0 4px rgba(11, 118, 102, 0.09);
   outline: none;
+}
+
+.field textarea:focus,
+.field select:focus {
+  border-color: rgba(11, 118, 102, 0.38);
+  box-shadow: 0 0 0 4px rgba(11, 118, 102, 0.09);
+  outline: none;
+}
+
+.appointment-form-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.appointment-form-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.appointment-checkbox {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.65rem;
+  font-weight: 600;
+}
+
+.appointment-checkbox input {
+  height: 1rem;
+  width: 1rem;
 }
 
 .auth-submit {
@@ -1454,6 +1495,10 @@ code {
   }
 
   .social-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .appointment-form-grid {
     grid-template-columns: 1fr;
   }
 }

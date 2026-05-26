@@ -31,3 +31,14 @@ class NormalizedEvent(BaseModel):
     all_day: bool = False
     status: str = "confirmed"
     source_payload: dict[str, object] | None = None
+
+
+class WritableEventInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str
+    description: str | None = None
+    location: str | None = None
+    starts_at: datetime
+    ends_at: datetime
+    all_day: bool = False

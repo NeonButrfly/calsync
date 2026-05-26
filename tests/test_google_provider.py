@@ -28,6 +28,7 @@ from calsync.services.providers.google import (
     ensure_google_access_token,
     persist_google_oauth_account,
 )
+from calsync.schemas.providers import WritableEventInput
 
 
 ENCRYPTION_KEY = "phase2-google-encryption-key"
@@ -257,6 +258,178 @@ def test_google_event_sync_stores_calendar_sync_token_and_normalizes_events(
     assert calendar.provider_metadata[CALENDAR_EVENTS_SYNC_TOKEN_KEY] == (
         "events-sync-token"
     )
+
+
+def test_google_create_event_writes_to_calendar(
+    session: Session,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    account = _seed_google_account(session)
+    account.provider_metadata = {
+        "google_scopes": ["https://www.googleapis.com/auth/calendar"],
+    }
+    calendar = ProviderCalendar(
+        provider_account_pk=account.id,
+        provider_calendar_id="primary",
+        name="Primary",
+        enabled=True,
+        provider_metadata={"access_role": "owner"},
+    )
+    session.add(calendar)
+    session.flush()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path.endswith("/calendars/primary/events")
+        assert request.headers["Authorization"] == "Bearer access-token"
+        payload = request.read().decode("utf-8")
+        assert '"summary":"CalSync Verification"' in payload
+        return httpx.Response(
+            200,
+            json={
+                "id": "evt-created",
+                "summary": "CalSync Verification",
+                "description": "Created by CalSync",
+                "location": "Video Visit",
+                "status": "confirmed",
+                "start": {"dateTime": "2026-06-01T18:00:00Z"},
+                "end": {"dateTime": "2026-06-01T19:00:00Z"},
+            },
+            request=request,
+        )
+
+    monkeypatch.setattr(
+        "calsync.services.providers.google._build_http_client",
+        lambda: httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    adapter = GoogleProviderAdapter(settings=settings)
+    event = adapter.create_event(
+        account,
+        calendar,
+        WritableEventInput(
+            title="CalSync Verification",
+            description="Created by CalSync",
+            location="Video Visit",
+            starts_at=datetime(2026, 6, 1, 18, 0, tzinfo=UTC),
+            ends_at=datetime(2026, 6, 1, 19, 0, tzinfo=UTC),
+        ),
+    )
+
+    assert event.provider_event_id == "evt-created"
+    assert event.title == "CalSync Verification"
+    assert event.location == "Video Visit"
+
+
+def test_google_update_event_writes_changes_back(
+    session: Session,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    account = _seed_google_account(session)
+    account.provider_metadata = {
+        "google_scopes": ["https://www.googleapis.com/auth/calendar"],
+    }
+    calendar = ProviderCalendar(
+        provider_account_pk=account.id,
+        provider_calendar_id="primary",
+        name="Primary",
+        enabled=True,
+        provider_metadata={"access_role": "owner"},
+    )
+    session.add(calendar)
+    session.flush()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "PATCH"
+        assert request.url.path.endswith("/calendars/primary/events/evt-existing")
+        payload = request.read().decode("utf-8")
+        assert '"summary":"Updated Visit"' in payload
+        return httpx.Response(
+            200,
+            json={
+                "id": "evt-existing",
+                "summary": "Updated Visit",
+                "description": "Updated by CalSync",
+                "location": "Clinic",
+                "status": "confirmed",
+                "start": {"dateTime": "2026-06-01T20:00:00Z"},
+                "end": {"dateTime": "2026-06-01T21:00:00Z"},
+            },
+            request=request,
+        )
+
+    monkeypatch.setattr(
+        "calsync.services.providers.google._build_http_client",
+        lambda: httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    adapter = GoogleProviderAdapter(settings=settings)
+    event = adapter.update_event(
+        account,
+        calendar,
+        "evt-existing",
+        WritableEventInput(
+            title="Updated Visit",
+            description="Updated by CalSync",
+            location="Clinic",
+            starts_at=datetime(2026, 6, 1, 20, 0, tzinfo=UTC),
+            ends_at=datetime(2026, 6, 1, 21, 0, tzinfo=UTC),
+        ),
+    )
+
+    assert event.provider_event_id == "evt-existing"
+    assert event.title == "Updated Visit"
+
+
+def test_google_cancel_event_marks_provider_copy_cancelled(
+    session: Session,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    account = _seed_google_account(session)
+    account.provider_metadata = {
+        "google_scopes": ["https://www.googleapis.com/auth/calendar"],
+    }
+    calendar = ProviderCalendar(
+        provider_account_pk=account.id,
+        provider_calendar_id="primary",
+        name="Primary",
+        enabled=True,
+        provider_metadata={"access_role": "owner"},
+    )
+    session.add(calendar)
+    session.flush()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "PATCH"
+        assert request.url.path.endswith("/calendars/primary/events/evt-existing")
+        payload = request.read().decode("utf-8")
+        assert '"status":"cancelled"' in payload
+        return httpx.Response(
+            200,
+            json={
+                "id": "evt-existing",
+                "summary": "Cancelled Visit",
+                "status": "cancelled",
+                "start": {"dateTime": "2026-06-01T20:00:00Z"},
+                "end": {"dateTime": "2026-06-01T21:00:00Z"},
+            },
+            request=request,
+        )
+
+    monkeypatch.setattr(
+        "calsync.services.providers.google._build_http_client",
+        lambda: httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    adapter = GoogleProviderAdapter(settings=settings)
+    event = adapter.cancel_event(account, calendar, "evt-existing")
+
+    assert event is not None
+    assert event.status == "cancelled"
+    assert event.provider_event_id == "evt-existing"
 
 
 def test_google_event_sync_recovers_from_expired_sync_token(

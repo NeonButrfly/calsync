@@ -163,6 +163,8 @@ Operator expectations for this slice:
 - `/admin/providers` stores the shared Microsoft OAuth app fields and shows the active callback URL for that connect flow
 - connected Microsoft accounts can discover calendars and sync read-only events into the normalized local event store
 - full booking pages are not shipped in this slice
+- `/admin/appointments/new` now creates appointments on writable Google and Apple/iCloud calendars that are marked `Receive new bookings`
+- `/admin/events/{event_id}` now shows `Edit appointment` and `Cancel appointment` when the owning source calendar is writable
 
 Calendar role behavior:
 
@@ -245,6 +247,7 @@ Practical verification points:
 - `/admin/problems` shows `Fix what needs attention`
 - duplicate items link into `/admin/review`
 - duplicate items also provide `Explain this event` links into `/admin/events/{event_id}`
+- writable event detail pages let operators jump directly into `Edit appointment` or `Cancel appointment`
 - sync retry items can run directly from the inbox and redirect back to `/admin/problems`
 
 ## Auth Experience
@@ -284,7 +287,31 @@ Practical verification points:
 - opening `/admin/events/{event_id}` after login renders `Why CalSync is showing this appointment`
 - the page shows `Grouped source copies`
 - the page marks the preferred copy clearly
+- writable source copies expose `Edit appointment` and `Cancel appointment`
 - unauthenticated access should redirect to login instead of exposing appointment details
+
+## Writable Appointment Editor
+
+The first writable appointment editor is available at:
+
+- `/admin/appointments/new`
+
+Behavior:
+
+- requires an authenticated admin session
+- only lists calendars that are enabled, marked `Receive new bookings`, and actually support write-back
+- creates appointments on writable Google and Apple/iCloud calendars
+- edits and cancels appointments from `/admin/events/{event_id}` when that source calendar is writable
+- keeps the normalized local event store and trust graph in sync after create, edit, and cancel actions
+- Microsoft stays read-only in this slice and should not appear as a writable target
+
+Practical verification points:
+
+- `/admin/appointments/new` renders `Create appointment`
+- writable Google and Apple/iCloud calendars appear as target choices
+- saving a new appointment redirects to `/admin/events/{event_id}`
+- editing a writable event pre-fills the existing title, location, and times
+- cancelling a writable event removes it from active schedule views or marks it cancelled locally
 
 ## Apple / iCloud Operator Notes
 

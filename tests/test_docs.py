@@ -291,7 +291,7 @@ def test_docs_cover_write_capable_foundation_slice() -> None:
     assert "microsoft calendar discovery" in readme_content
     assert "microsoft read-only event sync" in readme_content
     assert "shared microsoft oauth app settings" in readme_content
-    assert "write-back and booking-page behavior remain unshipped follow-on work under issue `#23`" in readme_content
+    assert "broader provider write-back and booking-page behavior remain follow-on work under issue `#23`" in readme_content
     assert "scheduling workspace" in readme_content
 
     assert "connections" in ops_content
@@ -315,3 +315,24 @@ def test_docs_cover_write_capable_foundation_slice() -> None:
     assert "no booking pages or public scheduling surfaces are introduced here" in prompt_content
     assert "microsoft oauth app" in prompt_content
     assert "microsoft account connection, calendar discovery, and sync are now live in this slice" in prompt_content
+
+
+def test_docs_cover_first_writable_appointment_editor() -> None:
+    readme_content = Path("README.md").read_text(encoding="utf-8").lower()
+    ops_content = Path("docs/ops.md").read_text(encoding="utf-8").lower()
+    prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()
+
+    assert "/admin/appointments/new" in readme_content
+    assert "write back to writable google calendars" in readme_content
+    assert "write back to writable apple/icloud calendars" in readme_content
+    assert "edit appointment" in readme_content
+    assert "cancel appointment" in readme_content
+
+    assert "/admin/appointments/new" in ops_content
+    assert "writable appointment editor" in ops_content
+    assert "microsoft stays read-only in this slice" in ops_content
+    assert "receive new bookings" in ops_content
+
+    assert "#31" in prompt_content
+    assert "first writable appointment editor" in prompt_content
+    assert "google and apple/icloud" in prompt_content

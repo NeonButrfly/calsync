@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from calsync.models import Event, EventGroup, SyncLog
+from calsync.repos.providers import provider_calendar_supports_write
 from calsync.services.reconciliation import list_group_events
 from calsync.services.source_labels import (
     account_label_for_event,
@@ -41,6 +42,8 @@ class EventExplainView:
     preferred_copy_id: str
     preferred_reason: str
     latest_sync: SyncLog | None
+    can_write_back: bool
+    write_summary: str | None
 
 
 def build_event_explain_view(session: Session, event_id: str) -> EventExplainView:
@@ -76,6 +79,7 @@ def build_event_explain_view(session: Session, event_id: str) -> EventExplainVie
             for copy in copies
         ]
     current_copy = next(copy for copy in copies if copy.id == event.id)
+    can_write_back, write_summary = _resolve_write_capability(session, event)
 
     return EventExplainView(
         event=event,
@@ -84,6 +88,8 @@ def build_event_explain_view(session: Session, event_id: str) -> EventExplainVie
         preferred_copy_id=preferred_copy.id,
         preferred_reason=_describe_preference(event=event, preferred_copy=preferred_copy),
         latest_sync=latest_sync,
+        can_write_back=can_write_back,
+        write_summary=write_summary,
     )
 
 
@@ -129,3 +135,22 @@ def _account_label(session: Session, event: Event) -> str:
 
 def _calendar_label(session: Session, event: Event) -> str:
     return calendar_label_for_event(session, event)
+
+
+def _resolve_write_capability(session: Session, event: Event) -> tuple[bool, str | None]:
+    if event.provider_account_pk is None or event.provider_calendar_pk is None:
+        return False, None
+    from calsync.models import ProviderAccount, ProviderCalendar
+
+    account = session.get(ProviderAccount, event.provider_account_pk)
+    calendar = session.get(ProviderCalendar, event.provider_calendar_pk)
+    if account is None or calendar is None:
+        return False, None
+    if not account.can_write or not provider_calendar_supports_write(account, calendar):
+        return False, None
+    if calendar.calendar_role != "writable_booking_target":
+        return False, None
+    account_label = account.display_name or account.provider_account_id
+    calendar_label = calendar.name or calendar.provider_calendar_id
+    provider_label = friendly_provider_name(account.provider_type)
+    return True, f"{provider_label} · {account_label} · {calendar_label}"

@@ -4,7 +4,11 @@ from typing import Protocol
 
 from calsync.config import Settings
 from calsync.models import ProviderAccount, ProviderCalendar
-from calsync.schemas.providers import DiscoveredCalendar, NormalizedEvent
+from calsync.schemas.providers import (
+    DiscoveredCalendar,
+    NormalizedEvent,
+    WritableEventInput,
+)
 from sqlalchemy.orm import Session
 
 
@@ -21,6 +25,32 @@ class ProviderAdapter(Protocol):
         account: ProviderAccount,
         calendar: ProviderCalendar,
     ) -> list[NormalizedEvent]: ...
+
+    def create_event(
+        self,
+        account: ProviderAccount,
+        calendar: ProviderCalendar,
+        event_input: WritableEventInput,
+    ) -> NormalizedEvent: ...
+
+    def update_event(
+        self,
+        account: ProviderAccount,
+        calendar: ProviderCalendar,
+        provider_event_id: str,
+        event_input: WritableEventInput,
+        *,
+        source_payload: dict[str, object] | None = None,
+    ) -> NormalizedEvent: ...
+
+    def cancel_event(
+        self,
+        account: ProviderAccount,
+        calendar: ProviderCalendar,
+        provider_event_id: str,
+        *,
+        source_payload: dict[str, object] | None = None,
+    ) -> NormalizedEvent | None: ...
 
 
 def get_provider_adapter(

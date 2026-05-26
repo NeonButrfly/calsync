@@ -25,6 +25,15 @@ and what CalSync knows about the latest sync behind it.
       <p class="problem-card__detail-label">Why this copy wins</p>
       <p>{{ event_view.preferred_reason }}</p>
     </div>
+    {% if event_view.can_write_back %}
+    <div class="problem-card__actions">
+      <a class="button-link" href="/admin/events/{{ event_view.event.id }}/edit">Edit appointment</a>
+      <form method="post" action="/admin/events/{{ event_view.event.id }}/cancel">
+        <button class="secondary-button" type="submit">Cancel appointment</button>
+      </form>
+    </div>
+    <p class="problem-card__preferred">Writes back to {{ event_view.write_summary }}</p>
+    {% endif %}
     <dl class="explain-metadata">
       <div><dt>When</dt><dd>{{ event_view.event.starts_at | trust_datetime }}</dd></div>
       <div><dt>Location</dt><dd>{{ event_view.event.location or "Location pending" }}</dd></div>

@@ -16,6 +16,7 @@ from calsync.services.providers.icloud import (
     ICloudCalDAVError,
     ICloudCalDAVProviderAdapter,
 )
+from calsync.schemas.providers import WritableEventInput
 
 
 ENCRYPTION_KEY = "phase3-icloud-provider-encryption-key"
@@ -175,6 +176,198 @@ def test_icloud_discovery_surfaces_auth_failures(
     adapter = ICloudCalDAVProviderAdapter(settings=settings)
     with pytest.raises(ICloudCalDAVError, match="app-specific password"):
         adapter.discover_calendars(account)
+
+
+def test_icloud_create_event_puts_ics_resource(
+    session: Session,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    account = _seed_icloud_account(session)
+    calendar = ProviderCalendar(
+        provider_account_pk=account.id,
+        provider_calendar_id="https://caldav.icloud.com/123/calendars/family/",
+        name="Family",
+        enabled=True,
+        provider_metadata={"can_write": True},
+    )
+    session.add(calendar)
+    session.flush()
+
+    captured: dict[str, object] = {}
+
+    class FakeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def request(self, method, url, **kwargs):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = kwargs.get("headers", {})
+            captured["content"] = kwargs.get("content", b"")
+            return httpx.Response(
+                201,
+                headers={"ETag": '"etag-created"'},
+                request=httpx.Request(method, url),
+            )
+
+    monkeypatch.setattr(
+        "calsync.services.providers.icloud._build_http_client",
+        lambda: FakeClient(),
+    )
+    monkeypatch.setattr(
+        "calsync.services.providers.icloud.new_uuid",
+        lambda: "family-created",
+    )
+
+    adapter = ICloudCalDAVProviderAdapter(settings=settings)
+    event = adapter.create_event(
+        account,
+        calendar,
+        WritableEventInput(
+            title="Family Check-in",
+            description="Created by CalSync",
+            location="Home",
+            starts_at=datetime(2026, 6, 2, 18, 0, tzinfo=UTC),
+            ends_at=datetime(2026, 6, 2, 19, 0, tzinfo=UTC),
+        ),
+    )
+
+    assert captured["method"] == "PUT"
+    assert str(captured["url"]).endswith("/family-created.ics")
+    assert b"SUMMARY:Family Check-in" in captured["content"]
+    assert event.provider_event_id == "family-created"
+    assert event.source_payload == {
+        "href": "https://caldav.icloud.com/123/calendars/family/family-created.ics",
+        "etag": '"etag-created"',
+    }
+
+
+def test_icloud_update_event_puts_existing_resource_with_etag(
+    session: Session,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    account = _seed_icloud_account(session)
+    calendar = ProviderCalendar(
+        provider_account_pk=account.id,
+        provider_calendar_id="https://caldav.icloud.com/123/calendars/family/",
+        name="Family",
+        enabled=True,
+        provider_metadata={"can_write": True},
+    )
+    session.add(calendar)
+    session.flush()
+
+    captured: dict[str, object] = {}
+
+    class FakeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def request(self, method, url, **kwargs):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = kwargs.get("headers", {})
+            captured["content"] = kwargs.get("content", b"")
+            return httpx.Response(
+                204,
+                headers={"ETag": '"etag-updated"'},
+                request=httpx.Request(method, url),
+            )
+
+    monkeypatch.setattr(
+        "calsync.services.providers.icloud._build_http_client",
+        lambda: FakeClient(),
+    )
+
+    adapter = ICloudCalDAVProviderAdapter(settings=settings)
+    event = adapter.update_event(
+        account,
+        calendar,
+        "family-1",
+        WritableEventInput(
+            title="Updated Family Check-in",
+            description="Updated by CalSync",
+            location="Clinic",
+            starts_at=datetime(2026, 6, 2, 20, 0, tzinfo=UTC),
+            ends_at=datetime(2026, 6, 2, 21, 0, tzinfo=UTC),
+        ),
+        source_payload={
+            "href": "https://caldav.icloud.com/123/calendars/family/family-1.ics",
+            "etag": '"etag-old"',
+        },
+    )
+
+    assert captured["method"] == "PUT"
+    assert captured["headers"]["If-Match"] == '"etag-old"'
+    assert b"SUMMARY:Updated Family Check-in" in captured["content"]
+    assert event.provider_event_id == "family-1"
+    assert event.source_payload == {
+        "href": "https://caldav.icloud.com/123/calendars/family/family-1.ics",
+        "etag": '"etag-updated"',
+    }
+
+
+def test_icloud_cancel_event_deletes_existing_resource(
+    session: Session,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    account = _seed_icloud_account(session)
+    calendar = ProviderCalendar(
+        provider_account_pk=account.id,
+        provider_calendar_id="https://caldav.icloud.com/123/calendars/family/",
+        name="Family",
+        enabled=True,
+        provider_metadata={"can_write": True},
+    )
+    session.add(calendar)
+    session.flush()
+
+    captured: dict[str, object] = {}
+
+    class FakeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def request(self, method, url, **kwargs):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = kwargs.get("headers", {})
+            return httpx.Response(
+                204,
+                request=httpx.Request(method, url),
+            )
+
+    monkeypatch.setattr(
+        "calsync.services.providers.icloud._build_http_client",
+        lambda: FakeClient(),
+    )
+
+    adapter = ICloudCalDAVProviderAdapter(settings=settings)
+    result = adapter.cancel_event(
+        account,
+        calendar,
+        "family-1",
+        source_payload={
+            "href": "https://caldav.icloud.com/123/calendars/family/family-1.ics",
+            "etag": '"etag-old"',
+        },
+    )
+
+    assert result is None
+    assert captured["method"] == "DELETE"
+    assert captured["headers"]["If-Match"] == '"etag-old"'
 
 
 def _seed_icloud_account(session: Session) -> ProviderAccount:

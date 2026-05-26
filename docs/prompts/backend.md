@@ -616,6 +616,32 @@
 - `/admin/problems` and `/admin/review` should describe duplicate copies using exact source labels and year-explicit timestamps
 - the CSS fix should be cache-safe rather than relying on operators to hard refresh manually
 
+---
+
+- GitHub issue: `#31`
+- Scope: ship the first writable appointment editor for Google and Apple/iCloud calendars while verifying trust actions still work
+
+## Interpreted Requirements
+
+- CalSync should be able to create, edit, and cancel appointments on writable calendars instead of staying aggregation-only
+- the first shipped writable providers should be Google and Apple/iCloud
+- writable calendars should come from the existing `Receive new bookings` role instead of introducing a separate target model
+- the product should expose a clean appointment editor route for operator use
+- trust actions must remain working after the write-capable changes, and the new write flows must be verified against real connected calendars
+
+## Behavioral Boundaries
+
+- Microsoft remains read-only in this slice
+- public booking pages and booking links are still future work
+- cross-calendar trust moves are not introduced yet; the first write-capable slice edits or cancels the source copy on its own writable calendar
+
+## Phase Notes
+
+- issue `#31` builds on the write-capable foundation from issues `#17`, `#22`, and `#23`
+- `/admin/appointments/new` is the first create-appointment surface
+- `/admin/events/{event_id}` now offers `Edit appointment` and `Cancel appointment` when the source copy is writable
+- Google and Apple/iCloud writable appointment changes should update both the provider and the normalized local event store
+
 ## Phase Notes
 
 - issue `#30` continues the product-polish pass toward a more professional SaaS feel

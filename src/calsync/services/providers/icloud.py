@@ -7,12 +7,12 @@ from urllib.parse import urljoin
 import xml.etree.ElementTree as ET
 
 import httpx
-from icalendar import Calendar
+from icalendar import Calendar, Event as ICalEvent
 
 from calsync.config import Settings, get_settings
 from calsync.crypto import decrypt_text
-from calsync.models import ProviderAccount, ProviderCalendar
-from calsync.schemas.providers import DiscoveredCalendar, NormalizedEvent
+from calsync.models import ProviderAccount, ProviderCalendar, new_uuid
+from calsync.schemas.providers import DiscoveredCalendar, NormalizedEvent, WritableEventInput
 
 
 ICLOUD_PROVIDER_TYPE = "icloud_caldav"
@@ -152,6 +152,101 @@ class ICloudCalDAVProviderAdapter:
                 )
         return events
 
+    def create_event(
+        self,
+        account: ProviderAccount,
+        calendar: ProviderCalendar,
+        event_input: WritableEventInput,
+    ) -> NormalizedEvent:
+        provider_event_id = str(new_uuid())
+        href = self._resource_href(
+            calendar.provider_calendar_id,
+            provider_event_id,
+        )
+        etag = self._request_calendar_mutation(
+            account,
+            "PUT",
+            href,
+            content=self._build_ical_payload(provider_event_id, event_input),
+        )
+        return NormalizedEvent(
+            provider_type=ICLOUD_PROVIDER_TYPE,
+            provider_account_id=account.provider_account_id,
+            provider_calendar_id=calendar.provider_calendar_id,
+            provider_event_id=provider_event_id,
+            title=event_input.title,
+            description=event_input.description,
+            location=event_input.location,
+            starts_at=event_input.starts_at,
+            ends_at=event_input.ends_at,
+            all_day=event_input.all_day,
+            status="confirmed",
+            source_payload={
+                "href": href,
+                "etag": etag,
+            },
+        )
+
+    def update_event(
+        self,
+        account: ProviderAccount,
+        calendar: ProviderCalendar,
+        provider_event_id: str,
+        event_input: WritableEventInput,
+        *,
+        source_payload: dict[str, object] | None = None,
+    ) -> NormalizedEvent:
+        href = self._resolve_existing_href(
+            calendar.provider_calendar_id,
+            provider_event_id,
+            source_payload=source_payload,
+        )
+        etag = self._request_calendar_mutation(
+            account,
+            "PUT",
+            href,
+            content=self._build_ical_payload(provider_event_id, event_input),
+            etag=_optional_source_str(source_payload, "etag"),
+        )
+        return NormalizedEvent(
+            provider_type=ICLOUD_PROVIDER_TYPE,
+            provider_account_id=account.provider_account_id,
+            provider_calendar_id=calendar.provider_calendar_id,
+            provider_event_id=provider_event_id,
+            title=event_input.title,
+            description=event_input.description,
+            location=event_input.location,
+            starts_at=event_input.starts_at,
+            ends_at=event_input.ends_at,
+            all_day=event_input.all_day,
+            status="confirmed",
+            source_payload={
+                "href": href,
+                "etag": etag,
+            },
+        )
+
+    def cancel_event(
+        self,
+        account: ProviderAccount,
+        calendar: ProviderCalendar,
+        provider_event_id: str,
+        *,
+        source_payload: dict[str, object] | None = None,
+    ) -> NormalizedEvent | None:
+        href = self._resolve_existing_href(
+            calendar.provider_calendar_id,
+            provider_event_id,
+            source_payload=source_payload,
+        )
+        self._request_calendar_mutation(
+            account,
+            "DELETE",
+            href,
+            etag=_optional_source_str(source_payload, "etag"),
+        )
+        return None
+
     def _discover_principal_url(self, account: ProviderAccount) -> str:
         xml_payload = self._request_xml(
             account,
@@ -228,6 +323,85 @@ class ICloudCalDAVProviderAdapter:
         if response.status_code >= 400:
             raise ICloudCalDAVError("Apple/iCloud CalDAV request failed.")
         return response.text
+
+    def _request_calendar_mutation(
+        self,
+        account: ProviderAccount,
+        method: str,
+        url: str,
+        *,
+        content: bytes | None = None,
+        etag: str | None = None,
+    ) -> str | None:
+        username, password = _get_icloud_credentials(account, settings=self.settings)
+        headers = {}
+        if content is not None:
+            headers["Content-Type"] = "text/calendar; charset=utf-8"
+        if etag:
+            headers["If-Match"] = etag
+        with _build_http_client() as client:
+            response = client.request(
+                method,
+                url,
+                content=content,
+                auth=(username, password),
+                headers=headers,
+            )
+        if response.status_code == 401:
+            metadata = dict(account.provider_metadata or {})
+            metadata["auth_status"] = "error"
+            metadata["last_auth_error"] = (
+                "Apple/iCloud authentication failed. Verify the Apple ID and app-specific password."
+            )
+            account.provider_metadata = metadata
+            raise ICloudCalDAVError(metadata["last_auth_error"])
+        if response.status_code >= 400:
+            raise ICloudCalDAVError("Apple/iCloud calendar write request failed.")
+        return response.headers.get("ETag")
+
+    def _build_ical_payload(
+        self,
+        provider_event_id: str,
+        event_input: WritableEventInput,
+    ) -> bytes:
+        calendar = Calendar()
+        calendar.add("prodid", "-//CalSync//EN")
+        calendar.add("version", "2.0")
+        event = ICalEvent()
+        event.add("uid", provider_event_id)
+        event.add("summary", event_input.title)
+        if event_input.description:
+            event.add("description", event_input.description)
+        if event_input.location:
+            event.add("location", event_input.location)
+        if event_input.all_day:
+            event.add("dtstart", event_input.starts_at.astimezone(UTC).date())
+            event.add("dtend", event_input.ends_at.astimezone(UTC).date())
+        else:
+            event.add("dtstart", event_input.starts_at.astimezone(UTC))
+            event.add("dtend", event_input.ends_at.astimezone(UTC))
+        event.add("status", "CONFIRMED")
+        event.add("dtstamp", datetime.now(UTC))
+        calendar.add_component(event)
+        return calendar.to_ical()
+
+    def _resolve_existing_href(
+        self,
+        calendar_url: str,
+        provider_event_id: str,
+        *,
+        source_payload: dict[str, object] | None,
+    ) -> str:
+        existing_href = _optional_source_str(source_payload, "href")
+        if existing_href:
+            return existing_href
+        return self._resource_href(calendar_url, provider_event_id)
+
+    def _resource_href(self, calendar_url: str, provider_event_id: str) -> str:
+        return urljoin(
+            calendar_url if calendar_url.endswith("/") else f"{calendar_url}/",
+            f"{provider_event_id}.ics",
+        )
 
 
 def _build_http_client() -> httpx.Client:
@@ -308,3 +482,15 @@ def _string_or_none(value: object) -> str | None:
         return None
     normalized = str(value).strip()
     return normalized or None
+
+
+def _optional_source_str(
+    source_payload: dict[str, object] | None,
+    key: str,
+) -> str | None:
+    if not source_payload:
+        return None
+    value = source_payload.get(key)
+    if value is None:
+        return None
+    return str(value)
