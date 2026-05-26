@@ -232,6 +232,7 @@ Current behavior:
 - older historical events stay in the local reference store, but duplicate review and the problem inbox now ignore stale lookback noise outside the active attention window so ancient appointments do not keep resurfacing
 - trust-facing dates now include the year whenever an item is outside the current year, making old history obvious at a glance
 - trust inbox and review timestamps now always show the year so cleanup decisions stay unambiguous even when the same month/day appears in different years
+- the dashboard upcoming view now ignores obviously stale long-running leftovers whose start dates are far in the past, even if a broken source copy still claims they have not ended yet
 
 Current limits:
 

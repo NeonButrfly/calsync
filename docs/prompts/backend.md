@@ -605,6 +605,7 @@
 
 - historical events still remain in the local store and published feeds
 - active trust/problem workflows should keep prioritizing current and upcoming relevance instead of historical noise
+- active schedule surfaces should also ignore obviously stale long-running leftovers whose start dates are far in the past, even if a malformed source copy still has a future end time
 - this slice improves labeling and operator clarity; it does not yet introduce provider write-back moves between calendars
 
 ## Phase Notes

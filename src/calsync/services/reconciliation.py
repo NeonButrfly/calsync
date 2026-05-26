@@ -27,6 +27,7 @@ TITLE_TOKEN_ALIASES = {
 NEAR_DUPLICATE_TIME_DRIFT = timedelta(minutes=15)
 TRUST_ATTENTION_LOOKBACK = timedelta(days=30)
 TRUST_ATTENTION_LOOKAHEAD = timedelta(days=180)
+ACTIVE_SCHEDULE_LOOKBACK = timedelta(days=30)
 
 
 @dataclass
@@ -112,7 +113,10 @@ def list_canonical_events(
     for event in candidate_events:
         if event.event_visibility_state != "active":
             continue
-        if current_and_upcoming_only and event.ends_at < reference_time:
+        if current_and_upcoming_only and not is_event_operationally_current_or_upcoming(
+            event,
+            reference_time=reference_time,
+        ):
             continue
         group_key = event.canonical_group_id or event.id
         active_views.append(
@@ -377,6 +381,19 @@ def is_duplicate_group_attention_relevant(
 def trust_attention_window(reference_time: datetime | None = None) -> tuple[datetime, datetime]:
     anchor = reference_time or datetime.now(UTC)
     return (anchor - TRUST_ATTENTION_LOOKBACK, anchor + TRUST_ATTENTION_LOOKAHEAD)
+
+
+def is_event_operationally_current_or_upcoming(
+    event: Event,
+    *,
+    reference_time: datetime | None = None,
+) -> bool:
+    anchor = reference_time or datetime.now(UTC)
+    if event.ends_at < anchor:
+        return False
+    if event.starts_at < anchor - ACTIVE_SCHEDULE_LOOKBACK:
+        return False
+    return True
 
 
 def _list_candidate_events(session: Session) -> list[Event]:

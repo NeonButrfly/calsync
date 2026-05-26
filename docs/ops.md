@@ -231,6 +231,7 @@ Behavior:
 - stale historical duplicates stay in the local reference store, but the active inbox ignores old lookback noise outside the current attention window
 - trust-facing dates show the year whenever an item is not from the current year
 - trust-facing problem and review timestamps now always include the year so historical cleanup never looks like current-year ambiguity
+- the dashboard `Upcoming schedule` view also ignores stale long-running leftovers whose start dates are far behind the present, even if a bad source record still carries a future end time
 - returns `Sync now` actions back to the problem inbox so the operator can keep working from one page
 
 Practical verification points:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Iterator
 
@@ -337,6 +337,34 @@ def test_dashboard_combined_view_prefers_one_canonical_row_with_source_count(
     assert response.status_code == 200
     assert "2 sources" in response.text
     assert response.text.count("Morning Standup") == 1
+
+
+def test_dashboard_upcoming_schedule_ignores_stale_long_running_history(
+    authenticated_client: TestClient,
+) -> None:
+    with _db_session(authenticated_client) as session:
+        stale_start = datetime.now(UTC) - timedelta(days=180)
+        upsert_event(
+            session,
+            {
+                "provider_type": "google",
+                "provider_account_id": "google-acct-legacy",
+                "provider_calendar_id": "google-primary",
+                "provider_event_id": "legacy-long-running",
+                "title": "Legacy Long Running Event",
+                "starts_at": stale_start,
+                "ends_at": datetime.now(UTC) + timedelta(days=120),
+                "all_day": False,
+                "status": "confirmed",
+                "source_payload": {"seed": "legacy-long-running"},
+            },
+        )
+        session.commit()
+
+    response = authenticated_client.get("/admin")
+
+    assert response.status_code == 200
+    assert "Legacy Long Running Event" not in response.text
 
 
 def test_dashboard_renders_sync_and_event_times_in_alaska_time(
