@@ -618,6 +618,13 @@
 
 ## Phase Notes
 
+- issue `#30` continues the product-polish pass toward a more professional SaaS feel
+- `/admin/calendars` should collapse each account into a scannable section instead of forcing one giant always-open workspace
+- raw provider account ids, calendar ids, and iCloud-style source URLs should stay available only through explicit `Show source details` disclosures
+- `/admin/events/{event_id}` should lead with a `Current recommendation` explanation and keep lower-level provider ids out of the main narrative
+
+## Phase Notes
+
 - issue `#27` adds stylesheet cache busting through an asset-version query string
 - dashboard upcoming rows now filter out events whose end time is already in the past
 - Alaska display formatting now includes the year for non-current-year dates

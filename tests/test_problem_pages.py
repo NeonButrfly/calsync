@@ -178,6 +178,7 @@ def test_problem_page_lists_duplicate_and_reconnect_items(tmp_path: Path) -> Non
     assert "Resolve duplicate" in response.text
     assert "Reconnect in accounts" in response.text
     assert "CalSync recommends keeping" in response.text
+    assert "What CalSync suggests" in response.text
 
 
 def test_problem_page_lists_provider_specific_duplicate_actions(tmp_path: Path) -> None:

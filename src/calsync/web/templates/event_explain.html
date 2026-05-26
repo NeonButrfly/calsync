@@ -12,7 +12,7 @@ and what CalSync knows about the latest sync behind it.
   <article class="panel explain-panel">
     <div class="panel-heading">
       <div>
-        <h2>Why CalSync is showing this appointment</h2>
+        <h2>Current recommendation</h2>
         <p class="subtle">{{ event_view.event.title }}</p>
       </div>
       {% if event_view.event.id == event_view.preferred_copy_id %}
@@ -21,7 +21,10 @@ and what CalSync knows about the latest sync behind it.
       <span class="review-chip">{{ event_view.event.event_visibility_state | replace("_", " ") | title }}</span>
       {% endif %}
     </div>
-    <p>{{ event_view.preferred_reason }}</p>
+    <div class="explain-callout">
+      <p class="problem-card__detail-label">Why this copy wins</p>
+      <p>{{ event_view.preferred_reason }}</p>
+    </div>
     <dl class="explain-metadata">
       <div><dt>When</dt><dd>{{ event_view.event.starts_at | trust_datetime }}</dd></div>
       <div><dt>Location</dt><dd>{{ event_view.event.location or "Location pending" }}</dd></div>
@@ -30,6 +33,14 @@ and what CalSync knows about the latest sync behind it.
       <div><dt>Calendar</dt><dd>{{ event_view.current_copy.calendar_label }}</dd></div>
       <div><dt>Visibility</dt><dd>{{ event_view.event.event_visibility_state | replace("_", " ") | title }}</dd></div>
     </dl>
+    <details class="source-disclosure">
+      <summary>Show low-level source details</summary>
+      <div class="source-disclosure__content">
+        <p><strong>Source account</strong>: {{ event_view.current_copy.raw_account_id }}</p>
+        <p><strong>Source calendar</strong>: {{ event_view.current_copy.raw_calendar_id }}</p>
+        <p><strong>Provider event id</strong>: {{ event_view.current_copy.raw_event_id }}</p>
+      </div>
+    </details>
   </article>
 
   <article class="panel explain-panel">
@@ -39,8 +50,12 @@ and what CalSync knows about the latest sync behind it.
       <li class="review-event-card">
         <div class="review-event-main">
           <strong>{{ copy.title }}</strong>
+          <span class="subtle">{{ copy.starts_at | trust_datetime }}</span>
           <span class="subtle">{{ copy.provider_label }} · {{ copy.account_label }} · {{ copy.calendar_label }}</span>
           <span class="subtle">Visibility: {{ copy.visibility_state }}</span>
+          {% if copy.location %}
+          <span class="subtle">Location: {{ copy.location }}</span>
+          {% endif %}
         </div>
         {% if copy.is_preferred %}
         <span class="review-chip review-chip--preferred">Preferred copy</span>

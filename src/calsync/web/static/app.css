@@ -635,17 +635,59 @@ code {
   overflow: hidden;
 }
 
-.account-calendar-panel__header {
-  align-items: start;
-  border-bottom: 1px solid var(--border);
+.account-calendar-panel[open] {
+  box-shadow: var(--shadow);
+}
+
+.account-calendar-panel__summary {
+  align-items: center;
+  cursor: pointer;
   display: flex;
   gap: 1rem;
   justify-content: space-between;
-  padding: 1.25rem 1.25rem 1rem;
+  list-style: none;
+  padding: 1.2rem 1.25rem;
+}
+
+.account-calendar-panel__summary::-webkit-details-marker {
+  display: none;
+}
+
+.account-calendar-panel__summary-copy {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.account-calendar-panel__summary-copy h2 {
+  margin: 0;
+}
+
+.account-calendar-panel__summary-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: end;
+}
+
+.account-calendar-panel__body {
+  border-top: 1px solid var(--border);
+}
+
+.account-calendar-panel__header {
+  align-items: start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem 1.25rem 0.4rem;
 }
 
 .account-calendar-panel__header h2 {
   margin: 0 0 0.3rem;
+}
+
+.account-calendar-panel__header h3 {
+  margin: 0 0 0.25rem;
 }
 
 .account-calendar-panel__meta {
@@ -665,7 +707,7 @@ code {
 
 .calendar-name-cell {
   display: grid;
-  gap: 0.2rem;
+  gap: 0.35rem;
 }
 
 .calendar-role-form {
@@ -770,6 +812,37 @@ code {
   line-height: 1.5;
   margin: 0;
   max-width: 28rem;
+}
+
+.source-disclosure {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.source-disclosure summary {
+  color: var(--accent-strong);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  list-style: none;
+}
+
+.source-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.source-disclosure__content {
+  background: rgba(45, 116, 218, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.8rem 0.95rem;
+}
+
+.source-disclosure__content p {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .status-pill {
@@ -1021,6 +1094,19 @@ code {
 
 .explain-panel {
   gap: 1rem;
+}
+
+.explain-callout {
+  background: rgba(11, 118, 102, 0.07);
+  border: 1px solid rgba(11, 118, 102, 0.16);
+  border-radius: 1rem;
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+}
+
+.explain-callout p:last-child {
+  margin: 0;
 }
 
 .explain-metadata {
@@ -1313,6 +1399,16 @@ code {
     align-items: start;
     flex-direction: column;
     padding: 1rem 1rem 0.85rem;
+  }
+
+  .account-calendar-panel__summary {
+    align-items: start;
+    flex-direction: column;
+    padding: 1rem;
+  }
+
+  .account-calendar-panel__summary-meta {
+    justify-content: start;
   }
 
   .calendar-role-form__row {

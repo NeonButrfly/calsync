@@ -144,7 +144,7 @@ def test_event_explain_page_shows_grouped_copies_and_preferred_state(tmp_path: P
         response = client.get(f"/admin/events/{preferred.id}")
 
     assert response.status_code == 200
-    assert "Why CalSync is showing this appointment" in response.text
+    assert "Current recommendation" in response.text
     assert "Preferred copy" in response.text
     assert "Grouped source copies" in response.text
     assert "google-user@example.com" in response.text.lower()
@@ -152,6 +152,9 @@ def test_event_explain_page_shows_grouped_copies_and_preferred_state(tmp_path: P
     assert "icloud-user@icloud.com" in response.text.lower()
     assert "icloud-family" in response.text.lower()
     assert "Latest sync status" in response.text
+    assert "Current recommendation" in response.text
+    assert "Why this copy wins" in response.text
+    assert "Show low-level source details" in response.text
 
 
 def test_event_explain_page_persists_rebuilt_duplicate_state(tmp_path: Path) -> None:

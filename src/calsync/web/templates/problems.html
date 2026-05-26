@@ -54,6 +54,7 @@ duplicates, stale sign-ins, broken syncs, and source conflicts.
         </div>
         <p>{{ problem.summary }}</p>
         {% if problem.preferred_label %}
+        <p class="problem-card__detail-label">What CalSync suggests</p>
         <p class="problem-card__preferred">{{ problem.preferred_label }}</p>
         {% endif %}
         {% if problem.context_lines %}

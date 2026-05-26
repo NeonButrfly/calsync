@@ -183,6 +183,8 @@ Practical verification points:
 - `/admin/calendars` shows `Check availability` for connected calendars
 - `/admin/calendars` shows inline helper text and select tooltips explaining what each calendar role means
 - `/admin/calendars` keeps the role explainer in a `Purpose guide` side panel rather than repeating it as a row of little cards above the table
+- `/admin/calendars` now groups each connected account in a collapsible section with enabled-count chips so large calendar inventories stay easier to scan
+- raw account and calendar identifiers are tucked behind `Show source details` disclosures instead of always rendering inline
 - `/admin/calendars` only shows `Receive new bookings` when the provider account supports writable booking targets
 - if the shell layout looks wrong after a deploy, confirm the browser picked up the cache-busted `app.css?v=...` URL instead of an older stylesheet
 - existing Apple/iCloud accounts remain visible in the connected-accounts table after the shell refresh
@@ -199,6 +201,7 @@ Behavior:
 - groups obvious duplicate appointments using conservative near-match rules, including small title drift and small time drift
 - shows which copy CalSync currently prefers
 - names the exact provider, account, and calendar copy in keep actions instead of only saying `Keep this copy`
+- event explain now leads with a `Current recommendation` callout and moves low-level provider identifiers into a dedicated disclosure
 - lets the operator restore a hidden duplicate if both copies should stay visible
 - keeps hidden-duplicate decisions across later sync refreshes
 - removes events from active views when the upstream provider cancels them, deletes them, or removes their calendar during a full discovery pass

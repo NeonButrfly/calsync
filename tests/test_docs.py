@@ -242,6 +242,24 @@ def test_docs_cover_scrollable_sidebar_and_trust_source_specificity() -> None:
     assert "year-explicit timestamps" in prompt_content
 
 
+def test_docs_cover_collapsible_calendar_workspace_and_event_explain_disclosures() -> None:
+    readme_content = Path("README.md").read_text(encoding="utf-8").lower()
+    ops_content = Path("docs/ops.md").read_text(encoding="utf-8").lower()
+    prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()
+
+    assert "collapsible section" in readme_content
+    assert "show source details" in readme_content
+    assert "current recommendation" in readme_content
+
+    assert "collapsible section" in ops_content
+    assert "show source details" in ops_content
+    assert "current recommendation" in ops_content
+
+    assert "#30" in prompt_content
+    assert "show source details" in prompt_content
+    assert "current recommendation" in prompt_content
+
+
 def test_docs_cover_ranked_utility_roadmap() -> None:
     readme_content = Path("README.md").read_text(encoding="utf-8").lower()
     prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()

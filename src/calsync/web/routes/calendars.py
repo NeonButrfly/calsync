@@ -22,6 +22,7 @@ from calsync.repos.providers import (
     provider_calendar_supports_write,
     set_provider_calendar_role,
 )
+from calsync.services.source_labels import compact_identifier
 from calsync.web.deps import get_db, get_templates, require_admin
 
 
@@ -89,6 +90,7 @@ def calendars_page(
                 "microsoft": "Outlook / Microsoft 365",
                 "mock": "Mock provider",
             },
+            "compact_identifier": compact_identifier,
         },
     )
 

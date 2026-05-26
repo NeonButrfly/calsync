@@ -383,6 +383,9 @@ def test_calendars_page_does_not_offer_writable_booking_target_for_read_only_acc
     assert "Conflict checking only" in response.text
     assert "Personal reference" in response.text
     assert "Hidden" in response.text
+    assert 'class="account-calendar-panel__summary"' in response.text
+    assert "Enabled calendars" in response.text
+    assert "Show source details" in response.text
     assert 'value="writable_booking_target"' not in response.text
     assert 'name="calendar_role"' in response.text
 
@@ -401,6 +404,7 @@ def test_calendars_page_hides_writable_booking_target_for_google_reader_calendar
     assert "Google Reader Calendar" in response.text
     assert 'value="writable_booking_target"' not in response.text
     assert "Purpose guide" in response.text
+    assert "Show source details" in response.text
     assert 'name="calendar_role"' in response.text
 
 

@@ -24,20 +24,30 @@ sure only the right calendars stay active in the scheduling graph.
   </article>
 
   {% for account in accounts %}
-  <article class="panel account-calendar-panel">
-    <header class="account-calendar-panel__header">
-      <div>
-        <h2>{{ account.display_name or account.provider_account_id }}</h2>
+  {% set enabled_count = account.calendars | selectattr("enabled") | list | length %}
+  <details class="panel account-calendar-panel" open>
+    <summary class="account-calendar-panel__summary">
+      <div class="account-calendar-panel__summary-copy">
+        <h2>{{ account.display_name or compact_identifier(account.provider_account_id) }}</h2>
         <p class="subtle">
           {{ provider_names.get(account.provider_type, account.provider_type) }}
           ·
           {{ account.calendars | length }} calendar{{ "" if account.calendars|length == 1 else "s" }}
         </p>
       </div>
-      <div class="account-calendar-panel__meta">
+      <div class="account-calendar-panel__summary-meta">
+        <span class="review-chip">{{ enabled_count }} enabled</span>
         <span class="review-chip">{{ "Writable account" if account.can_write else "Read-only account" }}</span>
       </div>
-    </header>
+    </summary>
+
+    <div class="account-calendar-panel__body">
+    <div class="account-calendar-panel__header">
+      <div>
+        <h3>Connected calendars</h3>
+        <p class="subtle">Enabled calendars: {{ enabled_count }} of {{ account.calendars | length }}</p>
+      </div>
+    </div>
 
     <div class="calendar-table-wrap">
       <table class="data-table data-table--calendars">
@@ -55,8 +65,22 @@ sure only the right calendars stay active in the scheduling graph.
           <tr>
             <td data-label="Calendar">
               <div class="calendar-name-cell">
-                <strong>{{ calendar.name or calendar.provider_calendar_id }}</strong>
-                <span class="subtle">{{ calendar.provider_calendar_id }}</span>
+                <strong>{{ calendar.name or compact_identifier(calendar.provider_calendar_id) }}</strong>
+                <span class="subtle">
+                  {{ "Enabled" if calendar.enabled else "Disabled" }}
+                  ·
+                  {{ calendar.timezone or "Timezone unknown" }}
+                </span>
+                <details class="source-disclosure">
+                  <summary>Show source details</summary>
+                  <div class="source-disclosure__content">
+                    <p><strong>Account</strong>: {{ account.display_name or compact_identifier(account.provider_account_id) }}</p>
+                    <p><strong>Calendar identifier</strong>: {{ calendar.provider_calendar_id }}</p>
+                    {% if account.provider_account_id %}
+                    <p><strong>Source account</strong>: {{ account.provider_account_id }}</p>
+                    {% endif %}
+                  </div>
+                </details>
               </div>
             </td>
             <td data-label="Timezone">{{ calendar.timezone or "Unknown" }}</td>
@@ -111,7 +135,8 @@ sure only the right calendars stay active in the scheduling graph.
         </tbody>
       </table>
     </div>
-  </article>
+    </div>
+  </details>
   {% else %}
   <article class="panel">
     <h2>No connected accounts yet</h2>

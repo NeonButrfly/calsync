@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -21,8 +22,15 @@ class EventExplainCopy:
     provider_label: str
     account_label: str
     calendar_label: str
+    raw_account_id: str
+    raw_calendar_id: str
+    raw_event_id: str
     visibility_state: str
     is_preferred: bool
+    starts_at: datetime
+    ends_at: datetime | None
+    location: str | None
+    description: str | None
 
 
 @dataclass
@@ -55,8 +63,15 @@ def build_event_explain_view(session: Session, event_id: str) -> EventExplainVie
                 provider_label=_friendly_provider_name(copy.provider_type),
                 account_label=_account_label(session, copy),
                 calendar_label=_calendar_label(session, copy),
+                raw_account_id=copy.provider_account_id,
+                raw_calendar_id=copy.provider_calendar_id,
+                raw_event_id=copy.provider_event_id,
                 visibility_state=copy.event_visibility_state,
                 is_preferred=copy.id == preferred_copy.id,
+                starts_at=copy.starts_at,
+                ends_at=copy.ends_at,
+                location=copy.location,
+                description=copy.description,
             )
             for copy in copies
         ]

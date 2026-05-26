@@ -39,11 +39,14 @@ Implemented today:
 - a `Connections` experience on `/admin/accounts` that keeps Google, Microsoft, Apple, and mock onboarding in one scheduling-product surface
 - calendar roles so each discovered calendar can be marked for `Check availability` or, when supported, `Receive new bookings`
 - `/admin/calendars` now uses a `Purpose guide` side panel and tooltip-backed calendar-purpose hints instead of a row of dense explainer tiles
+- `/admin/calendars` now groups each account into a collapsible section so large calendar inventories stay scannable without looking like one giant admin table
+- raw provider identifiers stay available behind `Show source details` instead of dominating the calendar workspace by default
 - writable booking targets blocked for read-only provider accounts so booking writes cannot be assigned silently to the wrong calendar
 - Microsoft OAuth app settings in `Provider Settings`
 - Outlook / Microsoft 365 account connection through browser-based OAuth with multiple account support
 - Microsoft calendar discovery with calendars disabled by default until explicitly enabled
 - Microsoft read-only event sync into the normalized event store
+- `/admin/events/{event_id}` now leads with a clearer `Current recommendation` explanation and keeps low-level source identifiers behind an explicit disclosure
 
 Not implemented yet:
 
