@@ -11,6 +11,7 @@ from calsync.models import Event, ProviderAccount, ProviderCalendar, utcnow
 from calsync.repos.events import upsert_event
 from calsync.repos.providers import (
     get_provider_account,
+    hydrate_provider_account_capabilities,
     provider_calendar_supports_write,
 )
 from calsync.schemas.providers import WritableEventInput
@@ -55,6 +56,7 @@ def list_writable_calendar_options(session: Session) -> list[WritableCalendarOpt
         account = calendar.account or session.get(ProviderAccount, calendar.provider_account_pk)
         if account is None:
             continue
+        hydrate_provider_account_capabilities(account)
         if not account.can_write:
             continue
         if not provider_calendar_supports_write(account, calendar):
@@ -86,6 +88,7 @@ def require_writable_calendar(
     account = calendar.account or get_provider_account(session, calendar.provider_account_pk)
     if account is None:
         raise LookupError("Writable target account not found.")
+    hydrate_provider_account_capabilities(account)
     if not calendar.enabled:
         raise ValueError("Writable target calendar is currently disabled.")
     if calendar.calendar_role != WRITABLE_CALENDAR_ROLE:

@@ -39,6 +39,13 @@ def infer_icloud_account_capabilities(
         metadata.get("can_write") is True
         or metadata.get("supports_write") is True
         or metadata.get("supports_writes") is True
+        or (
+            account.credential_secret_encrypted is not None
+            and metadata.get("auth_status") == "connected"
+            and metadata.get("can_write") is not False
+            and metadata.get("supports_write") is not False
+            and metadata.get("supports_writes") is not False
+        )
     )
     return "caldav", True, can_write
 

@@ -7,7 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from calsync.models import Event, EventGroup, SyncLog
-from calsync.repos.providers import provider_calendar_supports_write
+from calsync.repos.providers import (
+    hydrate_provider_account_capabilities,
+    provider_calendar_supports_write,
+)
 from calsync.services.reconciliation import list_group_events
 from calsync.services.source_labels import (
     account_label_for_event,
@@ -146,6 +149,7 @@ def _resolve_write_capability(session: Session, event: Event) -> tuple[bool, str
     calendar = session.get(ProviderCalendar, event.provider_calendar_pk)
     if account is None or calendar is None:
         return False, None
+    hydrate_provider_account_capabilities(account)
     if not account.can_write or not provider_calendar_supports_write(account, calendar):
         return False, None
     if calendar.calendar_role != "writable_booking_target":

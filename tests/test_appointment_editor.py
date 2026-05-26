@@ -62,7 +62,7 @@ def _build_client(tmp_path: Path):
             provider_type="google",
             provider_account_id="writer@example.com",
             display_name="Writable Google",
-            can_write=True,
+            can_write=False,
             provider_metadata={
                 "google_scopes": ["https://www.googleapis.com/auth/calendar"],
                 "google_access_token_expires_at": datetime(2026, 6, 30, 0, 0, tzinfo=UTC).isoformat(),

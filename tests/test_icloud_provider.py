@@ -15,6 +15,7 @@ from calsync.repos.providers import upsert_provider_account
 from calsync.services.providers.icloud import (
     ICloudCalDAVError,
     ICloudCalDAVProviderAdapter,
+    infer_icloud_account_capabilities,
 )
 from calsync.schemas.providers import WritableEventInput
 
@@ -100,6 +101,19 @@ def test_icloud_discovery_maps_calendars(
     assert calendars[0].name == "Family"
     assert calendars[0].timezone == "America/Anchorage"
     assert calendars[0].default_enabled is False
+
+
+def test_icloud_connected_accounts_infer_write_capability_from_credentials(
+    session: Session,
+) -> None:
+    account = _seed_icloud_account(session)
+    account.provider_metadata = {"auth_status": "connected"}
+
+    auth_mode, can_read, can_write = infer_icloud_account_capabilities(account)
+
+    assert auth_mode == "caldav"
+    assert can_read is True
+    assert can_write is True
 
 
 def test_icloud_fetch_events_parses_calendar_data(
