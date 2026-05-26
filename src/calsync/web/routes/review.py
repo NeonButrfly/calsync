@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -16,10 +18,64 @@ from calsync.services.reconciliation import (
     restore_hidden_duplicate,
     restore_hidden_duplicates_in_group,
 )
+from calsync.services.source_labels import copy_label_for_event, source_line_for_event
 from calsync.web.deps import get_db, get_templates, require_admin
 
 
 router = APIRouter(prefix="/admin/review")
+
+
+@dataclass
+class ReviewEventView:
+    id: str
+    title: str
+    starts_at: object
+    source_line: str
+    location: str | None
+    event_visibility_state: str
+    is_preferred: bool
+    keep_label: str
+
+
+@dataclass
+class ReviewGroupView:
+    group: object
+    anchor_id: str
+    preferred_starts_at: object
+    preferred_copy_label: str
+    events: list[ReviewEventView]
+
+
+def _build_review_groups(session: Session) -> list[ReviewGroupView]:
+    review_groups: list[ReviewGroupView] = []
+    for duplicate_group in list_duplicate_groups(session, attention_only=True):
+        preferred_event = next(
+            event
+            for event in duplicate_group.events
+            if event.id == duplicate_group.group.preferred_event_id
+        )
+        review_groups.append(
+            ReviewGroupView(
+                group=duplicate_group.group,
+                anchor_id=duplicate_group.anchor_id,
+                preferred_starts_at=duplicate_group.group.preferred_starts_at,
+                preferred_copy_label=copy_label_for_event(session, preferred_event),
+                events=[
+                    ReviewEventView(
+                        id=event.id,
+                        title=event.title,
+                        starts_at=event.starts_at,
+                        source_line=source_line_for_event(session, event),
+                        location=event.location,
+                        event_visibility_state=event.event_visibility_state,
+                        is_preferred=duplicate_group.group.preferred_event_id == event.id,
+                        keep_label=f"Keep {copy_label_for_event(session, event)}",
+                    )
+                    for event in duplicate_group.events
+                ],
+            )
+        )
+    return review_groups
 
 
 @router.get("")
@@ -31,7 +87,7 @@ def review_page(
 ):
     rebuild_duplicate_groups(session)
     metrics = collect_trust_metrics(session, attention_only=True)
-    duplicate_groups = list_duplicate_groups(session, attention_only=True)
+    duplicate_groups = _build_review_groups(session)
     session.commit()
     return templates.TemplateResponse(
         request,

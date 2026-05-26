@@ -376,13 +376,14 @@ def test_calendars_page_does_not_offer_writable_booking_target_for_read_only_acc
 
     assert response.status_code == 200
     assert "Choose how CalSync should use each calendar" in response.text
-    assert "Check availability helps CalSync avoid collisions." in response.text
-    assert "What this calendar is for" in response.text
+    assert "Purpose guide" in response.text
+    assert "Check this calendar when looking for busy time and scheduling conflicts." in response.text
+    assert "Calendar purpose" in response.text
     assert "Check availability" in response.text
     assert "Conflict checking only" in response.text
     assert "Personal reference" in response.text
     assert "Hidden" in response.text
-    assert "Receive new bookings" not in response.text
+    assert 'value="writable_booking_target"' not in response.text
     assert 'name="calendar_role"' in response.text
 
 
@@ -398,7 +399,8 @@ def test_calendars_page_hides_writable_booking_target_for_google_reader_calendar
     assert response.status_code == 200
     assert "Writable Google Account" in response.text
     assert "Google Reader Calendar" in response.text
-    assert "Receive new bookings" not in response.text
+    assert 'value="writable_booking_target"' not in response.text
+    assert "Purpose guide" in response.text
     assert 'name="calendar_role"' in response.text
 
 

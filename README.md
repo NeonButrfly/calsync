@@ -35,8 +35,10 @@ Implemented today:
 - separate `web`, `worker`, and `db` services for Docker deployment
 - brighter shell navigation that frames the app as `Home`, `Calendar`, `Connections`, `Availability`, `Trust`, and `Settings`
 - a persistent left sidebar replaces the older tile-style navigation so the main product areas stay visible without crowding the page body
+- the sidebar navigation now scrolls independently, and the older top-right quick-link chip row is gone so navigation lives in one clean place
 - a `Connections` experience on `/admin/accounts` that keeps Google, Microsoft, Apple, and mock onboarding in one scheduling-product surface
 - calendar roles so each discovered calendar can be marked for `Check availability` or, when supported, `Receive new bookings`
+- `/admin/calendars` now uses a `Purpose guide` side panel and tooltip-backed calendar-purpose hints instead of a row of dense explainer tiles
 - writable booking targets blocked for read-only provider accounts so booking writes cannot be assigned silently to the wrong calendar
 - Microsoft OAuth app settings in `Provider Settings`
 - Outlook / Microsoft 365 account connection through browser-based OAuth with multiple account support
@@ -221,6 +223,7 @@ Current behavior:
 - the problem-to-fix inbox gives you one obvious list of duplicate, sync, and account issues with the safest next action
 - duplicate items now explain which copy CalSync currently recommends keeping and list the source accounts involved
 - duplicate items now name the exact connected copy CalSync recommends keeping, including the specific account and calendar, instead of only saying `Keep Google copy`
+- trust and review surfaces now use full source labels like `Google - Household - Primary` so duplicate actions point at a specific copy instead of a vague provider bucket
 - the review page acts as a `Needs attention` queue so you can keep the right copy and hide the extra one when you accidentally add the same appointment twice
 - the review page now explicitly explains why a pair of events was grouped as a duplicate and which copy CalSync is currently keeping visible
 - duplicate fixes now include provider-aware actions like `Keep Google copy`, `Keep iCloud copy`, and `Show all copies`
@@ -228,6 +231,7 @@ Current behavior:
 - hidden duplicate decisions survive later refreshes instead of being lost on the next sync
 - older historical events stay in the local reference store, but duplicate review and the problem inbox now ignore stale lookback noise outside the active attention window so ancient appointments do not keep resurfacing
 - trust-facing dates now include the year whenever an item is outside the current year, making old history obvious at a glance
+- trust inbox and review timestamps now always show the year so cleanup decisions stay unambiguous even when the same month/day appears in different years
 
 Current limits:
 

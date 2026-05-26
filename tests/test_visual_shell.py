@@ -49,7 +49,6 @@ def test_admin_shell_uses_scheduling_navigation_labels(
     assert ">Trust<" in response.text
     assert 'href="/admin/providers"' in response.text
     assert ">Settings<" in response.text
-    assert "/admin/sync" in response.text
-    assert "/admin/feeds" in response.text
-    assert "Review queue" in response.text
-    assert "Connect calendars" in response.text
+    assert 'class="app-sidebar__nav-scroll"' in response.text
+    assert "Review queue" not in response.text
+    assert "Connect calendars" not in response.text

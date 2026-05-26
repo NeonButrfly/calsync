@@ -23,7 +23,7 @@ and what CalSync knows about the latest sync behind it.
     </div>
     <p>{{ event_view.preferred_reason }}</p>
     <dl class="explain-metadata">
-      <div><dt>When</dt><dd>{{ event_view.event.starts_at | alaska_datetime }}</dd></div>
+      <div><dt>When</dt><dd>{{ event_view.event.starts_at | trust_datetime }}</dd></div>
       <div><dt>Location</dt><dd>{{ event_view.event.location or "Location pending" }}</dd></div>
       <div><dt>Provider</dt><dd>{{ event_view.current_copy.provider_label }}</dd></div>
       <div><dt>Account</dt><dd>{{ event_view.current_copy.account_label }}</dd></div>

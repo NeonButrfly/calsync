@@ -8,35 +8,18 @@ sure only the right calendars stay active in the scheduling graph.
 {% endblock %}
 
 {% block content %}
-<section class="stack">
+<section class="calendar-workspace">
+  <div class="stack">
   <article class="panel panel--soft">
     <div class="panel-heading">
       <div>
         <h2>Choose how CalSync should use each calendar</h2>
         <p class="subtle">
           Keep only the calendars you care about active, then assign each one a
-          role so CalSync knows whether it should check availability, keep the
+          purpose so CalSync knows whether it should check availability, keep the
           calendar as reference, or eventually target it for booking writes.
         </p>
       </div>
-    </div>
-    <div class="role-guide">
-      <article class="role-guide__card">
-        <strong>Check availability</strong>
-        <p>Check availability helps CalSync avoid collisions.</p>
-      </article>
-      <article class="role-guide__card">
-        <strong>Conflict checking only</strong>
-        <p>Use this when the calendar matters for busy time but should not shape personal scheduling decisions.</p>
-      </article>
-      <article class="role-guide__card">
-        <strong>Personal reference</strong>
-        <p>Keep the calendar visible for context without letting it drive booking decisions.</p>
-      </article>
-      <article class="role-guide__card">
-        <strong>Hidden</strong>
-        <p>Keep the connection but remove the calendar from normal scheduling views.</p>
-      </article>
     </div>
   </article>
 
@@ -63,7 +46,7 @@ sure only the right calendars stay active in the scheduling graph.
             <th>Calendar</th>
             <th>Timezone</th>
             <th>Status</th>
-            <th>What this calendar is for</th>
+            <th>Calendar purpose</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -82,8 +65,17 @@ sure only the right calendars stay active in the scheduling graph.
                 {{ "Enabled" if calendar.enabled else "Disabled" }}
               </span>
             </td>
-            <td data-label="What this calendar is for">
+            <td data-label="Calendar purpose">
               <form method="post" action="/admin/calendars/{{ calendar.id }}/role" class="calendar-role-form">
+                <div class="calendar-role-form__label-row">
+                  <span class="calendar-role-form__label">Calendar purpose</span>
+                  <span
+                    class="calendar-role-tooltip"
+                    data-role-tooltip
+                    title="{{ calendar_role_help[calendar.calendar_role] }}"
+                    aria-label="{{ calendar_role_help[calendar.calendar_role] }}"
+                  >?</span>
+                </div>
                 <div class="calendar-role-form__row">
                   <select
                     id="calendar-role-{{ calendar.id }}"
@@ -126,6 +118,38 @@ sure only the right calendars stay active in the scheduling graph.
     <p>Connect a mock, Google, Microsoft, or Apple/iCloud account from the Connections page to start discovering calendars for aggregation.</p>
   </article>
   {% endfor %}
+  </div>
+
+  <aside class="panel panel--soft calendar-guide-panel">
+    <h2>Purpose guide</h2>
+    <p class="subtle">
+      Pick the simplest purpose that matches how each calendar should affect
+      planning. Hover the question-mark hint beside a chooser if you want the
+      same explanation right next to the field.
+    </p>
+    <ul class="calendar-guide-list">
+      <li>
+        <strong>Check availability</strong>
+        <p>Check this calendar when looking for busy time and scheduling conflicts.</p>
+      </li>
+      <li>
+        <strong>Conflict checking only</strong>
+        <p>Use this when the calendar blocks time, but should not become your preferred personal schedule source.</p>
+      </li>
+      <li>
+        <strong>Receive new bookings</strong>
+        <p>Only available on writable calendars. CalSync can create new appointments here once write-back is enabled.</p>
+      </li>
+      <li>
+        <strong>Personal reference</strong>
+        <p>Keep the calendar visible for context without letting it drive booking decisions.</p>
+      </li>
+      <li>
+        <strong>Hidden</strong>
+        <p>Keep the connection, but remove the calendar from active planning views.</p>
+      </li>
+    </ul>
+  </aside>
 </section>
 {% endblock %}
 
@@ -134,10 +158,15 @@ sure only the right calendars stay active in the scheduling graph.
   for (const select of document.querySelectorAll("[data-role-select]")) {
     const targetId = select.getAttribute("data-help-target");
     const target = targetId ? document.getElementById(targetId) : null;
+    const tooltip = select.closest(".calendar-role-form")?.querySelector("[data-role-tooltip]");
     const updateHelp = () => {
       const selectedOption = select.options[select.selectedIndex];
       const helpText = selectedOption?.dataset.help || "";
       select.title = helpText;
+      if (tooltip) {
+        tooltip.setAttribute("title", helpText);
+        tooltip.setAttribute("aria-label", helpText);
+      }
       if (target) {
         target.textContent = helpText;
       }

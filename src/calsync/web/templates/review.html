@@ -52,9 +52,9 @@ is currently keeping visible, and when you want to override that choice.
         <header class="review-group-header">
           <div>
             <h3>{{ duplicate_group.group.display_title }}</h3>
-            <p class="subtle">{{ duplicate_group.group.preferred_starts_at | alaska_datetime }}</p>
+            <p class="subtle">{{ duplicate_group.preferred_starts_at | trust_datetime }}</p>
             <p class="review-summary">
-              CalSync is currently keeping the copy with the strongest detail and trust score visible in the combined schedule.
+              CalSync is currently keeping {{ duplicate_group.preferred_copy_label }} visible in the combined schedule.
             </p>
           </div>
           <span class="review-chip">Group of {{ duplicate_group.events | length }}</span>
@@ -70,18 +70,18 @@ is currently keeping visible, and when you want to override that choice.
           <li class="review-event-card">
             <div class="review-event-main">
               <strong>{{ event.title }}</strong>
-              <span>{{ event.starts_at | alaska_datetime }}</span>
-              <span class="subtle">{{ event.provider_type }} · {{ event.provider_account_id }} · {{ event.provider_calendar_id }}</span>
+              <span>{{ event.starts_at | trust_datetime }}</span>
+              <span class="subtle">{{ event.source_line }}</span>
               {% if event.location %}
               <span class="subtle">{{ event.location }}</span>
               {% endif %}
             </div>
             <div class="review-event-actions">
-              {% if duplicate_group.group.preferred_event_id == event.id %}
+              {% if event.is_preferred %}
               <span class="review-chip review-chip--preferred">Keeping this copy</span>
               {% else %}
               <form method="post" action="/admin/review/groups/{{ duplicate_group.group.id }}/prefer/{{ event.id }}">
-                <button type="submit">Keep this copy</button>
+                <button type="submit">{{ event.keep_label }}</button>
               </form>
               {% endif %}
               {% if event.event_visibility_state == "hidden_duplicate" %}

@@ -586,6 +586,33 @@
 
 - old events remain stored locally for feeds and reference workflows
 - only active schedule and trust-attention surfaces should stop treating ancient events as current work
+
+---
+
+- GitHub issue: `#29`
+- Scope: refine shell navigation, calendar-purpose layout, and trust-source specificity for active operator workflows
+
+## Interpreted Requirements
+
+- navigation should live in one place instead of mixing a left sidebar with a second row of quick-link chips
+- the sidebar needs to scroll cleanly so longer product navigation does not trap links off-screen
+- the `Availability` page should replace its little explainer tiles with a calmer side-panel guide
+- calendar-purpose selectors should explain themselves with inline helper text and a tooltip hint right beside the field
+- trust and problem actions should name the exact provider/account/calendar copy being kept, not a vague provider bucket
+- trust-facing timestamps should always show the year so old cleanup entries cannot be mistaken for current ones
+
+## Behavioral Boundaries
+
+- historical events still remain in the local store and published feeds
+- active trust/problem workflows should keep prioritizing current and upcoming relevance instead of historical noise
+- this slice improves labeling and operator clarity; it does not yet introduce provider write-back moves between calendars
+
+## Phase Notes
+
+- issue `#29` builds on the shell and trust groundwork from issues `#26` and `#27`
+- the shell should keep one persistent, scrollable sidebar as the primary navigation surface
+- `/admin/calendars` should pair the account tables with a `Purpose guide` side panel and question-mark tooltip hints
+- `/admin/problems` and `/admin/review` should describe duplicate copies using exact source labels and year-explicit timestamps
 - the CSS fix should be cache-safe rather than relying on operators to hard refresh manually
 
 ## Phase Notes

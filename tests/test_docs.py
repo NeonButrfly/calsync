@@ -224,6 +224,24 @@ def test_docs_cover_break_glass_admin_login() -> None:
     assert "break-glass account" in prompt_content
 
 
+def test_docs_cover_scrollable_sidebar_and_trust_source_specificity() -> None:
+    readme_content = Path("README.md").read_text(encoding="utf-8").lower()
+    ops_content = Path("docs/ops.md").read_text(encoding="utf-8").lower()
+    prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()
+
+    assert "sidebar navigation now scrolls independently" in readme_content
+    assert "purpose guide" in readme_content
+    assert "trust inbox and review timestamps now always show the year" in readme_content
+
+    assert "sidebar navigation scrolls independently" in ops_content
+    assert "purpose guide" in ops_content
+    assert "exact provider, account, and calendar copy" in ops_content
+
+    assert "#29" in prompt_content
+    assert "question-mark tooltip hints" in prompt_content
+    assert "year-explicit timestamps" in prompt_content
+
+
 def test_docs_cover_ranked_utility_roadmap() -> None:
     readme_content = Path("README.md").read_text(encoding="utf-8").lower()
     prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()

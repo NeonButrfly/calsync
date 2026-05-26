@@ -186,8 +186,8 @@ def test_problem_page_lists_provider_specific_duplicate_actions(tmp_path: Path) 
         response = client.get("/admin/problems")
 
     assert response.status_code == 200
-    assert "Keep Google copy from google-primary" in response.text
-    assert "Keep Apple copy from icloud-family" in response.text
+    assert "Keep Google - Google Household - google-primary" in response.text
+    assert "Keep Apple - iCloud Household - icloud-family" in response.text
     assert "Show all copies" in response.text
     assert "Explain this event" in response.text
     assert "Preferred now" in response.text
@@ -335,6 +335,16 @@ def test_problem_page_ignores_stale_duplicate_history_outside_attention_window(t
 
     assert response.status_code == 200
     assert "Ancient Dentist Appointment" not in response.text
+
+
+def test_problem_page_shows_year_in_duplicate_context(tmp_path: Path) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client)
+        response = client.get("/admin/problems")
+
+    assert response.status_code == 200
+    assert "Morning Standup" in response.text
+    assert str(datetime.now(UTC).year) in response.text
 
 
 def test_problem_page_show_all_action_restores_hidden_duplicates_and_lands_on_stable_anchor(tmp_path: Path) -> None:

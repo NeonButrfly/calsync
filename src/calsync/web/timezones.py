@@ -36,3 +36,21 @@ def format_display_datetime(
         f"{local_value.strftime('%a')} {local_value.strftime('%b')} "
         f"{local_value.day}{year_suffix} at {time_text} {timezone_label}"
     )
+
+
+def format_trust_datetime(
+    value: datetime | None,
+    timezone_name: str | None = None,
+) -> str:
+    if value is None:
+        return ""
+
+    if value.tzinfo is None or value.utcoffset() is None:
+        value = value.replace(tzinfo=UTC)
+
+    local_value = value.astimezone(resolve_display_timezone(timezone_name))
+    time_text = local_value.strftime("%I:%M %p").lstrip("0") or "12:00 AM"
+    return (
+        f"{local_value.strftime('%a')} {local_value.strftime('%b')} "
+        f"{local_value.day}, {local_value.year} at {time_text} AKST"
+    )

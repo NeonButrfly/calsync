@@ -132,7 +132,7 @@ def test_review_page_lists_duplicate_groups_and_resolution_actions(tmp_path: Pat
     assert "Needs attention" in response.text
     assert "Possible duplicates" in response.text
     assert "Orthodontist Appointment" in response.text
-    assert "Keep this copy" in response.text
+    assert "Keep Apple - i-1 - icloud-family" in response.text
     assert "CalSync is currently keeping" in response.text
     assert "Why this looks duplicated" in response.text
     assert f'id="{anchor_id}"' in response.text
@@ -258,6 +258,16 @@ def test_review_page_ignores_old_duplicate_history_outside_attention_window(tmp_
 
     assert response.status_code == 200
     assert "Old Cleanup Case" not in response.text
+
+
+def test_review_page_shows_year_for_visible_duplicates(tmp_path: Path) -> None:
+    with _build_client(tmp_path) as client:
+        _login(client)
+        response = client.get("/admin/review")
+
+    assert response.status_code == 200
+    assert "Orthodontist Appointment" in response.text
+    assert str(datetime.now(UTC).year) in response.text
 
 
 def _db_session(client: TestClient) -> Session:

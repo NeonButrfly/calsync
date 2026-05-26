@@ -5,8 +5,13 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from calsync.models import Event, EventGroup, ProviderAccount, ProviderCalendar, SyncLog
+from calsync.models import Event, EventGroup, SyncLog
 from calsync.services.reconciliation import list_group_events
+from calsync.services.source_labels import (
+    account_label_for_event,
+    calendar_label_for_event,
+    friendly_provider_name,
+)
 
 
 @dataclass
@@ -100,25 +105,12 @@ def _describe_preference(*, event: Event, preferred_copy: Event) -> str:
 
 
 def _friendly_provider_name(provider_type: str) -> str:
-    return {
-        "google": "Google",
-        "icloud_caldav": "Apple",
-        "microsoft": "Microsoft",
-        "mock": "Mock",
-    }.get(provider_type, provider_type.replace("_", " ").title())
+    return friendly_provider_name(provider_type)
 
 
 def _account_label(session: Session, event: Event) -> str:
-    if event.provider_account_pk:
-        account = session.get(ProviderAccount, event.provider_account_pk)
-        if account is not None and account.display_name:
-            return account.display_name
-    return event.provider_account_id
+    return account_label_for_event(session, event)
 
 
 def _calendar_label(session: Session, event: Event) -> str:
-    if event.provider_calendar_pk:
-        calendar = session.get(ProviderCalendar, event.provider_calendar_pk)
-        if calendar is not None and calendar.name:
-            return calendar.name
-    return event.provider_calendar_id
+    return calendar_label_for_event(session, event)

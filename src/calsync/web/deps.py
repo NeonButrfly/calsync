@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from calsync.models import AdminUser
 from calsync.db import get_db_session
-from calsync.web.timezones import format_display_datetime
+from calsync.web.timezones import format_display_datetime, format_trust_datetime
 
 
 SESSION_COOKIE_NAME = "calsync_session"
@@ -26,6 +26,7 @@ ADMIN_SESSION_KEY = "admin_session"
 _TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
 _templates = Jinja2Templates(directory=str(_TEMPLATE_DIR))
 _templates.env.filters["alaska_datetime"] = format_display_datetime
+_templates.env.filters["trust_datetime"] = format_trust_datetime
 _templates.env.globals["asset_version"] = str(
     int((Path(__file__).resolve().parent / "static" / "app.css").stat().st_mtime)
 )

@@ -57,6 +57,7 @@ duplicates, stale sign-ins, broken syncs, and source conflicts.
         <p class="problem-card__preferred">{{ problem.preferred_label }}</p>
         {% endif %}
         {% if problem.context_lines %}
+        <p class="problem-card__detail-label">Copies in this group</p>
         <ul class="problem-card__context">
           {% for line in problem.context_lines %}
           <li>{{ line }}</li>

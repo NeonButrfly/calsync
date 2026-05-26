@@ -175,12 +175,14 @@ Practical verification points:
 
 - the top navigation includes `Connections` and `Availability`
 - the product shell now uses a persistent left sidebar instead of a row of navigation tiles
+- the sidebar navigation scrolls independently, and the old top-right quick-link chip bar is intentionally removed to avoid duplicate navigation patterns
 - `/admin/accounts` shows Google Calendar, Outlook / Microsoft 365, Apple Calendar, and Mock Provider
 - `/admin/accounts` offers `Connect Microsoft Account` once the shared Microsoft OAuth app is configured
 - `/admin/providers` shows `Microsoft OAuth App` and the active callback URL for the Outlook account connection flow
 - connected Microsoft accounts can discover calendars and then sync read-only events after the operator enables the desired calendars
 - `/admin/calendars` shows `Check availability` for connected calendars
 - `/admin/calendars` shows inline helper text and select tooltips explaining what each calendar role means
+- `/admin/calendars` keeps the role explainer in a `Purpose guide` side panel rather than repeating it as a row of little cards above the table
 - `/admin/calendars` only shows `Receive new bookings` when the provider account supports writable booking targets
 - if the shell layout looks wrong after a deploy, confirm the browser picked up the cache-busted `app.css?v=...` URL instead of an older stylesheet
 - existing Apple/iCloud accounts remain visible in the connected-accounts table after the shell refresh
@@ -196,7 +198,7 @@ Behavior:
 - requires an authenticated admin session
 - groups obvious duplicate appointments using conservative near-match rules, including small title drift and small time drift
 - shows which copy CalSync currently prefers
-- lets the operator choose `Keep this copy` when the same appointment was added twice
+- names the exact provider, account, and calendar copy in keep actions instead of only saying `Keep this copy`
 - lets the operator restore a hidden duplicate if both copies should stay visible
 - keeps hidden-duplicate decisions across later sync refreshes
 - removes events from active views when the upstream provider cancels them, deletes them, or removes their calendar during a full discovery pass
@@ -228,6 +230,7 @@ Behavior:
 - duplicate items show which exact account and calendar copy CalSync currently recommends keeping and which connected sources are involved
 - stale historical duplicates stay in the local reference store, but the active inbox ignores old lookback noise outside the current attention window
 - trust-facing dates show the year whenever an item is not from the current year
+- trust-facing problem and review timestamps now always include the year so historical cleanup never looks like current-year ambiguity
 - returns `Sync now` actions back to the problem inbox so the operator can keep working from one page
 
 Practical verification points:

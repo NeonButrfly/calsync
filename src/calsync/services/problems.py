@@ -11,7 +11,14 @@ from calsync.services.reconciliation import (
     collect_trust_metrics,
     list_duplicate_groups,
 )
-from calsync.web.timezones import format_display_datetime
+from calsync.services.source_labels import (
+    account_label_for_event,
+    calendar_label_for_event,
+    copy_label_for_event,
+    friendly_provider_name,
+    source_line_for_event,
+)
+from calsync.web.timezones import format_trust_datetime
 
 
 @dataclass
@@ -265,43 +272,25 @@ def _build_duplicate_source_label(
         (event for event in duplicate_group.events if event.id == duplicate_group.group.preferred_event_id),
         duplicate_group.events[0],
     )
-    when = format_display_datetime(preferred_event.starts_at)
-    return f"{when} · {_account_label(session, preferred_event)}"
+    when = format_trust_datetime(preferred_event.starts_at)
+    return f"{when} · {source_line_for_event(session, preferred_event)}"
 
 
 def _format_event_copy_label(session: Session, event) -> str:
-    provider_name = _friendly_provider_name(event.provider_type)
-    calendar_label = _calendar_label(session, event)
-    return f"{provider_name} copy from {calendar_label}"
+    return copy_label_for_event(session, event)
 
 
 def _format_event_context_line(session: Session, event) -> str:
-    provider_name = _friendly_provider_name(event.provider_type)
-    account_label = _account_label(session, event)
-    calendar_label = _calendar_label(session, event)
-    return f"{provider_name}: {account_label} - {calendar_label}"
+    return source_line_for_event(session, event)
 
 
 def _friendly_provider_name(provider_type: str) -> str:
-    return {
-        "google": "Google",
-        "icloud_caldav": "Apple",
-        "microsoft": "Microsoft",
-        "mock": "Mock",
-    }.get(provider_type, provider_type.replace("_", " ").title())
+    return friendly_provider_name(provider_type)
 
 
 def _account_label(session: Session, event) -> str:
-    if event.provider_account_pk:
-        account = session.get(ProviderAccount, event.provider_account_pk)
-        if account is not None and account.display_name:
-            return account.display_name
-    return event.provider_account_id
+    return account_label_for_event(session, event)
 
 
 def _calendar_label(session: Session, event) -> str:
-    if event.provider_calendar_pk:
-        calendar = session.get(ProviderCalendar, event.provider_calendar_pk)
-        if calendar is not None and calendar.name:
-            return calendar.name
-    return event.provider_calendar_id
+    return calendar_label_for_event(session, event)
