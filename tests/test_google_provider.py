@@ -151,6 +151,51 @@ def test_persist_google_oauth_account_keeps_existing_refresh_token_when_missing(
     ]
 
 
+def test_persist_google_oauth_account_clears_incremental_sync_state_on_reconnect(
+    session: Session,
+) -> None:
+    existing_account = upsert_provider_account(
+        session,
+        provider_type="google",
+        provider_account_id="google-sub",
+        display_name="owner@example.com",
+        provider_metadata={
+            ACCOUNT_DISCOVERY_SYNC_TOKEN_KEY: "old-calendar-sync-token",
+        },
+    )
+    existing_account.refresh_token_encrypted = encrypt_text(
+        ENCRYPTION_KEY,
+        "old-refresh-token",
+    )
+    existing_calendar = ProviderCalendar(
+        provider_account_pk=existing_account.id,
+        provider_calendar_id="primary",
+        name="Primary",
+        enabled=True,
+        provider_metadata={CALENDAR_EVENTS_SYNC_TOKEN_KEY: "old-events-sync-token"},
+    )
+    session.add(existing_calendar)
+    session.flush()
+
+    account = persist_google_oauth_account(
+        session,
+        account=existing_account,
+        token_payload={
+            "access_token": "new-access-token",
+            "refresh_token": "new-refresh-token",
+            "scope": "openid email profile https://www.googleapis.com/auth/calendar",
+            "expires_in": 3600,
+        },
+        user_info={"sub": "google-sub", "email": "owner@example.com"},
+        encryption_key=ENCRYPTION_KEY,
+    )
+
+    assert account.provider_metadata is not None
+    assert ACCOUNT_DISCOVERY_SYNC_TOKEN_KEY not in account.provider_metadata
+    assert existing_calendar.provider_metadata is not None
+    assert CALENDAR_EVENTS_SYNC_TOKEN_KEY not in existing_calendar.provider_metadata
+
+
 def test_google_discovery_maps_calendars_and_stores_sync_token(
     session: Session,
     settings: Settings,
@@ -193,6 +238,68 @@ def test_google_discovery_maps_calendars_and_stores_sync_token(
     assert account.provider_metadata is not None
     assert account.provider_metadata[ACCOUNT_DISCOVERY_SYNC_TOKEN_KEY] == (
         "calendar-sync-token"
+    )
+
+
+def test_google_discovery_recovers_from_google_rejected_calendar_sync_token(
+    session: Session,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    account = _seed_google_account(session)
+    account.provider_metadata = {
+        ACCOUNT_DISCOVERY_SYNC_TOKEN_KEY: "stale-calendar-sync-token",
+        "google_access_token_expires_at": (
+            datetime.now(UTC) + timedelta(hours=1)
+        ).isoformat(),
+    }
+
+    request_count = {"count": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        request_count["count"] += 1
+        if request_count["count"] == 1:
+            assert request.url.params["syncToken"] == "stale-calendar-sync-token"
+            return httpx.Response(
+                403,
+                json={
+                    "error": {
+                        "message": "Sync token is no longer valid, a full sync is required.",
+                        "errors": [{"reason": "fullSyncRequired"}],
+                    }
+                },
+                request=request,
+            )
+        assert "syncToken" not in request.url.params
+        return httpx.Response(
+            200,
+            json={
+                "items": [
+                    {
+                        "id": "primary",
+                        "summary": "Primary",
+                        "timeZone": "America/Anchorage",
+                        "accessRole": "owner",
+                    }
+                ],
+                "nextSyncToken": "fresh-calendar-sync-token",
+            },
+            request=request,
+        )
+
+    monkeypatch.setattr(
+        "calsync.services.providers.google._build_http_client",
+        lambda: httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    adapter = GoogleProviderAdapter(settings=settings)
+    calendars = adapter.discover_calendars(account)
+
+    assert request_count["count"] == 2
+    assert [calendar.external_id for calendar in calendars] == ["primary"]
+    assert account.provider_metadata is not None
+    assert account.provider_metadata[ACCOUNT_DISCOVERY_SYNC_TOKEN_KEY] == (
+        "fresh-calendar-sync-token"
     )
 
 

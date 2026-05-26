@@ -3,6 +3,7 @@ from __future__ import annotations
 from secrets import token_urlsafe
 from urllib.parse import urlsplit, urlunsplit
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -131,6 +132,15 @@ def google_oauth_callback(
             templates,
             current_admin=current_admin,
             error_message=str(exc),
+        )
+    except httpx.HTTPStatusError:
+        session.rollback()
+        return render_accounts_page_with_error(
+            request,
+            session,
+            templates,
+            current_admin=current_admin,
+            error_message="Google calendar discovery failed after sign-in. Reconnect the account and verify the saved Google scopes include calendar access.",
         )
 
     session.commit()

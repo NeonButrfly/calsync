@@ -327,12 +327,15 @@ def test_docs_cover_first_writable_appointment_editor() -> None:
     assert "write back to writable apple/icloud calendars" in readme_content
     assert "edit appointment" in readme_content
     assert "cancel appointment" in readme_content
+    assert "clears the old incremental google sync tokens" in readme_content
 
     assert "/admin/appointments/new" in ops_content
     assert "writable appointment editor" in ops_content
     assert "microsoft stays read-only in this slice" in ops_content
     assert "receive new bookings" in ops_content
+    assert "clears stale google incremental sync tokens" in ops_content
 
     assert "#31" in prompt_content
     assert "first writable appointment editor" in prompt_content
     assert "google and apple/icloud" in prompt_content
+    assert "stale google incremental sync tokens" in prompt_content

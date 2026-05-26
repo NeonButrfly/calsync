@@ -313,7 +313,7 @@ Recommended Google Auth Platform setup:
    - `openid`
    - `email`
    - `profile`
-   - `https://www.googleapis.com/auth/calendar.readonly`
+   - `https://www.googleapis.com/auth/calendar`
 6. In `Clients`, create a `Web application` OAuth client.
 7. Add the CalSync redirect URI shown on the Provider Settings page.
 8. Save the client ID and client secret into CalSync at `/admin/providers`.
@@ -348,14 +348,19 @@ Practical meaning:
 - The CalSync app itself still works on `http://SERVER-IP:3080` for normal LAN access.
 - Google account connection works on `http://localhost:3080` when you complete the OAuth flow on the server machine itself.
 - For remote browser-based Google account connection, save `Public App URL` in the admin UI or configure `PUBLIC_BASE_URL` to an HTTPS hostname or domain that is registered with Google.
-- If your Google app is still in testing mode and requests `calendar.readonly`, every Google account you want to connect must be added as a test user first.
+- If your Google app is still in testing mode and requests full calendar access, every Google account you want to connect must be added as a test user first.
 
-The Google integration is read-only and requests:
+The Google calendar connection now requests:
 
 - `openid`
 - `email`
 - `profile`
-- `https://www.googleapis.com/auth/calendar.readonly`
+- `https://www.googleapis.com/auth/calendar`
+
+Reconnect behavior:
+
+- if an existing Google account is reconnected after a revoked grant or scope change, CalSync now clears the old incremental Google sync tokens and falls back to a fresh calendar discovery instead of crashing in the callback
+- if Google returns a grant without calendar access, the reconnect page now shows a friendly operator error instead of a raw internal server error
 
 ## Flightboard
 

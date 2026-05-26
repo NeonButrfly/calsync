@@ -239,15 +239,21 @@ class GoogleProviderAdapter:
                 params=params,
             )
         except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 410 or "syncToken" not in params:
-                raise
-            metadata.pop(ACCOUNT_DISCOVERY_SYNC_TOKEN_KEY, None)
-            account.provider_metadata = metadata
-            return self._get_paginated_json(
-                account,
-                GOOGLE_CALENDAR_LIST_URL,
-                params={"maxResults": 250},
-            )
+            if _google_sync_token_requires_reset(exc.response) and "syncToken" in params:
+                metadata.pop(ACCOUNT_DISCOVERY_SYNC_TOKEN_KEY, None)
+                account.provider_metadata = metadata
+                self.last_calendar_discovery_was_incremental = False
+                return self._get_paginated_json(
+                    account,
+                    GOOGLE_CALENDAR_LIST_URL,
+                    params={"maxResults": 250},
+                )
+            raise GoogleOAuthError(
+                _safe_google_api_error(
+                    exc.response,
+                    "Google calendar discovery failed.",
+                )
+            ) from exc
 
     def _get_events(
         self,
@@ -272,19 +278,24 @@ class GoogleProviderAdapter:
         try:
             return self._get_paginated_json(account, url, params=params)
         except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 410 or "syncToken" not in params:
-                raise
-            metadata.pop(CALENDAR_EVENTS_SYNC_TOKEN_KEY, None)
-            calendar.provider_metadata = metadata
-            self.last_events_fetch_was_incremental = False
-            return self._get_paginated_json(
-                account,
-                url,
-                params={
-                    "maxResults": 2500,
-                    "showDeleted": "true",
-                },
-            )
+            if _google_sync_token_requires_reset(exc.response) and "syncToken" in params:
+                metadata.pop(CALENDAR_EVENTS_SYNC_TOKEN_KEY, None)
+                calendar.provider_metadata = metadata
+                self.last_events_fetch_was_incremental = False
+                return self._get_paginated_json(
+                    account,
+                    url,
+                    params={
+                        "maxResults": 2500,
+                        "showDeleted": "true",
+                    },
+                )
+            raise GoogleOAuthError(
+                _safe_google_api_error(
+                    exc.response,
+                    "Google calendar event sync failed.",
+                )
+            ) from exc
 
     def _get_paginated_json(
         self,
@@ -576,12 +587,14 @@ def persist_google_oauth_account(
     metadata[ACCOUNT_AUTH_STATUS_KEY] = "connected"
     metadata[ACCOUNT_RECONNECT_REQUIRED_KEY] = False
     metadata.pop(ACCOUNT_LAST_AUTH_ERROR_KEY, None)
+    metadata.pop(ACCOUNT_DISCOVERY_SYNC_TOKEN_KEY, None)
     resolved_account.provider_metadata = metadata
     resolved_account.display_name = (
         _optional_str(user_info.get("email"))
         or _optional_str(user_info.get("name"))
         or resolved_account.provider_account_id
     )
+    _clear_google_incremental_sync_state(resolved_account)
     session.add(resolved_account)
     session.flush()
     return resolved_account
@@ -735,6 +748,14 @@ def _mark_google_reconnect_required(account: ProviderAccount, message: str) -> N
     account.provider_metadata = metadata
 
 
+def _clear_google_incremental_sync_state(account: ProviderAccount) -> None:
+    for calendar in account.calendars:
+        metadata = _calendar_metadata(calendar)
+        if CALENDAR_EVENTS_SYNC_TOKEN_KEY in metadata:
+            metadata.pop(CALENDAR_EVENTS_SYNC_TOKEN_KEY, None)
+            calendar.provider_metadata = metadata
+
+
 def _normalize_google_event(
     account: ProviderAccount,
     calendar: ProviderCalendar,
@@ -836,6 +857,82 @@ def _safe_google_refresh_error(response: httpx.Response) -> str:
     if isinstance(payload, dict) and payload.get("error") == "invalid_grant":
         return "Google access refresh failed because the grant was revoked. Reconnect the account."
     return "Google access refresh failed. Reconnect the account."
+
+
+def _safe_google_api_error(response: httpx.Response, default_message: str) -> str:
+    if _google_missing_calendar_access(response):
+        return (
+            "Google did not grant calendar access. Save Google settings with the Calendar scope and reconnect the account."
+        )
+    message = _google_error_message(response)
+    if isinstance(message, str) and message.strip():
+        return message.strip()
+    return default_message
+
+
+def _google_sync_token_requires_reset(response: httpx.Response) -> bool:
+    if response.status_code == 410:
+        return True
+    if response.status_code != 403:
+        return False
+    reasons = _google_error_reasons(response)
+    if "fullsyncrequired" in reasons:
+        return True
+    message = (_google_error_message(response) or "").lower()
+    return "sync token" in message and "full sync" in message
+
+
+def _google_missing_calendar_access(response: httpx.Response) -> bool:
+    if response.status_code != 403:
+        return False
+    reasons = _google_error_reasons(response)
+    if "insufficientpermissions" in reasons:
+        return True
+    message = (_google_error_message(response) or "").lower()
+    return "insufficient permission" in message or "insufficient permissions" in message
+
+
+def _google_error_payload(response: httpx.Response) -> dict[str, object] | None:
+    try:
+        payload = response.json()
+    except ValueError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return payload
+
+
+def _google_error_message(response: httpx.Response) -> str | None:
+    payload = _google_error_payload(response)
+    if not isinstance(payload, dict):
+        return None
+    error_payload = payload.get("error")
+    if not isinstance(error_payload, dict):
+        return None
+    message = error_payload.get("message")
+    if not isinstance(message, str):
+        return None
+    return message
+
+
+def _google_error_reasons(response: httpx.Response) -> set[str]:
+    payload = _google_error_payload(response)
+    if not isinstance(payload, dict):
+        return set()
+    error_payload = payload.get("error")
+    if not isinstance(error_payload, dict):
+        return set()
+    errors = error_payload.get("errors")
+    if not isinstance(errors, list):
+        return set()
+    reasons: set[str] = set()
+    for item in errors:
+        if not isinstance(item, dict):
+            continue
+        reason = item.get("reason")
+        if isinstance(reason, str) and reason:
+            reasons.add(reason.lower())
+    return reasons
 
 
 def _optional_str(value: object) -> str | None:

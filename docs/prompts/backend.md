@@ -641,6 +641,8 @@
 - `/admin/appointments/new` is the first create-appointment surface
 - `/admin/events/{event_id}` now offers `Edit appointment` and `Cancel appointment` when the source copy is writable
 - Google and Apple/iCloud writable appointment changes should update both the provider and the normalized local event store
+- reconnecting an existing Google account must clear stale Google incremental sync tokens so a fresh grant does not crash during callback discovery
+- Google reconnect failures caused by missing calendar access should render a friendly operator error instead of a raw callback 500
 
 ## Phase Notes
 

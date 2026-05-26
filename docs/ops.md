@@ -62,7 +62,7 @@ Google Cloud setup checklist for multiple accounts:
    - `openid`
    - `email`
    - `profile`
-   - `https://www.googleapis.com/auth/calendar.readonly`
+   - `https://www.googleapis.com/auth/calendar`
 8. in `Clients`, create a `Web application` OAuth client
 9. add the redirect URI shown by CalSync on `/admin/providers`
 10. paste that client ID and client secret into CalSync once, then connect each Google account separately from `/admin/accounts`
@@ -73,6 +73,8 @@ Operational note:
 - each Google account still has to complete its own consent flow
 - if Google shows a testing or unverified-app restriction, check the Google Auth Platform `Audience` and `Test users` settings first
 - after you explicitly enable Google calendars in `/admin/calendars`, later incremental sync cycles should preserve those enabled selections instead of turning them off again when Google reports no calendar-list changes
+- reconnecting an existing Google account now clears stale Google incremental sync tokens and falls back to a full calendar discovery so the callback does not fail on old sync state
+- if Google grants only identity scopes and not calendar access, CalSync should return a friendly reconnect error instead of a raw internal server error
 
 Redirect URI examples:
 

@@ -518,6 +518,66 @@ def test_google_callback_reports_missing_refresh_token_for_new_account(
         assert "refresh token" in callback_response.text
 
 
+def test_google_callback_reports_calendar_access_errors_instead_of_500(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    with _build_client(
+        tmp_path,
+        public_base_url=None,
+        google_client_id=None,
+        google_client_secret=None,
+        base_url="http://localhost:3080",
+        seed_provider_settings=True,
+    ) as localhost_client:
+        start_response = localhost_client.get("/auth/google/start", follow_redirects=False)
+        assert start_response.status_code == 303
+        state = parse_qs(urlsplit(start_response.headers["location"]).query)["state"][0]
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url == httpx.URL("https://oauth2.googleapis.com/token"):
+                return httpx.Response(
+                    200,
+                    json={
+                        "access_token": "access-token",
+                        "refresh_token": "refresh-token",
+                        "expires_in": 3600,
+                        "scope": "openid email profile",
+                    },
+                    request=request,
+                )
+            if request.url == httpx.URL("https://openidconnect.googleapis.com/v1/userinfo"):
+                return httpx.Response(
+                    200,
+                    json={"sub": "google-sub", "email": "owner@example.com"},
+                    request=request,
+                )
+            if request.url.path == "/calendar/v3/users/me/calendarList":
+                return httpx.Response(
+                    403,
+                    json={
+                        "error": {
+                            "message": "Insufficient Permission",
+                            "errors": [{"reason": "insufficientPermissions"}],
+                        }
+                    },
+                    request=request,
+                )
+            raise AssertionError(f"Unexpected request: {request.method} {request.url}")
+
+        monkeypatch.setattr(
+            "calsync.services.providers.google._build_http_client",
+            lambda: httpx.Client(transport=httpx.MockTransport(handler)),
+        )
+
+        callback_response = localhost_client.get(
+            f"/auth/google/callback?state={state}&code=google-code"
+        )
+
+    assert callback_response.status_code == 400
+    assert "calendar access" in callback_response.text
+
+
 def _db_session(client: TestClient) -> Session:
     settings = client.app.state.settings
     engine = create_engine(
