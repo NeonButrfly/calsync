@@ -14,7 +14,7 @@ from calsync.models import (
     AppointmentExternalLink,
     AuditEntry,
 )
-from calsync.schemas import (
+from calsync.schemas.appointments import (
     AppointmentListItem,
     AppointmentResponse,
     CreateAppointmentRequest,
@@ -34,14 +34,10 @@ class AppointmentService:
         self.settings = settings or get_settings()
         self.session_factory = session_factory or create_session_factory(self.settings)
 
-    def create(self, payload: CreateAppointmentRequest) -> AppointmentResponse:
-        return self.create_with_actor(payload, actor="api")
-
-    def create_with_actor(
+    def create(
         self,
         payload: CreateAppointmentRequest,
-        *,
-        actor: str,
+        actor: str = "api",
     ) -> AppointmentResponse:
         starts_at, ends_at = self._parse_range(
             payload.date,

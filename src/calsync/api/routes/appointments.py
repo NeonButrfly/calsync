@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Header, status
 
-from calsync.schemas import (
+from calsync.schemas.appointments import (
     ListAppointmentsResponse,
     AppointmentResponse,
     CreateAppointmentRequest,
@@ -30,7 +30,7 @@ def create_appointment(
 ) -> AppointmentResponse:
     try:
         actor = f"worker:{x_calsync_channel}" if x_calsync_channel else "api"
-        return AppointmentService().create_with_actor(payload, actor=actor)
+        return AppointmentService().create(payload, actor=actor)
     except AppleCalDAVError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except ValueError as exc:
