@@ -6,7 +6,10 @@
   "scripts": {
     "cf:login": "wrangler login",
     "cf:version": "wrangler --version",
-    "cf:whoami": "wrangler whoami"
+    "cf:whoami": "wrangler whoami",
+    "cf:edge:dev": "npm --prefix workers/edge-calsync run dev",
+    "cf:edge:test": "npm --prefix workers/edge-calsync run test",
+    "cf:edge:deploy": "npm --prefix workers/edge-calsync run deploy"
   },
   "devDependencies": {
     "wrangler": "4.95.0"

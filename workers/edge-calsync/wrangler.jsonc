@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "edge-calsync",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-28",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "edge-calsync.neonbutterfly.net/*",
+      "zone_name": "neonbutterfly.net"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "TOKEN_HASHES",
+      "id": "00000000000000000000000000000000"
+    }
+  ],
+  "vars": {
+    "ORIGIN_BASE_URL": "https://calsync.neonbutterfly.net",
+    "ENABLE_CHATGPT": "true",
+    "ENABLE_SHORTCUTS": "false",
+    "ENABLE_ALEXA": "false",
+    "ENABLE_WEBHOOKS": "false",
+    "ENABLE_ADMIN_ROUTES": "false"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}
