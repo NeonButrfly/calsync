@@ -18,7 +18,7 @@
 - Google inbound event ingestion is future work
 - iCloud Reminders sync is future work
 - public booking links and broader availability logic are future work
-- the first conversational app should expose create, edit, and cancel flows only
+- the first conversational app should expose create, edit, cancel, and date-range list flows
 
 ## Phase Notes
 
@@ -29,7 +29,8 @@
 
 ## Implemented In This Slice
 
-- FastAPI runtime with `GET /`, `GET /healthz`, and mutation-only appointment routes
+- FastAPI runtime with `GET /`, `GET /healthz`, appointment mutation routes, and date-range lookup
+- `GET /api/appointments` for date-range appointment lookup
 - `POST /api/appointments` for appointment creation
 - `PATCH /api/appointments/{appointment_id}` for appointment edits
 - `POST /api/appointments/{appointment_id}/cancel` for appointment cancellation
@@ -40,6 +41,9 @@
   - audit entries
 - Alembic bootstrap migration for the Apple-first schema
 - Apple CalDAV adapter that writes `.ics` payloads directly to the configured iCloud calendar URL
+- dedicated Cloudflare Worker project in `workers/edge-calsync`
+- live Worker route on `edge-calsync.neonbutterfly.net/*`
+- Cloudflare KV-backed channel hash validation for `chatgpt`, `shortcuts`, `alexa`, and `webhooks`
 
 ## Operational Expectations
 
@@ -52,10 +56,11 @@
 ## Known Boundaries In Current Code
 
 - no appointment search or availability lookup yet
+- list is limited to explicit date windows, not free-form search
 - no Google ingestion yet
 - no iCloud Reminders sync yet
 - no structured medical metadata API fields yet
-- no ChatGPT Apps SDK wrapper yet; this repo currently provides the backend service that the future app will call
+- no ChatGPT Apps SDK wrapper yet; the Worker is the live edge, but the dedicated ChatGPT app layer is still future work
 
 ## Cloudflare Deployment Requirement
 
@@ -83,3 +88,10 @@ Expected edge behavior:
 - treat ChatGPT as the first enabled channel
 - keep the Worker non-human-facing and machine-only
 - keep token source-of-truth on the Pi and sync token hashes into Cloudflare automatically
+
+Current reality:
+
+- the Worker is live on `edge-calsync.neonbutterfly.net`
+- the Pi origin now supports the Worker-facing list contract
+- the Pi stores channel tokens in `/home/kay/apps/calsync/.runtime/channel-tokens.json`
+- Cloudflare KV currently holds the active channel hashes used by the Worker

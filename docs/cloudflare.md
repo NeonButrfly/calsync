@@ -1,123 +1,90 @@
-# Cloudflare Fit For CalSync
+# Cloudflare Runtime For CalSync
 
-This decision record is tracked in issue `#35`.
+This decision record is tracked in issue `#36`.
 
-## Current Cloudflare Account Snapshot
+## Live shape
 
-Cloudflare MCP inspection on `2026-05-28` found:
+Cloudflare is now part of the real runtime, but only as a thin edge layer.
 
-- zone: `neonbutterfly.net` (`active`)
-- Pages projects: `0`
-- Workers scripts: `1` existing Worker named `qrandom`
-- Cloudflare Tunnels: `0`
+Live hostnames:
 
-## Recommendation
+- Pi origin brain: `https://calsync.neonbutterfly.net`
+- ChatGPT-first edge Worker: `https://edge-calsync.neonbutterfly.net`
 
-The best Cloudflare fit for the current CalSync codebase is:
+Live Worker:
 
-- now: Cloudflare Tunnel in front of the existing FastAPI service
-- later, if we want Cloudflare-native runtime hosting: Cloudflare Containers after the database is externalized
+- script name: `edge-calsync`
+- route: `edge-calsync.neonbutterfly.net/*`
+- KV namespace binding: `TOKEN_HASHES`
 
-The current repo is a Python `FastAPI` service with:
+## What Cloudflare owns
 
-- Docker Compose
-- a companion Postgres container
-- Alembic migrations
+- public edge hostname for ChatGPT-facing requests
+- Worker auth validation
+- feature switches
+- request forwarding to the Pi origin
+- Cloudflare KV copy of channel token hashes
+
+## What the Pi still owns
+
+- Apple/iCloud credentials
+- appointment business logic
+- Postgres-backed appointment and audit data
+- raw channel token values
 - Apple CalDAV write-back
 
-That shape already maps cleanly to a small Linux host such as `kayraspi`. Cloudflare Tunnel can publish the service without opening inbound ports and without forcing an application rewrite.
+## Why this is the right split
 
-## Why Tunnel Is The Right First Step
+This keeps the scheduling brain on `kayraspi` while giving ChatGPT a stable, narrow, authenticated API surface that is easier to extend later for:
 
-Cloudflare Tunnel is the lowest-risk path because it keeps the current service contract intact:
+- Shortcuts
+- Alexa
+- webhook automations
 
-- keep the API on port `3080`
-- keep Docker Compose as the runtime
-- keep Postgres and Apple credentials on the origin host
-- publish a hostname such as `calsync-api.neonbutterfly.net` through Cloudflare
-- optionally protect the hostname with Cloudflare Access later
+The Worker is not a backend rewrite. It is a public edge proxy.
 
-Cloudflare's current Tunnel docs say Tunnel maps a public hostname to a local service and that remotely-managed tunnels are recommended for most use cases.
+## Worker project
 
-## Why Pages Is Not A Fit Right Now
+Worker code lives in:
 
-Cloudflare Pages is not a match for the current repo because this project is not a static frontend build. The repo is a stateful backend service with a database and calendar write-back.
+- `workers/edge-calsync`
 
-## Why Workers Is Not A Fit Right Now
-
-Cloudflare's Python Workers platform can run FastAPI, and Cloudflare's current Python docs say Python Workers support pure Python packages and packages included in Pyodide.
-
-This repo still does not map cleanly to Workers today. That is an inference from the codebase plus the docs because the current service depends on:
-
-- `sqlalchemy`
-- `alembic`
-- `psycopg[binary]`
-- a companion Postgres runtime
-- Docker-oriented process and migration flow
-
-Moving this service to Workers would be a real architecture change, not a simple deployment toggle.
-
-## Important Exception: Thin Edge Worker Is Now A Fit
-
-Issue `#36` adds a narrower Cloudflare Worker direction that does fit the current architecture:
-
-- keep the real Python/Postgres/Apple-CalDAV backend on `kayraspi`
-- add a thin authenticated Cloudflare Worker on its own subdomain
-- let that Worker act as the ChatGPT-first edge interface
-- forward only approved appointment routes to the live origin service
-
-This is not a contradiction of the earlier recommendation. The recommendation against Workers still applies to a full backend migration. The new recommendation applies only to a small edge proxy layer for auth, request shaping, feature switches, and origin forwarding.
-
-## Why Containers Is The Best Cloudflare-Native Future Path
-
-Cloudflare Containers is the closest Cloudflare-native destination because this repo already has a `Dockerfile` and an HTTP service boundary.
-
-Before taking that path, we should first:
-
-1. move Postgres out of the local Compose-only shape
-2. point `DATABASE_URL` at a managed Postgres instance
-3. decide whether Hyperdrive adds value for connection management
-4. keep Apple credentials in Cloudflare-managed secrets instead of host-local `.env`
-
-Until then, Tunnel is the safer production path.
-
-## Wrangler Bootstrap In This Repo
-
-This repo now includes a lightweight local Wrangler bootstrap in `package.json`.
-
-Use:
+Useful commands:
 
 ```powershell
-npm install
-npm run cf:version
-npm run cf:login
 npm run cf:whoami
+npm run cf:edge:test
+npm run cf:edge:deploy
 ```
 
-Wrangler is useful here for:
+## Current auth model
 
-- Cloudflare account auth checks
-- future Worker, Pages, or Container setup
-- future DNS or edge-service management
+Channels:
 
-We are intentionally not committing a `wrangler.jsonc` yet because this repo is not currently a Worker, Pages, or Container deployment target.
+- `chatgpt`
+- `shortcuts`
+- `alexa`
+- `webhooks`
 
-## Immediate Publish Path
+Current token source of truth:
 
-If we want Cloudflare in front of CalSync without rewriting the app:
+- `/home/kay/apps/calsync/.runtime/channel-tokens.json` on `kayraspi`
 
-1. deploy the current Compose stack to the Linux host
-2. install `cloudflared` on that host
-3. create a remotely-managed Cloudflare Tunnel
-4. map a public hostname to `http://127.0.0.1:3080`
-5. verify `/healthz` through the Cloudflare hostname
+Current edge validation source:
 
-## Revisit Trigger
+- Cloudflare KV namespace bound as `TOKEN_HASHES`
 
-Revisit this decision if any of these become true:
+## Current deployment note
 
-- the database moves off the local Compose container
-- we want Cloudflare-native runtime hosting instead of `kayraspi`
-- we split out a small edge-facing Worker for auth, webhooks, or request shaping
+The Worker and origin are both live, and the edge path has been validated for:
 
-That last revisit trigger is now active through issue `#36`.
+- unauthenticated `401`
+- authenticated appointment list
+- authenticated create
+- authenticated cancel
+
+## Future hardening
+
+The current setup already works, but there is one follow-up improvement worth making:
+
+- give the Pi a dedicated Cloudflare API token in `.env` so `scripts/manage_channel_tokens.py sync-cloudflare` can push hash updates automatically without relying on a workstation-mediated sync step

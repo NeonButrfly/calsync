@@ -1,13 +1,15 @@
 # Operations Guide
 
-This guide covers the current Apple-first CalSync service tracked in issue `#32`.
+This guide covers the current Apple-first CalSync service and edge Worker tracked in issues `#32` and `#36`.
 
 ## What This Service Does
 
 - exposes a small API for appointment create, edit, and cancel
+- exposes a date-range appointment list API for Worker lookup flows
 - stores normalized appointment records locally
 - writes calendar mutations to one configured iCloud calendar through CalDAV
 - keeps local audit entries for every mutation
+- supports Cloudflare edge token management for channel auth
 
 ## Required Environment
 
@@ -24,6 +26,10 @@ Copy `.env.example` to `.env` and fill in:
 - `APPLE_APP_SPECIFIC_PASSWORD`
 - `APPLE_PRIMARY_CALENDAR_URL`
 - `APPLE_PRIMARY_CALENDAR_NAME`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_TOKEN_KV_NAMESPACE_ID`
+- `CHANNEL_TOKEN_RUNTIME_PATH`
 
 Minimum production values that must be real:
 
@@ -54,13 +60,20 @@ curl http://127.0.0.1:3080/healthz
 curl http://127.0.0.1:3080/
 ```
 
+6. Optionally bootstrap channel tokens:
+
+```powershell
+docker compose run --rm -v ${PWD}/.runtime:/app/.runtime api python scripts/manage_channel_tokens.py bootstrap --channels chatgpt,shortcuts,alexa,webhooks
+```
+
 ## Local Validation
 
 Run the automated checks:
 
 ```powershell
 pytest -v
-docker compose config
+docker compose --env-file .env.example config
+npm --prefix workers/edge-calsync test
 ```
 
 ## API Summary
@@ -96,6 +109,25 @@ Any writable appointment field may be sent.
 
 This removes the Apple calendar event and marks the local appointment as `cancelled`.
 
+### List appointments
+
+`GET /api/appointments?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD`
+
+This powers the Worker-side “look up before editing or cancelling” flow.
+
+## Edge Worker summary
+
+Live edge hostname:
+
+- `https://edge-calsync.neonbutterfly.net`
+
+Worker routes:
+
+- `GET /v1/appointments`
+- `POST /v1/appointments`
+- `PATCH /v1/appointments/{appointment_id}`
+- `POST /v1/appointments/{appointment_id}/cancel`
+
 ## Deployment Target
 
 Current planned target:
@@ -111,36 +143,26 @@ Current planned target:
 2. Create `/home/kay/apps/calsync/.env` with real values.
 3. Start the stack with Docker Compose.
 4. Run migrations through the `migrate` service.
-5. Verify:
+5. Bootstrap `.runtime/channel-tokens.json` on the host-backed volume if Worker auth is needed.
+6. Verify:
    - `http://127.0.0.1:3080/healthz` on-host
    - `http://192.168.50.232:3080/healthz` over the network
+   - `GET /api/appointments` works on the public origin hostname
+   - the edge Worker returns `401` without auth
+   - the edge Worker can list, create, and cancel with the ChatGPT token
 
-## Cloudflare Publish Path
-
-If we want Cloudflare in front of this service without changing the runtime shape:
-
-- keep the existing Linux-host deployment
-- publish the service with Cloudflare Tunnel
-- point the public hostname at the origin service on `http://127.0.0.1:3080`
+## Cloudflare Edge Notes
 
 Current Cloudflare guidance for this repo is documented in `docs/cloudflare.md`.
 
 Important boundary:
 
-- do not treat this repo as a Pages project
-- do not treat this repo as a drop-in Workers deployment
-- only consider Cloudflare Containers after the database is moved out of the local Compose-only shape
+- do not move the Apple/Postgres backend into the Worker
+- do use the Worker as the ChatGPT-first public edge surface
+- keep raw tokens on the Pi and only store token hashes in Cloudflare KV
 
-## Current Deployment Blocker
+## Current follow-up item
 
-The service can be deployed now, but successful Apple writes still require the real iCloud values:
+The live edge path works today, but automatic Pi-to-Cloudflare token-hash sync still wants one more production nicety:
 
-- Apple username
-- Apple app-specific password
-- primary writable iCloud calendar URL
-
-If the old deployment secrets are not available anymore, the safest recovery path is:
-
-1. recover the old Apple username and calendar URL from preserved config or database metadata if possible
-2. generate a fresh Apple app-specific password
-3. place the new values into the remote `.env`
+- a dedicated `CLOUDFLARE_API_TOKEN` in the Pi `.env` so `sync-cloudflare` can run directly on-host without a workstation-assisted sync
