@@ -115,6 +115,22 @@ Current planned target:
    - `http://127.0.0.1:3080/healthz` on-host
    - `http://192.168.50.232:3080/healthz` over the network
 
+## Cloudflare Publish Path
+
+If we want Cloudflare in front of this service without changing the runtime shape:
+
+- keep the existing Linux-host deployment
+- publish the service with Cloudflare Tunnel
+- point the public hostname at the origin service on `http://127.0.0.1:3080`
+
+Current Cloudflare guidance for this repo is documented in `docs/cloudflare.md`.
+
+Important boundary:
+
+- do not treat this repo as a Pages project
+- do not treat this repo as a drop-in Workers deployment
+- only consider Cloudflare Containers after the database is moved out of the local Compose-only shape
+
 ## Current Deployment Blocker
 
 The service can be deployed now, but successful Apple writes still require the real iCloud values:

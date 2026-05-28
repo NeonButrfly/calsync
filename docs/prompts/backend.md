@@ -56,3 +56,16 @@
 - no iCloud Reminders sync yet
 - no structured medical metadata API fields yet
 - no ChatGPT Apps SDK wrapper yet; this repo currently provides the backend service that the future app will call
+
+## Cloudflare Deployment Requirement
+
+- GitHub issue: `#35`
+- interpreted requirement: evaluate Cloudflare against the rebooted Apple-first service and choose the path that matches the current FastAPI plus Postgres plus Apple CalDAV architecture
+
+Expected deployment behavior:
+
+- publish through Cloudflare Tunnel first if we want Cloudflare in front of the current service
+- keep `kayraspi` or another Linux host as the origin until the database is externalized
+- do not force this repo into Pages
+- do not treat the current codebase as a drop-in Workers deployment
+- revisit Cloudflare Containers only after the database/runtime boundary is redesigned

@@ -1,6 +1,8 @@
 .worktrees/
 .venv/
 .env
+.wrangler/
+node_modules/
 __pycache__/
 .pytest_cache/
 *.pyc

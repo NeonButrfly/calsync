@@ -1,0 +1,14 @@
+{
+  "name": "calsync-cloudflare-bootstrap",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Cloudflare CLI bootstrap for CalSync",
+  "scripts": {
+    "cf:login": "wrangler login",
+    "cf:version": "wrangler --version",
+    "cf:whoami": "wrangler whoami"
+  },
+  "devDependencies": {
+    "wrangler": "4.95.0"
+  }
+}

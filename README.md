@@ -17,6 +17,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 - Reset plan: [docs/superpowers/plans/2026-05-27-calsync-legacy-archive-reset.md](docs/superpowers/plans/2026-05-27-calsync-legacy-archive-reset.md)
 - Apple-first service plan: [docs/superpowers/plans/2026-05-28-calsync-apple-first-service-kayraspi-deploy.md](docs/superpowers/plans/2026-05-28-calsync-apple-first-service-kayraspi-deploy.md)
 - Operations guide: [docs/ops.md](docs/ops.md)
+- Cloudflare fit and bootstrap: [docs/cloudflare.md](docs/cloudflare.md)
 
 ## Current service slice
 
