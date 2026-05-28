@@ -1,3 +1,4 @@
+import tempfile
 from pathlib import Path
 from uuid import uuid4
 
@@ -45,7 +46,7 @@ class FailingAppleClient:
 
 
 def _configure_test_env(monkeypatch) -> None:
-    db_path = Path.cwd() / f"test-{uuid4()}.db"
+    db_path = Path(tempfile.gettempdir()) / f"calsync-test-{uuid4()}.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
     monkeypatch.setenv("APPLE_USERNAME", "family@example.com")
     monkeypatch.setenv("APPLE_APP_SPECIFIC_PASSWORD", "secret")
