@@ -124,6 +124,37 @@ def test_list_appointments_returns_matching_date_window(monkeypatch) -> None:
     assert body["items"][0]["title"] == "Dentist"
 
 
+def test_list_appointments_uses_appointment_local_date_window(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    client.post(
+        "/api/appointments",
+        json={
+            "title": "Evening Visit",
+            "date": "2026-06-01",
+            "start_time": "18:00",
+            "end_time": "19:00",
+            "timezone": "America/Anchorage",
+            "all_day": False,
+        },
+    )
+
+    response = client.get(
+        "/api/appointments?date_from=2026-06-01&date_to=2026-06-01"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [item["title"] for item in body["items"]] == ["Evening Visit"]
+
+
 def test_create_appointment_uses_forwarded_channel_as_actor(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     monkeypatch.setattr(
