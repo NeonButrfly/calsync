@@ -1,0 +1,44 @@
+Metadata-Version: 2.4
+Name: calsync
+Version: 0.2.0
+Summary: Apple-first conversational scheduling service
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi>=0.115.0
+Requires-Dist: uvicorn[standard]>=0.30.0
+Requires-Dist: sqlalchemy>=2.0.36
+Requires-Dist: psycopg[binary]>=3.2.3
+Requires-Dist: alembic>=1.14.0
+Requires-Dist: pydantic-settings>=2.6.1
+Requires-Dist: httpx>=0.27.2
+Requires-Dist: icalendar>=5.0.12
+Provides-Extra: dev
+Requires-Dist: pytest>=8.3.3; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.24.0; extra == "dev"
+
+# CalSync
+
+CalSync is being rebooted as an Apple-first conversational scheduling system.
+
+The previous full CalSync application was preserved on the `legacy/pre-chatgpt-brain-reset` branch so we can still reference its provider work, write-back patterns, and earlier UI ideas without carrying that whole surface forward on `main`.
+
+## Current focus
+
+- ChatGPT app for Apple Calendar
+- small owned service as the scheduling brain
+- iCloud as the family-facing calendar target
+- future expansion toward Google intake, iCloud Reminders sync, and richer family/medical appointment logic
+
+## Working docs
+
+- Design spec: [docs/superpowers/specs/2026-05-27-calsync-apple-calendar-chatgpt-app-design.md](docs/superpowers/specs/2026-05-27-calsync-apple-calendar-chatgpt-app-design.md)
+- Reset plan: [docs/superpowers/plans/2026-05-27-calsync-legacy-archive-reset.md](docs/superpowers/plans/2026-05-27-calsync-legacy-archive-reset.md)
+
+## Tracking
+
+- Conversational Apple-first app slice: issue `#32`
+- Legacy archive and clean reset: issue `#33`
+
+## Legacy archive
+
+If we need anything from the old system, use the `legacy/pre-chatgpt-brain-reset` branch as the source of truth for that implementation history.
