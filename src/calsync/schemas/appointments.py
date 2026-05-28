@@ -1,0 +1,32 @@
+from pydantic import BaseModel, Field
+
+
+class CreateAppointmentRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    date: str
+    start_time: str
+    end_time: str
+    timezone: str
+    all_day: bool = False
+    location: str | None = None
+    notes: str | None = None
+    attendees_text: str | None = None
+
+
+class UpdateAppointmentRequest(BaseModel):
+    title: str | None = None
+    date: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
+    timezone: str | None = None
+    all_day: bool | None = None
+    location: str | None = None
+    notes: str | None = None
+    attendees_text: str | None = None
+
+
+class AppointmentResponse(BaseModel):
+    appointment_id: str
+    status: str
+    provider_event_id: str
+    message: str
