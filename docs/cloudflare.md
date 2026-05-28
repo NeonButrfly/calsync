@@ -57,6 +57,17 @@ This repo still does not map cleanly to Workers today. That is an inference from
 
 Moving this service to Workers would be a real architecture change, not a simple deployment toggle.
 
+## Important Exception: Thin Edge Worker Is Now A Fit
+
+Issue `#36` adds a narrower Cloudflare Worker direction that does fit the current architecture:
+
+- keep the real Python/Postgres/Apple-CalDAV backend on `kayraspi`
+- add a thin authenticated Cloudflare Worker on its own subdomain
+- let that Worker act as the ChatGPT-first edge interface
+- forward only approved appointment routes to the live origin service
+
+This is not a contradiction of the earlier recommendation. The recommendation against Workers still applies to a full backend migration. The new recommendation applies only to a small edge proxy layer for auth, request shaping, feature switches, and origin forwarding.
+
 ## Why Containers Is The Best Cloudflare-Native Future Path
 
 Cloudflare Containers is the closest Cloudflare-native destination because this repo already has a `Dockerfile` and an HTTP service boundary.
@@ -108,3 +119,5 @@ Revisit this decision if any of these become true:
 - the database moves off the local Compose container
 - we want Cloudflare-native runtime hosting instead of `kayraspi`
 - we split out a small edge-facing Worker for auth, webhooks, or request shaping
+
+That last revisit trigger is now active through issue `#36`.

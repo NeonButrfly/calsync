@@ -69,3 +69,17 @@ Expected deployment behavior:
 - do not force this repo into Pages
 - do not treat the current codebase as a drop-in Workers deployment
 - revisit Cloudflare Containers only after the database/runtime boundary is redesigned
+
+## Cloudflare Edge Worker Requirement
+
+- GitHub issue: `#36`
+- interpreted requirement: add a dedicated ChatGPT-first Cloudflare Worker as a thin authenticated edge proxy in front of the Pi-hosted Apple-first origin service
+
+Expected edge behavior:
+
+- deploy a dedicated Worker on its own subdomain such as `edge-calsync.neonbutterfly.net`
+- keep the actual scheduling brain on `https://calsync.neonbutterfly.net`
+- expose create, update, cancel, and list appointment routes through the Worker
+- treat ChatGPT as the first enabled channel
+- keep the Worker non-human-facing and machine-only
+- keep token source-of-truth on the Pi and sync token hashes into Cloudflare automatically
