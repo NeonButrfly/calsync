@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     apple_app_specific_password: str | None = None
     apple_primary_calendar_url: str | None = None
     apple_primary_calendar_name: str = "Family"
+    cloudflare_account_id: str | None = None
+    cloudflare_api_token: str | None = None
+    cloudflare_token_kv_namespace_id: str | None = None
+    channel_token_runtime_path: str = ".runtime/channel-tokens.json"
 
 
 @lru_cache(maxsize=1)

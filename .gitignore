@@ -1,6 +1,7 @@
 .worktrees/
 .venv/
 .env
+.runtime/
 .wrangler/
 node_modules/
 __pycache__/
