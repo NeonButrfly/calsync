@@ -6,6 +6,7 @@ from calsync.schemas import (
     UpdateAppointmentRequest,
 )
 from calsync.services.appointments import AppointmentService
+from calsync.services.apple_caldav import AppleCalDAVError
 
 router = APIRouter(prefix="/api/appointments", tags=["appointments"])
 
@@ -14,6 +15,8 @@ router = APIRouter(prefix="/api/appointments", tags=["appointments"])
 def create_appointment(payload: CreateAppointmentRequest) -> AppointmentResponse:
     try:
         return AppointmentService().create(payload)
+    except AppleCalDAVError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -25,6 +28,8 @@ def update_appointment(
 ) -> AppointmentResponse:
     try:
         return AppointmentService().update(appointment_id, payload)
+    except AppleCalDAVError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -33,5 +38,7 @@ def update_appointment(
 def cancel_appointment(appointment_id: str) -> AppointmentResponse:
     try:
         return AppointmentService().cancel(appointment_id)
+    except AppleCalDAVError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

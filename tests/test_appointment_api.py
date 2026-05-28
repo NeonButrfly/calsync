@@ -7,6 +7,7 @@ from calsync.config import get_settings
 from calsync.db import _get_engine_for_url, _get_session_factory_for_url
 from calsync.main import create_app
 from calsync.models import Base
+from calsync.services.apple_caldav import AppleCalDAVError
 from calsync.services.appointments import AppointmentService
 
 
@@ -36,6 +37,11 @@ class FakeAppleClient:
 
     def cancel_event(self, **_: object) -> None:
         return None
+
+
+class FailingAppleClient:
+    def create_event(self, **_: object):
+        raise AppleCalDAVError("Apple/iCloud authentication failed.")
 
 
 def _configure_test_env(monkeypatch) -> None:
@@ -112,3 +118,28 @@ def test_cancel_appointment_marks_status_cancelled(monkeypatch) -> None:
 
     assert cancel_response.status_code == 200
     assert cancel_response.json()["status"] == "cancelled"
+
+
+def test_create_appointment_surfaces_provider_failure(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FailingAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Dentist",
+            "date": "2026-06-01",
+            "start_time": "10:00",
+            "end_time": "11:00",
+            "timezone": "America/Anchorage",
+        },
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "Apple/iCloud authentication failed."
