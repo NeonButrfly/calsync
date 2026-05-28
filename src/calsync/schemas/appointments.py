@@ -30,3 +30,41 @@ class AppointmentResponse(BaseModel):
     status: str
     provider_event_id: str
     message: str
+
+
+class AppointmentListItem(BaseModel):
+    appointment_id: str
+    title: str
+    status: str
+    date: str
+    start_time: str
+    end_time: str
+    timezone: str
+    all_day: bool
+    location: str | None = None
+    notes: str | None = None
+    attendees_text: str | None = None
+    provider_event_id: str | None = None
+
+
+class ListAppointmentsResponse(BaseModel):
+    items: list[AppointmentListItem]
+
+
+class AppointmentListItem(BaseModel):
+    appointment_id: str
+    title: str
+    status: str
+    date: str
+    start_time: str
+    end_time: str
+    timezone: str
+    all_day: bool
+    location: str | None = None
+    notes: str | None = None
+    attendees_text: str | None = None
+    provider_event_id: str | None = None
+
+
+class ListAppointmentsResponse(BaseModel):
+    items: list[AppointmentListItem]

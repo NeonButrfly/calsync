@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
@@ -15,8 +15,10 @@ from calsync.models import (
     AuditEntry,
 )
 from calsync.schemas import (
+    AppointmentListItem,
     AppointmentResponse,
     CreateAppointmentRequest,
+    ListAppointmentsResponse,
     UpdateAppointmentRequest,
 )
 from calsync.services.apple_caldav import AppleCalDAVClient, AppleCalDAVConfig
@@ -33,6 +35,14 @@ class AppointmentService:
         self.session_factory = session_factory or create_session_factory(self.settings)
 
     def create(self, payload: CreateAppointmentRequest) -> AppointmentResponse:
+        return self.create_with_actor(payload, actor="api")
+
+    def create_with_actor(
+        self,
+        payload: CreateAppointmentRequest,
+        *,
+        actor: str,
+    ) -> AppointmentResponse:
         starts_at, ends_at = self._parse_range(
             payload.date,
             payload.start_time,
@@ -77,7 +87,7 @@ class AppointmentService:
                 AuditEntry(
                     appointment_id=appointment.id,
                     action="create_appointment",
-                    actor="api",
+                    actor=actor,
                     payload_json=payload.model_dump(),
                 )
             )
@@ -88,6 +98,36 @@ class AppointmentService:
                 provider_event_id=provider_record.provider_event_id,
                 message="Appointment created.",
             )
+
+    def list_range(
+        self,
+        *,
+        date_from: str,
+        date_to: str,
+    ) -> ListAppointmentsResponse:
+        start = datetime.fromisoformat(f"{date_from}T00:00:00").replace(tzinfo=UTC)
+        end = datetime.fromisoformat(f"{date_to}T23:59:59").replace(tzinfo=UTC)
+        if end < start:
+            raise ValueError("date_to must be on or after date_from.")
+
+        with self.session_factory() as session:
+            rows = session.execute(
+                select(Appointment, AppointmentExternalLink)
+                .join(
+                    AppointmentExternalLink,
+                    AppointmentExternalLink.appointment_id == Appointment.id,
+                    isouter=True,
+                )
+                .where(Appointment.starts_at >= start)
+                .where(Appointment.starts_at <= end)
+                .order_by(Appointment.starts_at.asc())
+            ).all()
+
+        items = [
+            self._to_list_item(appointment, external_link)
+            for appointment, external_link in rows
+        ]
+        return ListAppointmentsResponse(items=items)
 
     def update(
         self,
@@ -259,3 +299,28 @@ class AppointmentService:
         if ends_at <= starts_at:
             raise ValueError("Appointment end time must be after the start time.")
         return starts_at, ends_at
+
+    def _to_list_item(
+        self,
+        appointment: Appointment,
+        external_link: AppointmentExternalLink | None,
+    ) -> AppointmentListItem:
+        timezone = ZoneInfo(appointment.timezone_name)
+        starts_at = appointment.starts_at.astimezone(timezone)
+        ends_at = appointment.ends_at.astimezone(timezone)
+        return AppointmentListItem(
+            appointment_id=appointment.id,
+            title=appointment.title,
+            status=appointment.status,
+            date=starts_at.date().isoformat(),
+            start_time=starts_at.strftime("%H:%M"),
+            end_time=ends_at.strftime("%H:%M"),
+            timezone=appointment.timezone_name,
+            all_day=appointment.all_day,
+            location=appointment.location,
+            notes=appointment.notes,
+            attendees_text=appointment.attendees_text,
+            provider_event_id=(
+                external_link.provider_event_id if external_link is not None else None
+            ),
+        )
