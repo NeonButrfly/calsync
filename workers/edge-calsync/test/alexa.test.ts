@@ -124,6 +124,7 @@ describe("alexa worker adapter", () => {
         const body = JSON.parse(bodyText) as Record<string, string>;
         expect(body.title).toBe("Dentist");
         expect(body.end_time).toBe("11:00");
+        expect(body.target_calendar_name).toBe("School");
 
         return new Response(
           JSON.stringify({
@@ -156,6 +157,7 @@ describe("alexa worker adapter", () => {
             date: { value: "2026-06-01" },
             start_time: { value: "10:00" },
             end_time: { value: "11:00" },
+            calendar_name: { value: "School" },
           },
         },
       },
@@ -171,7 +173,7 @@ describe("alexa worker adapter", () => {
     await expect(response.json()).resolves.toMatchObject({
       response: {
         outputSpeech: {
-          text: expect.stringContaining("I added Dentist"),
+          text: expect.stringContaining("I added Dentist to the School calendar"),
         },
       },
     });
@@ -471,6 +473,7 @@ describe("alexa worker adapter", () => {
           expect(body.date).toBe("2026-06-03");
           expect(body.start_time).toBe("13:00");
           expect(body.end_time).toBe("14:00");
+          expect(body.target_calendar_name).toBe("School");
           return new Response(
             JSON.stringify({
               appointment_id: "appt-123",
@@ -506,6 +509,7 @@ describe("alexa worker adapter", () => {
             date: { value: "2026-06-02" },
             new_date: { value: "2026-06-03" },
             new_start_time: { value: "13:00" },
+            new_calendar_name: { value: "School" },
           },
         },
       },
@@ -521,7 +525,7 @@ describe("alexa worker adapter", () => {
     await expect(response.json()).resolves.toMatchObject({
       response: {
         outputSpeech: {
-          text: expect.stringContaining("I moved Dentist to Wednesday, June 3, 2026 at 1:00 PM"),
+          text: expect.stringContaining("I moved Dentist to the School calendar on Wednesday, June 3, 2026 at 1:00 PM"),
         },
       },
     });

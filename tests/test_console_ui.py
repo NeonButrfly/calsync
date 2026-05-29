@@ -640,6 +640,21 @@ def test_console_edit_flow_can_move_appointment_to_another_saved_calendar(monkey
 
 def test_alexa_simulator_page_renders_voice_test_surface(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_apple_calendar_catalog(
+        [
+            {
+                "calendar_name": "Family",
+                "calendar_url": "https://caldav.icloud.com/family/",
+                "is_default": True,
+            },
+            {
+                "calendar_name": "School",
+                "calendar_url": "https://caldav.icloud.com/school/",
+                "is_default": False,
+            },
+        ]
+    )
     app = create_app()
     client = TestClient(app)
 
@@ -648,6 +663,8 @@ def test_alexa_simulator_page_renders_voice_test_surface(monkeypatch) -> None:
     assert response.status_code == 200
     assert "Alexa simulator" in response.text
     assert "CreateAppointmentIntent" in response.text
+    assert "Target calendar" in response.text
+    assert "School" in response.text
     assert "Run simulation" in response.text
 
 
@@ -659,9 +676,10 @@ def test_alexa_simulator_page_shows_simulated_response(monkeypatch) -> None:
             assert request_type == "IntentRequest"
             assert intent_name == "CreateAppointmentIntent"
             assert slots["title"] == "Dentist"
+            assert slots["calendar_name"] == "School"
             return {
                 "ok": True,
-                "speech": "I added Dentist for Monday, June 1, 2026 at 10:00 AM.",
+                "speech": "I added Dentist to the School calendar for Monday, June 1, 2026 at 10:00 AM.",
                 "card_type": "Simple",
                 "should_end_session": True,
                 "raw_response": {
@@ -669,7 +687,7 @@ def test_alexa_simulator_page_shows_simulated_response(monkeypatch) -> None:
                     "response": {
                         "outputSpeech": {
                             "type": "PlainText",
-                            "text": "I added Dentist for Monday, June 1, 2026 at 10:00 AM.",
+                            "text": "I added Dentist to the School calendar for Monday, June 1, 2026 at 10:00 AM.",
                         }
                     },
                 },
@@ -691,11 +709,12 @@ def test_alexa_simulator_page_shows_simulated_response(monkeypatch) -> None:
             "date": "2026-06-01",
             "start_time": "10:00",
             "end_time": "11:00",
+            "calendar_name": "School",
         },
     )
 
     assert response.status_code == 200
-    assert "I added Dentist for Monday, June 1, 2026 at 10:00 AM." in response.text
+    assert "I added Dentist to the School calendar for Monday, June 1, 2026 at 10:00 AM." in response.text
     assert '"outputSpeech"' in response.text
 
 

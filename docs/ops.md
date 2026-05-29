@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, multi-calendar Apple targets, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, and Alexa setup flow tracked in issues `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, and `#46`.
+This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, multi-calendar Apple targets, named Alexa calendar targeting, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, and Alexa setup flow tracked in issues `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, and `#47`.
 
 ## What This Service Does
 
@@ -346,10 +346,11 @@ Current readiness support:
 Current scope:
 
 - create an appointment through the shared scheduling brain
+- create an appointment on a named saved Apple calendar target
 - read appointments for a requested day
 - read the next upcoming appointment in the next 30 days
 - cancel a matching appointment by title and date
-- reschedule a matching appointment to a new day or time
+- reschedule a matching appointment to a new day, time, or saved Apple calendar target
 - keep all actual calendar writes in the origin service
 - rely on the origin's live Apple date-range sync so pre-existing family-calendar events can be surfaced to voice flows
 - let the product preview real voice responses through `/alexa/simulate` before signed device requests are turned on

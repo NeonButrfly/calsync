@@ -216,6 +216,7 @@ async function handleCreateIntent(
   const endTime = slotValue(payload, "end_time") ?? addHour(startTime);
   const location = slotValue(payload, "location");
   const notes = slotValue(payload, "notes");
+  const calendarName = slotValue(payload, "calendar_name");
 
   const missing = !title
     ? "title"
@@ -249,6 +250,7 @@ async function handleCreateIntent(
         all_day: false,
         location,
         notes,
+        target_calendar_name: calendarName,
       },
     });
     const originBody = (await originResponse.json()) as {
@@ -266,7 +268,7 @@ async function handleCreateIntent(
     }
 
     return alexaResponse({
-      speech: `I added ${title} for ${humanDate(date)} at ${humanTime(startTime)}.`,
+      speech: `I added ${title}${humanCalendarPhrase(calendarName)} for ${humanDate(date)} at ${humanTime(startTime)}.`,
       shouldEndSession: true,
     });
   } catch {
@@ -461,6 +463,7 @@ async function handleRescheduleIntent(
   const newDate = slotValue(payload, "new_date") ?? date;
   const newStartTime = slotValue(payload, "new_start_time");
   const newEndTime = slotValue(payload, "new_end_time");
+  const newCalendarName = slotValue(payload, "new_calendar_name");
 
   if (!date || !title || !newStartTime) {
     return alexaResponse({
@@ -512,6 +515,7 @@ async function handleRescheduleIntent(
         start_time: newStartTime,
         end_time: nextEndTime,
         timezone: detail.detail.timezone,
+        target_calendar_name: newCalendarName,
       },
     });
     const originBody = (await originResponse.json()) as {
@@ -529,7 +533,7 @@ async function handleRescheduleIntent(
     }
 
     return alexaResponse({
-      speech: `I moved ${match.appointment.title} to ${humanDate(newDate)} at ${humanTime(newStartTime)}.`,
+      speech: `I moved ${match.appointment.title}${humanCalendarPhrase(newCalendarName)} on ${humanDate(newDate)} at ${humanTime(newStartTime)}.`,
       shouldEndSession: true,
     });
   } catch {
@@ -738,6 +742,13 @@ function humanTime(time: string): string {
     minute: "2-digit",
     timeZone: "UTC",
   });
+}
+
+function humanCalendarPhrase(calendarName: string | null): string {
+  if (!calendarName) {
+    return "";
+  }
+  return ` to the ${calendarName} calendar`;
 }
 
 function requestDate(payload: AlexaEnvelope, env: WorkerEnv): string {

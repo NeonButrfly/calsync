@@ -29,13 +29,19 @@
             {
               "name": "notes",
               "type": "AMAZON.SearchQuery"
+            },
+            {
+              "name": "calendar_name",
+              "type": "AMAZON.SearchQuery"
             }
           ],
           "samples": [
             "create an appointment called {title} on {date} at {start_time}",
             "create an appointment called {title} on {date} at {start_time} ending at {end_time}",
             "add {title} on {date} at {start_time}",
-            "schedule {title} on {date} at {start_time} ending at {end_time}"
+            "schedule {title} on {date} at {start_time} ending at {end_time}",
+            "create an appointment called {title} on the {calendar_name} calendar on {date} at {start_time}",
+            "add {title} to the {calendar_name} calendar on {date} at {start_time}"
           ]
         },
         {
@@ -111,13 +117,19 @@
             {
               "name": "new_end_time",
               "type": "AMAZON.TIME"
+            },
+            {
+              "name": "new_calendar_name",
+              "type": "AMAZON.SearchQuery"
             }
           ],
           "samples": [
             "move {title} on {date} to {new_date} at {new_start_time}",
             "reschedule {title} on {date} to {new_date} at {new_start_time}",
             "move {title} on {date} at {start_time} to {new_date} at {new_start_time}",
-            "change {title} on {date} to {new_date} at {new_start_time} ending at {new_end_time}"
+            "change {title} on {date} to {new_date} at {new_start_time} ending at {new_end_time}",
+            "move {title} on {date} to the {new_calendar_name} calendar at {new_start_time}",
+            "reschedule {title} on {date} to the {new_calendar_name} calendar on {new_date} at {new_start_time}"
           ]
         },
         {

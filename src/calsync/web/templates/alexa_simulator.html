@@ -82,6 +82,15 @@
                 <span>Notes</span>
                 <input name="notes" type="text" value="{{ form_values.notes }}" placeholder="Bring insurance card" />
               </label>
+              <label>
+                <span>Target calendar</span>
+                <select name="calendar_name">
+                  <option value="">Default calendar</option>
+                  {% for option in calendar_name_options %}
+                  <option value="{{ option.value }}"{% if form_values.calendar_name == option.value %} selected{% endif %}>{{ option.label }}</option>
+                  {% endfor %}
+                </select>
+              </label>
               <div class="two-up">
                 <label>
                   <span>New date</span>
@@ -95,6 +104,15 @@
               <label>
                 <span>New end</span>
                 <input name="new_end_time" type="time" value="{{ form_values.new_end_time }}" />
+              </label>
+              <label>
+                <span>New calendar</span>
+                <select name="new_calendar_name">
+                  <option value="">Keep current calendar</option>
+                  {% for option in calendar_name_options %}
+                  <option value="{{ option.value }}"{% if form_values.new_calendar_name == option.value %} selected{% endif %}>{{ option.label }}</option>
+                  {% endfor %}
+                </select>
               </label>
               <button type="submit">Run simulation</button>
             </form>

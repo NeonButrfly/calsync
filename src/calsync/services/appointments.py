@@ -55,9 +55,13 @@ class AppointmentService:
             payload.timezone,
         )
         with self._get_session_factory()() as session:
+            target_calendar_url = self._resolve_target_calendar_url(
+                payload.target_calendar_url,
+                payload.target_calendar_name,
+            )
             connection = self._ensure_connection(
                 session,
-                calendar_url=payload.target_calendar_url,
+                calendar_url=target_calendar_url,
             )
             provider_record = self._client_for_calendar(
                 connection.primary_calendar_url
@@ -189,7 +193,13 @@ class AppointmentService:
                 else appointment.attendees_text
             )
             all_day = payload.all_day if payload.all_day is not None else appointment.all_day
-            target_calendar_url = payload.target_calendar_url or connection.primary_calendar_url
+            if payload.target_calendar_url or payload.target_calendar_name:
+                target_calendar_url = self._resolve_target_calendar_url(
+                    payload.target_calendar_url,
+                    payload.target_calendar_name,
+                )
+            else:
+                target_calendar_url = connection.primary_calendar_url
 
             if target_calendar_url != connection.primary_calendar_url:
                 next_connection = self._ensure_connection(
@@ -335,8 +345,15 @@ class AppointmentService:
                 ],
             )
 
-    def _build_apple_client(self, calendar_url: str | None = None) -> AppleCalDAVClient:
-        config = self.apple_runtime_config.resolve(calendar_url=calendar_url)
+    def _build_apple_client(
+        self,
+        calendar_url: str | None = None,
+        calendar_name: str | None = None,
+    ) -> AppleCalDAVClient:
+        config = self.apple_runtime_config.resolve(
+            calendar_url=calendar_url,
+            calendar_name=calendar_name,
+        )
         if not config["ready"]:
             raise ValueError("Apple/iCloud calendar settings are incomplete.")
         return AppleCalDAVClient(
@@ -552,6 +569,18 @@ class AppointmentService:
             return self._build_apple_client(calendar_url=calendar_url)
         except TypeError:
             return self._build_apple_client()
+
+    def _resolve_target_calendar_url(
+        self,
+        target_calendar_url: str | None,
+        target_calendar_name: str | None,
+    ) -> str:
+        return str(
+            self.apple_runtime_config.resolve(
+                calendar_url=target_calendar_url,
+                calendar_name=target_calendar_name,
+            )["primary_calendar_url"]
+        )
 
     @property
     def display_account_label(self) -> str:

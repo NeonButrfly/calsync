@@ -571,6 +571,101 @@ def test_create_appointment_can_target_a_specific_saved_apple_calendar(monkeypat
     assert detail.json()["calendar_name"] == "School"
 
 
+def test_create_appointment_can_target_a_saved_apple_calendar_by_name(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self, calendar_url=None: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    service = AppointmentService(settings=get_settings())
+    service.apple_runtime_config._operator_settings().set_apple_calendar_catalog(
+        [
+            {
+                "calendar_name": "Family",
+                "calendar_url": "https://caldav.icloud.com/family/",
+                "is_default": True,
+            },
+            {
+                "calendar_name": "School",
+                "calendar_url": "https://caldav.icloud.com/school/",
+                "is_default": False,
+            },
+        ]
+    )
+
+    response = client.post(
+        "/api/appointments",
+        json={
+            "title": "School meeting",
+            "date": "2026-06-05",
+            "start_time": "13:00",
+            "end_time": "14:00",
+            "timezone": "America/Anchorage",
+            "target_calendar_name": "School",
+        },
+    )
+
+    assert response.status_code == 201
+    detail = client.get(f"/api/appointments/{response.json()['appointment_id']}")
+    assert detail.status_code == 200
+    assert detail.json()["calendar_name"] == "School"
+
+
+def test_update_appointment_can_move_to_a_saved_apple_calendar_by_name(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self, calendar_url=None: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    service = AppointmentService(settings=get_settings())
+    service.apple_runtime_config._operator_settings().set_apple_calendar_catalog(
+        [
+            {
+                "calendar_name": "Family",
+                "calendar_url": "https://caldav.icloud.com/family/",
+                "is_default": True,
+            },
+            {
+                "calendar_name": "School",
+                "calendar_url": "https://caldav.icloud.com/school/",
+                "is_default": False,
+            },
+        ]
+    )
+
+    create_response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Reading assessment",
+            "date": "2026-06-07",
+            "start_time": "09:00",
+            "end_time": "10:00",
+            "timezone": "America/Anchorage",
+        },
+    )
+    appointment_id = create_response.json()["appointment_id"]
+
+    update_response = client.patch(
+        f"/api/appointments/{appointment_id}",
+        json={
+            "target_calendar_name": "School",
+        },
+    )
+
+    assert update_response.status_code == 200
+    detail = client.get(f"/api/appointments/{appointment_id}")
+    assert detail.status_code == 200
+    assert detail.json()["calendar_name"] == "School"
+
+
 def test_create_appointment_surfaces_provider_failure(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     monkeypatch.setattr(

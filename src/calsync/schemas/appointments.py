@@ -12,6 +12,7 @@ class CreateAppointmentRequest(BaseModel):
     notes: str | None = None
     attendees_text: str | None = None
     target_calendar_url: str | None = None
+    target_calendar_name: str | None = None
 
 
 class UpdateAppointmentRequest(BaseModel):
@@ -25,6 +26,7 @@ class UpdateAppointmentRequest(BaseModel):
     notes: str | None = None
     attendees_text: str | None = None
     target_calendar_url: str | None = None
+    target_calendar_name: str | None = None
 
 
 class AppointmentResponse(BaseModel):

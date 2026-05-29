@@ -14,6 +14,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#44" in readme_content
     assert "#45" in readme_content
     assert "#46" in readme_content
+    assert "#47" in readme_content
     assert "#31" in readme_content
     assert "#37" in readme_content
     assert "polished scheduling workspace" in readme_content
@@ -38,6 +39,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "product vault" in readme_content
     assert "alexa simulator page" in readme_content
     assert "downloadable skill package" in readme_content
+    assert "named apple calendar targeting through alexa and the simulator" in readme_content
     assert "https://mcp-calsync.kaymayers9.workers.dev/mcp" in readme_content
     assert "https://mcp-calsync.neonbutterfly.net/mcp" in readme_content
     assert "list_appointments" in readme_content
@@ -52,6 +54,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#43" in ops_content
     assert "#45" in ops_content
     assert "#46" in ops_content
+    assert "#47" in ops_content
     assert "#31" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
     assert "web scheduling workspace" in ops_content
@@ -93,6 +96,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#43" in prompt_content
     assert "#45" in prompt_content
     assert "#46" in prompt_content
+    assert "#47" in prompt_content
     assert "#31" in prompt_content
     assert "apple live calendar sync requirement" in prompt_content
     assert "in-product apple calendar setup requirement" in prompt_content
@@ -112,6 +116,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "multi-calendar apple target requirement" in prompt_content
     assert "target_calendar_url" in prompt_content
     assert "create and edit flows should expose a target calendar picker" in prompt_content
+    assert "named apple calendar voice target requirement" in prompt_content
+    assert "target_calendar_name" in prompt_content
     assert "save cloudflare worker-management credentials inside the product" in prompt_content
     assert "stored encrypted at rest with `encryption_key`" in prompt_content
     assert "enable_alexa" in prompt_content
@@ -153,6 +159,7 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "cancelappointmentintent" in readme_content
     assert "rescheduleappointmentintent" in readme_content
     assert "next upcoming appointment" in readme_content
+    assert "named saved apple calendar target" in readme_content
 
     assert "#38" in ops_content
     assert "createappointmentintent" in ops_content
@@ -165,6 +172,7 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "edge worker controls" in ops_content
     assert "spoken response" in ops_content
     assert "token-hash presence flags" in ops_content
+    assert "named saved apple calendar target" in ops_content
 
     assert "#38" in prompt_content
     assert "post /alexa" in prompt_content
@@ -176,12 +184,15 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "cancel a matching appointment" in prompt_content
     assert "reschedule a matching appointment" in prompt_content
     assert "read the next upcoming appointment" in prompt_content
+    assert "new calendar-name slot" in prompt_content
 
     assert "createappointmentintent" in interaction_model_content
     assert "listappointmentsintent" in interaction_model_content
     assert "nextappointmentintent" in interaction_model_content
     assert "cancelappointmentintent" in interaction_model_content
     assert "rescheduleappointmentintent" in interaction_model_content
+    assert "calendar_name" in interaction_model_content
+    assert "new_calendar_name" in interaction_model_content
     assert (
         skill_manifest["manifest"]["apis"]["custom"]["endpoint"]["uri"]
         == "https://edge-calsync.neonbutterfly.net/alexa"
@@ -204,3 +215,4 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     )
     assert "create or import the custom skill package" in alexa_readme_content
     assert "next upcoming appointment" in alexa_readme_content
+    assert "named calendar routing" in alexa_readme_content

@@ -278,6 +278,7 @@ def alexa_setup_update_cloudflare_credentials(
 
 @router.get("/alexa/simulator")
 def alexa_simulator_page(request: Request):
+    runtime_service = AppleRuntimeConfigService()
     return _templates.TemplateResponse(
         request,
         "alexa_simulator.html",
@@ -286,6 +287,7 @@ def alexa_simulator_page(request: Request):
             "simulation_result": None,
             "error_message": None,
             "form_values": _default_alexa_simulator_values(),
+            "calendar_name_options": _calendar_name_options(runtime_service),
         },
     )
 
@@ -301,9 +303,11 @@ def alexa_simulator_run(
     end_time: str = Form(""),
     location: str = Form(""),
     notes: str = Form(""),
+    calendar_name: str = Form(""),
     new_date: str = Form(""),
     new_start_time: str = Form(""),
     new_end_time: str = Form(""),
+    new_calendar_name: str = Form(""),
 ):
     form_values = {
         "request_type": request_type,
@@ -314,9 +318,11 @@ def alexa_simulator_run(
         "end_time": end_time,
         "location": location,
         "notes": notes,
+        "calendar_name": calendar_name,
         "new_date": new_date,
         "new_start_time": new_start_time,
         "new_end_time": new_end_time,
+        "new_calendar_name": new_calendar_name,
     }
     slots = {
         "title": title,
@@ -325,9 +331,11 @@ def alexa_simulator_run(
         "end_time": end_time,
         "location": location,
         "notes": notes,
+        "calendar_name": calendar_name,
         "new_date": new_date,
         "new_start_time": new_start_time,
         "new_end_time": new_end_time,
+        "new_calendar_name": new_calendar_name,
     }
     try:
         simulation_result = AlexaSimulatorService().simulate(
@@ -348,6 +356,9 @@ def alexa_simulator_run(
             "simulation_result": simulation_result,
             "error_message": error_message,
             "form_values": form_values,
+            "calendar_name_options": _calendar_name_options(
+                AppleRuntimeConfigService()
+            ),
         },
         status_code=200 if simulation_result is not None else 400,
     )
@@ -1008,7 +1019,21 @@ def _default_alexa_simulator_values() -> dict[str, str]:
         "end_time": "11:00",
         "location": "",
         "notes": "",
+        "calendar_name": "",
         "new_date": next_day.isoformat(),
         "new_start_time": "13:00",
         "new_end_time": "14:00",
+        "new_calendar_name": "",
     }
+
+
+def _calendar_name_options(
+    runtime_service: AppleRuntimeConfigService,
+) -> list[dict[str, str]]:
+    return [
+        {
+            "label": str(item["calendar_name"]),
+            "value": str(item["calendar_name"]),
+        }
+        for item in runtime_service.list_calendars()
+    ]

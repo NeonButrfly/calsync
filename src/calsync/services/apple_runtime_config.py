@@ -18,10 +18,18 @@ class AppleRuntimeConfigService:
         self.settings = settings or get_settings()
         self.operator_settings = operator_settings
 
-    def resolve(self, calendar_url: str | None = None) -> dict[str, Any]:
+    def resolve(
+        self,
+        calendar_url: str | None = None,
+        calendar_name: str | None = None,
+    ) -> dict[str, Any]:
         credentials = self._resolve_credentials()
         calendars = self.list_calendars()
-        selected_calendar = self._select_calendar(calendars, calendar_url)
+        selected_calendar = self._select_calendar(
+            calendars,
+            calendar_url=calendar_url,
+            calendar_name=calendar_name,
+        )
         ready = bool(
             credentials["username"]
             and credentials["app_specific_password"]
@@ -117,7 +125,9 @@ class AppleRuntimeConfigService:
     @staticmethod
     def _select_calendar(
         calendars: list[dict[str, object]],
+        *,
         calendar_url: str | None,
+        calendar_name: str | None,
     ) -> dict[str, str]:
         selected = None
         if calendar_url:
@@ -129,6 +139,29 @@ class AppleRuntimeConfigService:
                 ),
                 None,
             )
+            if selected is None:
+                raise ValueError("Apple calendar target URL was not found.")
+        if selected is None and calendar_name:
+            normalized_target = AppleRuntimeConfigService._normalize_calendar_name(
+                calendar_name
+            )
+            matches = [
+                item
+                for item in calendars
+                if AppleRuntimeConfigService._normalize_calendar_name(
+                    str(item.get("calendar_name") or "")
+                )
+                == normalized_target
+            ]
+            if len(matches) > 1:
+                raise ValueError(
+                    f"Apple calendar target name '{calendar_name}' is ambiguous."
+                )
+            if not matches:
+                raise ValueError(
+                    f"Apple calendar target name '{calendar_name}' was not found."
+                )
+            selected = matches[0]
         if selected is None and calendars:
             selected = next(
                 (item for item in calendars if bool(item.get("is_default"))),
@@ -143,3 +176,7 @@ class AppleRuntimeConfigService:
             "calendar_name": str(selected.get("calendar_name") or ""),
             "calendar_url": str(selected.get("calendar_url") or ""),
         }
+
+    @staticmethod
+    def _normalize_calendar_name(value: str) -> str:
+        return " ".join(value.lower().split())

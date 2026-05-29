@@ -22,7 +22,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, and `#46` are now backed by:
+Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, and `#47` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -37,6 +37,7 @@ Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, and `#46` 
 - intended custom MCP hostname: `https://mcp-calsync.neonbutterfly.net`
 - Live Pi origin hostname: `https://calsync.neonbutterfly.net`
 - a first Alexa custom-skill adapter on top of the same shared scheduling brain
+- named Apple calendar targeting through Alexa and the simulator, so voice flows can choose a saved household calendar instead of always using the default destination
 - live Apple primary-calendar reads, so existing household events show up in the shared workspace and voice flows
 - multiple saved Apple calendar targets, so create, edit, and sync flows can work across more than one household calendar
 - a product-facing readiness surface for Apple setup, channel tokens, edge reachability, and Alexa status
@@ -142,10 +143,11 @@ The first Alexa integration now lives beside the Worker:
 Current voice capabilities:
 
 - create a new appointment
+- create a new appointment on a named saved Apple calendar target
 - read appointments for a requested day
 - read the next upcoming appointment in the next 30 days
 - cancel a matching appointment by title and date
-- reschedule a matching appointment to a new day or time
+- reschedule a matching appointment to a new day, time, or saved Apple calendar target
 - act on Apple events that already existed in the family calendar once the origin has synced the requested date window
 
 Current auth shape:
@@ -243,6 +245,7 @@ If you prefer not to keep a Worker-management API token in the host `.env`, the 
 - In-product Alexa setup flow: issue `#45`
 - In-product Apple calendar setup vault: issue `#46`
 - Multi-calendar Apple writable targets and sync: issue `#31`
+- Named Apple calendar targeting for Alexa and simulator: issue `#47`
 - Runtime token store mount fix: issue `#44`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

@@ -138,6 +138,18 @@ Expected behavior:
 - `PATCH /api/appointments/{appointment_id}` should accept `target_calendar_url` so the appointment can move between saved Apple calendars
 - date-range sync should read across the saved Apple calendar targets instead of only one primary calendar
 
+## Named Apple Calendar Voice Target Requirement
+
+- GitHub issue: `#47`
+- interpreted requirement: Alexa and the in-product simulator should be able to target a saved Apple calendar by human-friendly name instead of always assuming the default destination
+
+Expected behavior:
+
+- the shared scheduling contract should accept `target_calendar_name` in create and update flows
+- Alexa create flows should support a calendar-name slot for choosing a saved Apple target
+- Alexa reschedule flows should support a new calendar-name slot for moving an appointment to another saved Apple target
+- the in-product simulator should expose those calendar-name fields so voice routing can be tested without guessing raw payloads
+
 ## Cloudflare Deployment Requirement
 
 - GitHub issue: `#35`
