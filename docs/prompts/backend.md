@@ -133,7 +133,11 @@ Current repo artifacts:
 
 - Worker route: `POST /alexa`
 - interaction model: `workers/edge-calsync/alexa/interaction-model.json`
+- importable skill package: `workers/edge-calsync/alexa/skill-package`
 - voice adapter implementation: `workers/edge-calsync/src/alexa.ts`
+- public policy pages on the origin:
+  - `GET /privacy`
+  - `GET /terms`
 
 Known boundary in this slice:
 

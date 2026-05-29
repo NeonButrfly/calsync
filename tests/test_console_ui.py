@@ -206,3 +206,20 @@ def test_console_surfaces_provider_failure(monkeypatch) -> None:
 
     assert response.status_code == 400
     assert "Apple/iCloud authentication failed." in response.text
+
+
+def test_public_policy_pages_render(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    app = create_app()
+    client = TestClient(app)
+
+    privacy_response = client.get("/privacy")
+    terms_response = client.get("/terms")
+
+    assert privacy_response.status_code == 200
+    assert "Privacy Policy" in privacy_response.text
+    assert "shared scheduling workspace" in privacy_response.text
+
+    assert terms_response.status_code == 200
+    assert "Terms of Use" in terms_response.text
+    assert "shared brain" in terms_response.text

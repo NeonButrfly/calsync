@@ -1,0 +1,59 @@
+{
+  "manifest": {
+    "manifestVersion": "1.0",
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "summary": "Shared family scheduling for the CalSync household calendar.",
+          "examplePhrases": [
+            "Alexa, open Cal Sync Family",
+            "Alexa, ask Cal Sync Family what appointments I have on Friday",
+            "Alexa, ask Cal Sync Family to create a dentist appointment on June first at ten A M"
+          ],
+          "keywords": [
+            "calendar",
+            "family",
+            "schedule"
+          ],
+          "name": "CalSync Family",
+          "description": "CalSync Family lets your household read and create appointments on the shared family schedule."
+        }
+      },
+      "isAvailableWorldwide": false,
+      "testingInstructions": "1) Import this skill package. 2) Set the custom skill endpoint to https://edge-calsync.neonbutterfly.net/alexa with a trusted certificate. 3) Copy the generated skill ID into the Worker's ALEXA_ALLOWED_SKILL_IDS setting. 4) Set ENABLE_ALEXA=true and redeploy the Worker. 5) Test launch, list, and create utterances in the Alexa developer console.",
+      "category": "PRODUCTIVITY",
+      "distributionCountries": [
+        "US"
+      ]
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "uri": "https://edge-calsync.neonbutterfly.net/alexa",
+          "sslCertificateType": "Trusted"
+        },
+        "regions": {
+          "NA": {
+            "endpoint": {
+              "uri": "https://edge-calsync.neonbutterfly.net/alexa",
+              "sslCertificateType": "Trusted"
+            }
+          }
+        }
+      }
+    },
+    "privacyAndCompliance": {
+      "allowsPurchases": false,
+      "usesPersonalInfo": true,
+      "isChildDirected": false,
+      "isExportCompliant": true,
+      "containsAds": false,
+      "locales": {
+        "en-US": {
+          "termsOfUseUrl": "https://calsync.neonbutterfly.net/terms",
+          "privacyPolicyUrl": "https://calsync.neonbutterfly.net/privacy"
+        }
+      }
+    }
+  }
+}

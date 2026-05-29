@@ -69,6 +69,7 @@ The first Alexa integration now lives beside the Worker:
 
 - Worker voice route: `POST /alexa`
 - interaction model: `workers/edge-calsync/alexa/interaction-model.json`
+- importable skill package: `workers/edge-calsync/alexa/skill-package`
 - first intents:
   - `CreateAppointmentIntent`
   - `ListAppointmentsIntent`
@@ -82,6 +83,9 @@ Current auth shape:
 - the Worker verifies incoming Alexa web-service requests using the Amazon certificate and request-signature flow
 - the Worker also checks the configured Alexa skill ID allowlist in `ALEXA_ALLOWED_SKILL_IDS`
 - the voice route stays disabled until `ENABLE_ALEXA=true`
+- public policy pages for the skill package now live at:
+  - `https://calsync.neonbutterfly.net/privacy`
+  - `https://calsync.neonbutterfly.net/terms`
 
 ### Request shape
 

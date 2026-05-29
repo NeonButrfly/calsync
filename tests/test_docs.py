@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 
 def test_docs_cover_first_family_scheduling_console() -> None:
@@ -28,19 +29,57 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     interaction_model_content = Path(
         "workers/edge-calsync/alexa/interaction-model.json"
     ).read_text(encoding="utf-8").lower()
+    skill_manifest = json.loads(
+        Path("workers/edge-calsync/alexa/skill-package/skill.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    packaged_interaction_model = json.loads(
+        Path(
+            "workers/edge-calsync/alexa/skill-package/interactionModels/custom/en-US.json"
+        ).read_text(encoding="utf-8")
+    )
+    alexa_readme_content = Path(
+        "workers/edge-calsync/alexa/README.md"
+    ).read_text(encoding="utf-8").lower()
 
     assert "#38" in readme_content
     assert "post /alexa" in readme_content
     assert "alexa_allowed_skill_ids" in readme_content
+    assert "/privacy" in readme_content
+    assert "/terms" in readme_content
 
     assert "#38" in ops_content
     assert "createappointmentintent" in ops_content
     assert "request-signature flow" in ops_content
+    assert "skill-package" in ops_content
 
     assert "#38" in prompt_content
     assert "post /alexa" in prompt_content
     assert "shared-household alexa adapter" in prompt_content
     assert "request-signature flow" in prompt_content
+    assert "get /privacy" in prompt_content
 
     assert "createappointmentintent" in interaction_model_content
     assert "listappointmentsintent" in interaction_model_content
+    assert (
+        skill_manifest["manifest"]["apis"]["custom"]["endpoint"]["uri"]
+        == "https://edge-calsync.neonbutterfly.net/alexa"
+    )
+    assert (
+        skill_manifest["manifest"]["privacyAndCompliance"]["locales"]["en-US"][
+            "privacyPolicyUrl"
+        ]
+        == "https://calsync.neonbutterfly.net/privacy"
+    )
+    assert (
+        skill_manifest["manifest"]["privacyAndCompliance"]["locales"]["en-US"][
+            "termsOfUseUrl"
+        ]
+        == "https://calsync.neonbutterfly.net/terms"
+    )
+    assert (
+        packaged_interaction_model["interactionModel"]["languageModel"]["invocationName"]
+        == "cal sync family"
+    )
+    assert "create or import the custom skill package" in alexa_readme_content

@@ -21,6 +21,28 @@ _templates = Jinja2Templates(
 _templates.env.filters["console_datetime"] = lambda value: _format_console_datetime(value)
 
 
+@router.get("/privacy")
+def privacy_page(request: Request):
+    return _templates.TemplateResponse(
+        request,
+        "privacy.html",
+        {
+            "request": request,
+        },
+    )
+
+
+@router.get("/terms")
+def terms_page(request: Request):
+    return _templates.TemplateResponse(
+        request,
+        "terms.html",
+        {
+            "request": request,
+        },
+    )
+
+
 @router.get("/")
 def scheduling_console(
     request: Request,

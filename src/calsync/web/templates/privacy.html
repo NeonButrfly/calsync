@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CalSync Privacy</title>
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero-card">
+        <p class="eyebrow">CalSync</p>
+        <h1>Privacy Policy</h1>
+        <p class="hero-copy">
+          CalSync stores appointment details only so it can create, update, list,
+          and cancel shared family calendar entries on your behalf.
+        </p>
+      </section>
+
+      <section class="stats-grid">
+        <article class="stat-card">
+          <h2>What we keep</h2>
+          <p>
+            Appointment titles, dates, times, notes, locations, and local audit
+            records for the shared scheduling workspace.
+          </p>
+        </article>
+        <article class="stat-card">
+          <h2>What we do not sell</h2>
+          <p>
+            CalSync does not sell appointment data, ad profiles, or household
+            scheduling history.
+          </p>
+        </article>
+        <article class="stat-card">
+          <h2>Why the data exists</h2>
+          <p>
+            The service keeps a local record so conversational channels like the
+            web console, ChatGPT, and Alexa can act on the same calendar brain.
+          </p>
+        </article>
+      </section>
+
+      <section class="list-card">
+        <h2>Retention and access</h2>
+        <ul class="appointment-list">
+          <li class="appointment-row">
+            <div class="appointment-copy">
+              <h3>Calendar writes stay scoped</h3>
+              <p>
+                Apple calendar credentials remain on the origin service and are not
+                copied into the Cloudflare Worker.
+              </p>
+            </div>
+          </li>
+          <li class="appointment-row">
+            <div class="appointment-copy">
+              <h3>Voice requests are verified</h3>
+              <p>
+                Alexa requests must pass Amazon signature verification and match an
+                approved skill ID before CalSync processes them.
+              </p>
+            </div>
+          </li>
+          <li class="appointment-row">
+            <div class="appointment-copy">
+              <h3>Need changes or deletion?</h3>
+              <p>
+                Contact the household operator for this deployment to rotate tokens,
+                remove appointment records, or disable connected channels.
+              </p>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

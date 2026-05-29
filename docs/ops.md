@@ -164,6 +164,12 @@ Current voice route:
 Current interaction model:
 
 - `workers/edge-calsync/alexa/interaction-model.json`
+- `workers/edge-calsync/alexa/skill-package/interactionModels/custom/en-US.json`
+
+Current skill package:
+
+- `workers/edge-calsync/alexa/skill-package/skill.json`
+- `workers/edge-calsync/alexa/README.md`
 
 Supported first intents:
 
@@ -185,6 +191,16 @@ Current scope:
 - create an appointment through the shared scheduling brain
 - read appointments for a requested day
 - keep all actual calendar writes in the origin service
+
+Operator setup:
+
+1. Create or import the custom skill package from `workers/edge-calsync/alexa/skill-package`.
+2. After Alexa generates the real skill ID, set that ID in `ALEXA_ALLOWED_SKILL_IDS`.
+3. Set `ENABLE_ALEXA=true`.
+4. Redeploy the Worker.
+5. Confirm the public policy URLs are reachable:
+   - `https://calsync.neonbutterfly.net/privacy`
+   - `https://calsync.neonbutterfly.net/terms`
 
 ## Deployment Target
 
