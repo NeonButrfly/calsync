@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current Apple-first CalSync service, first scheduling UX, and edge Worker tracked in issues `#32`, `#36`, and `#39`.
+This guide covers the current Apple-first CalSync service, first scheduling UX, edge Worker, and first Alexa adapter tracked in issues `#32`, `#36`, `#38`, and `#39`.
 
 ## What This Service Does
 
@@ -31,6 +31,8 @@ Copy `.env.example` to `.env` and fill in:
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_TOKEN_KV_NAMESPACE_ID`
 - `CHANNEL_TOKEN_RUNTIME_PATH`
+- `ALEXA_ALLOWED_SKILL_IDS`
+- `ALEXA_DEFAULT_TIMEZONE`
 
 Minimum production values that must be real:
 
@@ -151,6 +153,38 @@ Worker routes:
 - `POST /v1/appointments`
 - `PATCH /v1/appointments/{appointment_id}`
 - `POST /v1/appointments/{appointment_id}/cancel`
+- `POST /alexa`
+
+## Alexa skill summary
+
+Current voice route:
+
+- `POST /alexa`
+
+Current interaction model:
+
+- `workers/edge-calsync/alexa/interaction-model.json`
+
+Supported first intents:
+
+- `CreateAppointmentIntent`
+- `ListAppointmentsIntent`
+- `AMAZON.HelpIntent`
+- `AMAZON.CancelIntent`
+- `AMAZON.StopIntent`
+- `AMAZON.FallbackIntent`
+
+Current auth shape:
+
+- the Alexa skill should send the CalSync `alexa` channel token as the linked access token
+- the Worker only accepts configured skill IDs from `ALEXA_ALLOWED_SKILL_IDS`
+- the route stays disabled until `ENABLE_ALEXA=true`
+
+Current scope:
+
+- create an appointment through the shared scheduling brain
+- read appointments for a requested day
+- keep all actual calendar writes in the origin service
 
 ## Deployment Target
 

@@ -1,5 +1,7 @@
 import { validateChannelToken } from "./auth";
+import { handleAlexaRequest } from "./alexa";
 import {
+  isEnabled,
   isChannelEnabled,
   type ChannelName,
   type WorkerEnv,
@@ -14,6 +16,15 @@ export default {
     _ctx: ExecutionContext,
   ): Promise<Response> {
     const requestId = crypto.randomUUID();
+    const url = new URL(request.url);
+
+    if (url.pathname === "/alexa" && request.method === "POST") {
+      if (!isEnabled(env.ENABLE_ALEXA)) {
+        return errorResponse(403, "This channel is disabled.", requestId);
+      }
+      return handleAlexaRequest(request, env, requestId);
+    }
+
     const channel = await validateChannelToken(request, env);
 
     if (!channel) {

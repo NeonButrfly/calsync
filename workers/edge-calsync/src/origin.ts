@@ -24,3 +24,34 @@ export async function forwardToOrigin(
     body: request.body,
   });
 }
+
+export async function callOriginJson(
+  env: WorkerEnv,
+  options: {
+    method: string;
+    path: string;
+    channel: ChannelName;
+    requestId: string;
+    body?: unknown;
+  },
+): Promise<Response> {
+  const { method, path, channel, requestId, body } = options;
+  const url = new URL(path, env.ORIGIN_BASE_URL);
+  const headers = new Headers({
+    accept: "application/json",
+    "X-CalSync-Channel": channel,
+    "X-CalSync-Request-Id": requestId,
+  });
+
+  let serializedBody: string | undefined;
+  if (body !== undefined) {
+    serializedBody = JSON.stringify(body);
+    headers.set("content-type", "application/json; charset=utf-8");
+  }
+
+  return fetch(url.toString(), {
+    method,
+    headers,
+    body: serializedBody,
+  });
+}

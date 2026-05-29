@@ -22,7 +22,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#32`, `#36`, and `#39` are now backed by:
+Issues `#32`, `#36`, `#38`, and `#39` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -33,6 +33,7 @@ Issues `#32`, `#36`, and `#39` are now backed by:
 - A dedicated Cloudflare Worker in `workers/edge-calsync`
 - Live ChatGPT-first edge hostname: `https://edge-calsync.neonbutterfly.net`
 - Live Pi origin hostname: `https://calsync.neonbutterfly.net`
+- a first Alexa custom-skill adapter on top of the same shared scheduling brain
 
 ### Endpoints
 
@@ -60,6 +61,27 @@ The root page now acts as the first family scheduling UX:
 - `POST /v1/appointments`
 - `PATCH /v1/appointments/{appointment_id}`
 - `POST /v1/appointments/{appointment_id}/cancel`
+- `POST /alexa`
+
+### Alexa skill slice
+
+The first Alexa integration now lives beside the Worker:
+
+- Worker voice route: `POST /alexa`
+- interaction model: `workers/edge-calsync/alexa/interaction-model.json`
+- first intents:
+  - `CreateAppointmentIntent`
+  - `ListAppointmentsIntent`
+  - `AMAZON.HelpIntent`
+  - `AMAZON.CancelIntent`
+  - `AMAZON.StopIntent`
+  - `AMAZON.FallbackIntent`
+
+Current auth shape:
+
+- the Alexa skill should send the CalSync `alexa` channel token as the linked access token
+- the Worker also checks the configured Alexa skill ID allowlist in `ALEXA_ALLOWED_SKILL_IDS`
+- the voice route stays disabled until `ENABLE_ALEXA=true`
 
 ### Request shape
 
@@ -116,6 +138,9 @@ Current channels:
 5. Start the stack with Docker Compose.
 6. Verify `http://127.0.0.1:3080/healthz`.
 7. Open `http://127.0.0.1:3080/` for the scheduling console.
+8. If you are preparing the Alexa slice, also set:
+   - `ALEXA_ALLOWED_SKILL_IDS`
+   - `ALEXA_DEFAULT_TIMEZONE`
 
 The API will not create calendar events until the Apple settings are populated.
 
@@ -123,6 +148,7 @@ The API will not create calendar events until the Apple settings are populated.
 
 - Conversational Apple-first app slice: issue `#32`
 - Cloudflare edge Worker slice: issue `#36`
+- Alexa skill slice: issue `#38`
 - First family scheduling UX: issue `#39`
 - Legacy archive and clean reset: issue `#33`
 

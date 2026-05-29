@@ -108,3 +108,33 @@ Current reality:
 - the Pi origin now supports the Worker-facing list contract
 - the Pi stores channel tokens in `/home/kay/apps/calsync/.runtime/channel-tokens.json`
 - Cloudflare KV currently holds the active channel hashes used by the Worker
+
+## Alexa Skill Requirement
+
+- GitHub issue: `#38`
+- interpreted requirement: add a first Alexa custom-skill layer on top of the same shared scheduling brain instead of creating a separate voice-only backend
+
+Expected voice behavior:
+
+- Alexa should use the same appointment create and list flows as other channels
+- the first voice slice should support:
+  - launch and help
+  - create appointment
+  - list appointments for a requested day
+- all actual calendar mutation must still happen in the origin service
+
+Expected auth shape:
+
+- the Alexa skill should present the CalSync `alexa` channel token as the linked access token
+- the Worker should only accept configured Alexa skill IDs from `ALEXA_ALLOWED_SKILL_IDS`
+- the route should remain disabled until `ENABLE_ALEXA=true`
+
+Current repo artifacts:
+
+- Worker route: `POST /alexa`
+- interaction model: `workers/edge-calsync/alexa/interaction-model.json`
+- voice adapter implementation: `workers/edge-calsync/src/alexa.ts`
+
+Known boundary in this slice:
+
+- this is a first shared-household Alexa adapter, not a full multi-user account-linking platform

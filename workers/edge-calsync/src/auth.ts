@@ -29,6 +29,13 @@ export async function validateChannelToken(
     return null;
   }
 
+  return matchTokenToChannel(token, env);
+}
+
+export async function matchTokenToChannel(
+  token: string,
+  env: WorkerEnv,
+): Promise<ChannelName | null> {
   const presentedHash = await sha256Hex(token);
 
   for (const channel of channels) {
