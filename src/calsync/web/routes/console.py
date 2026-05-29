@@ -88,7 +88,8 @@ def alexa_setup_page(request: Request):
 @router.get("/calendar/setup")
 def calendar_setup_page(request: Request):
     apple_settings = OperatorSettingsService().describe_apple_calendar_settings()
-    runtime_config = AppleRuntimeConfigService().resolve()
+    runtime_service = AppleRuntimeConfigService()
+    runtime_config = runtime_service.resolve()
     return _templates.TemplateResponse(
         request,
         "calendar_setup.html",
@@ -96,6 +97,7 @@ def calendar_setup_page(request: Request):
             "request": request,
             "apple_settings": apple_settings,
             "runtime_config": runtime_config,
+            "calendar_catalog": runtime_service.list_calendars(),
             "flash_message": None,
             "error_message": None,
         },
@@ -128,9 +130,10 @@ def calendar_setup_update(
         error_message = str(exc)
 
     apple_settings = operator_settings.describe_apple_calendar_settings()
-    runtime_config = AppleRuntimeConfigService(
+    runtime_service = AppleRuntimeConfigService(
         operator_settings=operator_settings
-    ).resolve()
+    )
+    runtime_config = runtime_service.resolve()
     return _templates.TemplateResponse(
         request,
         "calendar_setup.html",
@@ -138,6 +141,51 @@ def calendar_setup_update(
             "request": request,
             "apple_settings": apple_settings,
             "runtime_config": runtime_config,
+            "calendar_catalog": runtime_service.list_calendars(),
+            "flash_message": flash_message,
+            "error_message": error_message,
+        },
+        status_code=200 if error_message is None else 400,
+    )
+
+
+@router.post("/calendar/setup/calendars")
+def calendar_setup_add_calendar(
+    request: Request,
+    calendar_name: str = Form(""),
+    calendar_url: str = Form(""),
+    is_default: str | None = Form(None),
+):
+    operator_settings = OperatorSettingsService()
+    runtime_service = AppleRuntimeConfigService(operator_settings=operator_settings)
+    try:
+        catalog = operator_settings.get_apple_calendar_catalog()
+        if not catalog:
+            catalog = runtime_service.list_calendars()
+        catalog.append(
+            {
+                "calendar_name": calendar_name,
+                "calendar_url": calendar_url,
+                "is_default": is_default == "true",
+            }
+        )
+        operator_settings.set_apple_calendar_catalog(catalog)
+        flash_message = "Apple calendar target added."
+        error_message = None
+    except ValueError as exc:
+        flash_message = None
+        error_message = str(exc)
+
+    apple_settings = operator_settings.describe_apple_calendar_settings()
+    runtime_config = runtime_service.resolve()
+    return _templates.TemplateResponse(
+        request,
+        "calendar_setup.html",
+        {
+            "request": request,
+            "apple_settings": apple_settings,
+            "runtime_config": runtime_config,
+            "calendar_catalog": runtime_service.list_calendars(),
             "flash_message": flash_message,
             "error_message": error_message,
         },
@@ -388,6 +436,7 @@ def create_appointment_from_console(
     location: str = Form(""),
     notes: str = Form(""),
     attendees_text: str = Form(""),
+    target_calendar_url: str = Form(""),
     all_day: bool = Form(False),
 ):
     payload = CreateAppointmentRequest(
@@ -399,6 +448,7 @@ def create_appointment_from_console(
         location=location or None,
         notes=notes or None,
         attendees_text=attendees_text or None,
+        target_calendar_url=target_calendar_url or None,
         all_day=all_day,
     )
     service = AppointmentService()
@@ -434,6 +484,7 @@ def create_appointment_from_console(
                     "location": location,
                     "notes": notes,
                     "attendees_text": attendees_text,
+                    "target_calendar_url": target_calendar_url,
                     "all_day": all_day,
                 },
                 selected_window=selected_window,
@@ -448,7 +499,7 @@ def create_appointment_from_console(
 def edit_appointment_page(appointment_id: str, request: Request):
     service = AppointmentService()
     try:
-        appointment = service.get(appointment_id)
+        appointment = service.get_detail(appointment_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return _templates.TemplateResponse(
@@ -466,8 +517,13 @@ def edit_appointment_page(appointment_id: str, request: Request):
                 "location": appointment.location or "",
                 "notes": appointment.notes or "",
                 "attendees_text": appointment.attendees_text or "",
+                "target_calendar_url": appointment.calendar_url or "",
                 "all_day": appointment.all_day,
             },
+            "calendar_options": _calendar_options(
+                service,
+                selected_calendar_url=appointment.calendar_url,
+            ),
             "error_message": None,
             "window_options": _window_options(
                 selected_window="week",
@@ -490,6 +546,7 @@ def edit_appointment_from_console(
     location: str = Form(""),
     notes: str = Form(""),
     attendees_text: str = Form(""),
+    target_calendar_url: str = Form(""),
     all_day: bool = Form(False),
 ):
     payload = UpdateAppointmentRequest(
@@ -501,6 +558,7 @@ def edit_appointment_from_console(
         location=location or None,
         notes=notes or None,
         attendees_text=attendees_text or None,
+        target_calendar_url=target_calendar_url or None,
         all_day=all_day,
     )
     service = AppointmentService()
@@ -529,17 +587,22 @@ def edit_appointment_from_console(
                     "location": location,
                     "notes": notes,
                     "attendees_text": attendees_text,
-                "all_day": all_day,
+                    "target_calendar_url": target_calendar_url,
+                    "all_day": all_day,
+                },
+                "calendar_options": _calendar_options(
+                    service,
+                    selected_calendar_url=target_calendar_url or None,
+                ),
+                "error_message": str(exc),
+                "window_options": _window_options(
+                    selected_window="week",
+                    show_cancelled=False,
+                    selected_appointment_id=appointment_id,
+                ),
             },
-            "error_message": str(exc),
-            "window_options": _window_options(
-                selected_window="week",
-                show_cancelled=False,
-                selected_appointment_id=appointment_id,
-            ),
-        },
-        status_code=400,
-    )
+            status_code=400,
+        )
     except AppleCalDAVError as exc:
         appointment = service.get(appointment_id)
         return _templates.TemplateResponse(
@@ -557,17 +620,22 @@ def edit_appointment_from_console(
                     "location": location,
                     "notes": notes,
                     "attendees_text": attendees_text,
-                "all_day": all_day,
+                    "target_calendar_url": target_calendar_url,
+                    "all_day": all_day,
+                },
+                "calendar_options": _calendar_options(
+                    service,
+                    selected_calendar_url=target_calendar_url or None,
+                ),
+                "error_message": str(exc),
+                "window_options": _window_options(
+                    selected_window="week",
+                    show_cancelled=False,
+                    selected_appointment_id=appointment_id,
+                ),
             },
-            "error_message": str(exc),
-            "window_options": _window_options(
-                selected_window="week",
-                show_cancelled=False,
-                selected_appointment_id=appointment_id,
-            ),
-        },
-        status_code=400,
-    )
+            status_code=400,
+        )
 
 
 @router.post("/appointments/{appointment_id}/cancel")
@@ -632,6 +700,10 @@ def _build_console_context(
         "form_values": form_values,
         "calendar_label": service.display_calendar_name,
         "account_label": service.display_account_label,
+        "calendar_options": _calendar_options(
+            service,
+            selected_calendar_url=str(form_values.get("target_calendar_url") or ""),
+        ),
         "selected_window": selected_window,
         "show_cancelled": show_cancelled,
         "window_options": _window_options(
@@ -900,8 +972,29 @@ def _empty_form_values() -> dict[str, object]:
         "location": "",
         "notes": "",
         "attendees_text": "",
+        "target_calendar_url": "",
         "all_day": False,
     }
+
+
+def _calendar_options(
+    service: AppointmentService,
+    *,
+    selected_calendar_url: str | None,
+) -> list[dict[str, object]]:
+    selected_value = selected_calendar_url or ""
+    options: list[dict[str, object]] = []
+    for item in service.available_calendars:
+        calendar_url = str(item["calendar_url"])
+        options.append(
+            {
+                "label": str(item["calendar_name"]),
+                "value": calendar_url,
+                "is_selected": calendar_url == selected_value
+                or (not selected_value and bool(item.get("is_default"))),
+            }
+        )
+    return options
 
 
 def _default_alexa_simulator_values() -> dict[str, str]:

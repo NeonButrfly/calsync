@@ -47,9 +47,9 @@
 
 ## Operational Expectations
 
-- the service requires a configured writable Apple calendar before any mutation route can succeed
+- the service requires a configured writable Apple calendar target before any mutation route can succeed
 - the Apple account should use an app-specific password, not an interactive account password
-- the service writes to one designated primary iCloud calendar in this first slice
+- the service writes to one selected saved iCloud calendar target at a time, with one default target when the caller does not choose explicitly
 - appointment changes should update the same Apple provider event rather than recreating a new one
 - cancellations should delete the remote Apple event and mark the local record as `cancelled`
 
@@ -124,6 +124,19 @@ Expected behavior:
 - those product-managed Apple settings should be stored encrypted at rest with `ENCRYPTION_KEY`
 - the appointment service and readiness surface should fall back to product-vault Apple settings when deployment env values are absent
 - the main workspace and Alexa setup flow should link back to the Apple calendar setup page
+
+## Multi-Calendar Apple Target Requirement
+
+- GitHub issue: `#31`
+- interpreted requirement: the Apple-first product should support more than one saved writable Apple calendar target, not only one hard-wired family destination
+
+Expected behavior:
+
+- `POST /calendar/setup/calendars` should let the operator add another Apple calendar target without losing the current default target
+- create and edit flows should expose a target calendar picker when more than one Apple calendar is saved
+- `POST /api/appointments` should accept `target_calendar_url` so callers can choose a non-default Apple destination
+- `PATCH /api/appointments/{appointment_id}` should accept `target_calendar_url` so the appointment can move between saved Apple calendars
+- date-range sync should read across the saved Apple calendar targets instead of only one primary calendar
 
 ## Cloudflare Deployment Requirement
 

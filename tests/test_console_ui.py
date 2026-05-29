@@ -477,6 +477,167 @@ def test_calendar_setup_page_saves_apple_settings(monkeypatch) -> None:
     }
 
 
+def test_calendar_setup_page_can_add_another_calendar_target(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    app = create_app()
+    client = TestClient(app)
+
+    client.post(
+        "/calendar/setup",
+        data={
+            "apple_account_label": "Household",
+            "apple_username": "household@example.com",
+            "apple_app_specific_password": "apple-secret-123",
+            "apple_primary_calendar_url": "https://caldav.icloud.com/household/",
+            "apple_primary_calendar_name": "Household",
+        },
+    )
+    response = client.post(
+        "/calendar/setup/calendars",
+        data={
+            "calendar_name": "School",
+            "calendar_url": "https://caldav.icloud.com/school/",
+            "is_default": "false",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Apple calendar target added." in response.text
+    assert "School" in response.text
+
+    service = OperatorSettingsService(settings=get_settings())
+    assert service.get_apple_calendar_catalog() == [
+        {
+            "calendar_name": "Household",
+            "calendar_url": "https://caldav.icloud.com/household/",
+            "is_default": True,
+        },
+        {
+            "calendar_name": "School",
+            "calendar_url": "https://caldav.icloud.com/school/",
+            "is_default": False,
+        },
+    ]
+
+
+def test_calendar_setup_add_calendar_preserves_existing_runtime_target_when_catalog_is_empty(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/calendar/setup/calendars",
+        data={
+            "calendar_name": "School",
+            "calendar_url": "https://caldav.icloud.com/school/",
+            "is_default": "false",
+        },
+    )
+
+    assert response.status_code == 200
+    service = OperatorSettingsService(settings=get_settings())
+    assert service.get_apple_calendar_catalog() == [
+        {
+            "calendar_name": "Family",
+            "calendar_url": "https://caldav.icloud.com/calendar/",
+            "is_default": True,
+        },
+        {
+            "calendar_name": "School",
+            "calendar_url": "https://caldav.icloud.com/school/",
+            "is_default": False,
+        },
+    ]
+
+
+def test_console_create_form_surfaces_multiple_saved_calendar_targets(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_apple_calendar_catalog(
+        [
+            {
+                "calendar_name": "Family",
+                "calendar_url": "https://caldav.icloud.com/family/",
+                "is_default": True,
+            },
+            {
+                "calendar_name": "School",
+                "calendar_url": "https://caldav.icloud.com/school/",
+                "is_default": False,
+            },
+        ]
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert 'name="target_calendar_url"' in response.text
+    assert "Family" in response.text
+    assert "School" in response.text
+
+
+def test_console_edit_flow_can_move_appointment_to_another_saved_calendar(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self, calendar_url=None: FakeAppleClient(),
+    )
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_apple_calendar_catalog(
+        [
+            {
+                "calendar_name": "Family",
+                "calendar_url": "https://caldav.icloud.com/family/",
+                "is_default": True,
+            },
+            {
+                "calendar_name": "School",
+                "calendar_url": "https://caldav.icloud.com/school/",
+                "is_default": False,
+            },
+        ]
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Reading assessment",
+            "date": "2026-06-07",
+            "start_time": "09:00",
+            "end_time": "10:00",
+            "timezone": "America/Anchorage",
+        },
+    )
+    appointment_id = create_response.json()["appointment_id"]
+
+    response = client.post(
+        f"/appointments/{appointment_id}/edit",
+        data={
+            "title": "Reading assessment",
+            "date_value": "2026-06-07",
+            "start_time": "09:00",
+            "end_time": "10:00",
+            "timezone": "America/Anchorage",
+            "location": "",
+            "notes": "",
+            "attendees_text": "",
+            "target_calendar_url": "https://caldav.icloud.com/school/",
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert "Appointment updated on your Apple calendar." in response.text
+    assert "School" in response.text
+
+
 def test_alexa_simulator_page_renders_voice_test_surface(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     app = create_app()

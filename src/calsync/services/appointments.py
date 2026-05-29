@@ -55,8 +55,13 @@ class AppointmentService:
             payload.timezone,
         )
         with self._get_session_factory()() as session:
-            connection = self._ensure_primary_connection(session)
-            provider_record = self._build_apple_client().create_event(
+            connection = self._ensure_connection(
+                session,
+                calendar_url=payload.target_calendar_url,
+            )
+            provider_record = self._client_for_calendar(
+                connection.primary_calendar_url
+            ).create_event(
                 title=payload.title,
                 starts_at=starts_at,
                 ends_at=ends_at,
@@ -118,11 +123,13 @@ class AppointmentService:
 
         with self._get_session_factory()() as session:
             try:
-                self._sync_primary_range(
-                    session,
-                    starts_at=start,
-                    ends_at=end,
-                )
+                for calendar in self.available_calendars:
+                    self._sync_calendar_range(
+                        session,
+                        starts_at=start,
+                        ends_at=end,
+                        calendar_url=str(calendar["calendar_url"]),
+                    )
                 session.commit()
             except (AppleCalDAVError, AttributeError):
                 session.rollback()
@@ -156,6 +163,9 @@ class AppointmentService:
         with self._get_session_factory()() as session:
             appointment = self._get_appointment(session, appointment_id)
             external_link = self._get_external_link(session, appointment_id)
+            connection = session.get(AppleCalendarConnection, appointment.connection_id)
+            if connection is None:
+                raise ValueError("Appointment calendar connection not found.")
             next_date = payload.date or appointment.starts_at.date().isoformat()
             next_timezone = payload.timezone or appointment.timezone_name
             next_start = payload.start_time or appointment.starts_at.astimezone(
@@ -179,18 +189,44 @@ class AppointmentService:
                 else appointment.attendees_text
             )
             all_day = payload.all_day if payload.all_day is not None else appointment.all_day
+            target_calendar_url = payload.target_calendar_url or connection.primary_calendar_url
 
-            provider_record = self._build_apple_client().update_event(
-                provider_event_id=external_link.provider_event_id,
-                title=title,
-                starts_at=starts_at,
-                ends_at=ends_at,
-                all_day=all_day,
-                location=location,
-                notes=notes,
-                href=external_link.provider_href,
-                etag=external_link.provider_etag,
-            )
+            if target_calendar_url != connection.primary_calendar_url:
+                next_connection = self._ensure_connection(
+                    session,
+                    calendar_url=target_calendar_url,
+                )
+                provider_record = self._client_for_calendar(
+                    next_connection.primary_calendar_url
+                ).create_event(
+                    title=title,
+                    starts_at=starts_at,
+                    ends_at=ends_at,
+                    all_day=all_day,
+                    location=location,
+                    notes=notes,
+                )
+                self._client_for_calendar(connection.primary_calendar_url).cancel_event(
+                    provider_event_id=external_link.provider_event_id,
+                    href=external_link.provider_href,
+                    etag=external_link.provider_etag,
+                )
+                appointment.connection_id = next_connection.id
+                external_link.provider_event_id = provider_record.provider_event_id
+            else:
+                provider_record = self._client_for_calendar(
+                    connection.primary_calendar_url
+                ).update_event(
+                    provider_event_id=external_link.provider_event_id,
+                    title=title,
+                    starts_at=starts_at,
+                    ends_at=ends_at,
+                    all_day=all_day,
+                    location=location,
+                    notes=notes,
+                    href=external_link.provider_href,
+                    etag=external_link.provider_etag,
+                )
             appointment.title = title
             appointment.starts_at = starts_at
             appointment.ends_at = ends_at
@@ -221,7 +257,10 @@ class AppointmentService:
         with self._get_session_factory()() as session:
             appointment = self._get_appointment(session, appointment_id)
             external_link = self._get_external_link(session, appointment_id)
-            self._build_apple_client().cancel_event(
+            connection = session.get(AppleCalendarConnection, appointment.connection_id)
+            if connection is None:
+                raise ValueError("Appointment calendar connection not found.")
+            self._client_for_calendar(connection.primary_calendar_url).cancel_event(
                 provider_event_id=external_link.provider_event_id,
                 href=external_link.provider_href,
                 etag=external_link.provider_etag,
@@ -279,6 +318,7 @@ class AppointmentService:
                 provider_event_id=external_link.provider_event_id,
                 account_label=connection.account_label,
                 calendar_name=connection.primary_calendar_name,
+                calendar_url=connection.primary_calendar_url,
                 provider_type=external_link.provider_type,
                 provider_href=external_link.provider_href,
                 provider_etag=external_link.provider_etag,
@@ -295,8 +335,8 @@ class AppointmentService:
                 ],
             )
 
-    def _build_apple_client(self) -> AppleCalDAVClient:
-        config = self.apple_runtime_config.resolve()
+    def _build_apple_client(self, calendar_url: str | None = None) -> AppleCalDAVClient:
+        config = self.apple_runtime_config.resolve(calendar_url=calendar_url)
         if not config["ready"]:
             raise ValueError("Apple/iCloud calendar settings are incomplete.")
         return AppleCalDAVClient(
@@ -309,23 +349,39 @@ class AppointmentService:
             )
         )
 
-    def _ensure_primary_connection(self, session: Session) -> AppleCalendarConnection:
+    def _ensure_connection(
+        self,
+        session: Session,
+        *,
+        calendar_url: str | None = None,
+    ) -> AppleCalendarConnection:
+        config = self.apple_runtime_config.resolve(calendar_url=calendar_url)
+        if not config["ready"]:
+            raise ValueError("Primary Apple/iCloud calendar is not configured.")
         existing = session.scalar(
             select(AppleCalendarConnection).where(
-                AppleCalendarConnection.is_primary.is_(True)
+                AppleCalendarConnection.primary_calendar_url
+                == str(config["primary_calendar_url"])
             )
         )
         if existing is not None:
+            existing.account_label = str(config["account_label"])
+            existing.apple_username = str(config["username"])
+            existing.primary_calendar_name = str(config["primary_calendar_name"])
+            existing.is_primary = bool(
+                self.apple_runtime_config.resolve()["primary_calendar_url"]
+                == existing.primary_calendar_url
+            )
             return existing
-        config = self.apple_runtime_config.resolve()
-        if not config["ready"]:
-            raise ValueError("Primary Apple/iCloud calendar is not configured.")
         connection = AppleCalendarConnection(
             account_label=str(config["account_label"]),
             apple_username=str(config["username"]),
             primary_calendar_url=str(config["primary_calendar_url"]),
             primary_calendar_name=str(config["primary_calendar_name"]),
-            is_primary=True,
+            is_primary=bool(
+                self.apple_runtime_config.resolve()["primary_calendar_url"]
+                == str(config["primary_calendar_url"])
+            ),
         )
         session.add(connection)
         session.flush()
@@ -351,15 +407,16 @@ class AppointmentService:
             raise ValueError("Appointment external link not found.")
         return external_link
 
-    def _sync_primary_range(
+    def _sync_calendar_range(
         self,
         session: Session,
         *,
         starts_at: datetime,
         ends_at: datetime,
+        calendar_url: str,
     ) -> None:
-        connection = self._ensure_primary_connection(session)
-        client = self._build_apple_client()
+        connection = self._ensure_connection(session, calendar_url=calendar_url)
+        client = self._client_for_calendar(calendar_url)
         if not hasattr(client, "list_events"):
             return
         provider_events = client.list_events(
@@ -387,9 +444,15 @@ class AppointmentService:
     ) -> None:
         provider_event_id = str(getattr(provider_event, "provider_event_id"))
         external_links = session.scalars(
-            select(AppointmentExternalLink).where(
+            select(AppointmentExternalLink)
+            .join(
+                Appointment,
+                Appointment.id == AppointmentExternalLink.appointment_id,
+            )
+            .where(
                 AppointmentExternalLink.provider_type == "icloud_caldav",
                 AppointmentExternalLink.provider_event_id == provider_event_id,
+                Appointment.connection_id == connection.id,
             )
         ).all()
         starts_at = self._coerce_provider_datetime(getattr(provider_event, "starts_at"))
@@ -484,6 +547,12 @@ class AppointmentService:
             return self.settings.default_timezone
         return getattr(tzinfo, "key", None) or self.settings.default_timezone
 
+    def _client_for_calendar(self, calendar_url: str | None) -> AppleCalDAVClient:
+        try:
+            return self._build_apple_client(calendar_url=calendar_url)
+        except TypeError:
+            return self._build_apple_client()
+
     @property
     def display_account_label(self) -> str:
         return str(self.apple_runtime_config.resolve()["account_label"])
@@ -491,6 +560,10 @@ class AppointmentService:
     @property
     def display_calendar_name(self) -> str:
         return str(self.apple_runtime_config.resolve()["primary_calendar_name"])
+
+    @property
+    def available_calendars(self) -> list[dict[str, object]]:
+        return self.apple_runtime_config.list_calendars()
 
     def _get_session_factory(self) -> sessionmaker[Session]:
         if self.session_factory is None:

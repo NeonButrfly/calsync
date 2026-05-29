@@ -296,6 +296,14 @@
               </div>
               <form class="form-grid" method="post" action="/appointments">
                 <label>
+                  <span>Calendar</span>
+                  <select name="target_calendar_url">
+                    {% for option in calendar_options %}
+                    <option value="{{ option.value }}"{% if option.is_selected %} selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <label>
                   <span>Title</span>
                   <input name="title" type="text" value="{{ form_values.title }}" required />
                 </label>

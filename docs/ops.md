@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, and Alexa setup flow tracked in issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, and `#46`.
+This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, multi-calendar Apple targets, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, and Alexa setup flow tracked in issues `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, and `#46`.
 
 ## What This Service Does
 
@@ -9,7 +9,7 @@ This guide covers the current Apple-first CalSync service, family scheduling UX,
 - exposes a professional web scheduling workspace at `/` for create, edit, cancel, filtered browsing, and review
 - stores normalized appointment records locally
 - syncs existing Apple calendar events into the local scheduling brain for requested date windows
-- writes calendar mutations to one configured iCloud calendar through CalDAV
+- writes calendar mutations to one selected saved iCloud calendar target through CalDAV
 - keeps local audit entries for every mutation
 - supports Cloudflare edge token management for channel auth
 - exposes a remote authenticated MCP endpoint for ChatGPT-style tool access
@@ -100,6 +100,7 @@ Root experience:
 - `GET /`
 - `GET /calendar/setup`
 - `POST /calendar/setup`
+- `POST /calendar/setup/calendars`
 - `GET /alexa/setup`
 - `POST /alexa/setup`
 - `GET /alexa/simulator`
@@ -112,6 +113,7 @@ Root experience:
 Behavior:
 
 - shows a clean create-appointment form
+- lets operators choose a target Apple calendar for create and edit when multiple writable targets are saved
 - browses appointments by day, week, or month
 - syncs the requested Apple calendar date window before rendering the schedule
 - hides cancelled appointments from the default active schedule views while allowing a reference toggle when you intentionally want historical cancelled items
@@ -136,12 +138,15 @@ This operator-facing flow now serves:
 - Apple app-specific password
 - Apple primary calendar URL
 - Apple primary calendar name
+- additional tracked Apple calendar targets
+- one default Apple calendar target for new appointments
 
 Current management boundary:
 
 - the product can use either deployment env Apple settings or product-vault Apple settings
 - product-vault Apple settings are encrypted with `ENCRYPTION_KEY`
 - the appointment service and readiness surface now fall back to those saved product settings when host env Apple values are absent
+- `POST /calendar/setup/calendars` can add another saved Apple target without replacing the existing default target
 
 ### Alexa setup page
 
@@ -213,12 +218,15 @@ Optional body fields:
 - `location`
 - `notes`
 - `attendees_text`
+- `target_calendar_url`
 
 ### Update appointment
 
 `PATCH /api/appointments/{appointment_id}`
 
 Any writable appointment field may be sent.
+
+This now includes `target_calendar_url`, which lets the update flow move an appointment from one saved Apple calendar target to another.
 
 ### Cancel appointment
 
@@ -232,7 +240,7 @@ This removes the Apple calendar event and marks the local appointment as `cancel
 
 This powers the Worker-side “look up before editing or cancelling” flow.
 
-It now also syncs the requested Apple date range into the local appointment store so existing family-calendar events can be listed, edited, cancelled, and used by Alexa.
+It now also syncs the requested Apple date range into the local appointment store across the saved Apple calendar targets, so existing family-calendar events can be listed, edited, cancelled, and used by Alexa.
 
 Default behavior hides cancelled appointments from active list views. To include them for reference, call:
 

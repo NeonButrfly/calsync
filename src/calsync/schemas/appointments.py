@@ -11,6 +11,7 @@ class CreateAppointmentRequest(BaseModel):
     location: str | None = None
     notes: str | None = None
     attendees_text: str | None = None
+    target_calendar_url: str | None = None
 
 
 class UpdateAppointmentRequest(BaseModel):
@@ -23,6 +24,7 @@ class UpdateAppointmentRequest(BaseModel):
     location: str | None = None
     notes: str | None = None
     attendees_text: str | None = None
+    target_calendar_url: str | None = None
 
 
 class AppointmentResponse(BaseModel):
@@ -57,6 +59,7 @@ class AppointmentAuditItem(BaseModel):
 class AppointmentDetailResponse(AppointmentListItem):
     account_label: str
     calendar_name: str
+    calendar_url: str | None = None
     provider_type: str
     provider_href: str | None = None
     provider_etag: str | None = None

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import json
 
 from cryptography.fernet import Fernet
 
@@ -120,6 +121,27 @@ class OperatorSettingsService:
         self.set_value("apple_primary_calendar_name", normalized_calendar_name)
         if normalized_password:
             self.set_value("apple_app_specific_password", normalized_password)
+        catalog = self.get_apple_calendar_catalog()
+        remaining = [
+            item for item in catalog if item["calendar_url"] != normalized_calendar_url
+        ]
+        self.set_apple_calendar_catalog(
+            [
+                {
+                    "calendar_name": normalized_calendar_name,
+                    "calendar_url": normalized_calendar_url,
+                    "is_default": True,
+                },
+                *[
+                    {
+                        "calendar_name": item["calendar_name"],
+                        "calendar_url": item["calendar_url"],
+                        "is_default": False,
+                    }
+                    for item in remaining
+                ],
+            ]
+        )
 
     def get_apple_calendar_settings(self) -> dict[str, str | None]:
         return {
@@ -142,6 +164,65 @@ class OperatorSettingsService:
             if any(values.values())
             else "missing",
         }
+
+    def set_apple_calendar_catalog(self, calendars: list[dict[str, object]]) -> None:
+        if not calendars:
+            raise ValueError("At least one Apple calendar is required.")
+
+        normalized: list[dict[str, object]] = []
+        seen_urls: set[str] = set()
+        default_index = None
+        for index, item in enumerate(calendars):
+            calendar_name = str(item.get("calendar_name") or "").strip()
+            calendar_url = str(item.get("calendar_url") or "").strip()
+            is_default = bool(item.get("is_default"))
+            if not calendar_name:
+                raise ValueError("Apple calendar name is required.")
+            if not calendar_url:
+                raise ValueError("Apple calendar URL is required.")
+            if calendar_url in seen_urls:
+                raise ValueError("Apple calendar URLs must be unique.")
+            seen_urls.add(calendar_url)
+            if is_default and default_index is None:
+                default_index = index
+            normalized.append(
+                {
+                    "calendar_name": calendar_name,
+                    "calendar_url": calendar_url,
+                    "is_default": False,
+                }
+            )
+
+        if default_index is None:
+            default_index = 0
+        normalized[default_index]["is_default"] = True
+        self.set_value("apple_calendar_catalog", json.dumps(normalized))
+
+    def get_apple_calendar_catalog(self) -> list[dict[str, object]]:
+        raw = self.get_value("apple_calendar_catalog")
+        if not raw:
+            return []
+        payload = json.loads(raw)
+        if not isinstance(payload, list):
+            return []
+        calendars: list[dict[str, object]] = []
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            calendar_name = str(item.get("calendar_name") or "").strip()
+            calendar_url = str(item.get("calendar_url") or "").strip()
+            if not calendar_name or not calendar_url:
+                continue
+            calendars.append(
+                {
+                    "calendar_name": calendar_name,
+                    "calendar_url": calendar_url,
+                    "is_default": bool(item.get("is_default")),
+                }
+            )
+        if calendars and not any(item["is_default"] for item in calendars):
+            calendars[0]["is_default"] = True
+        return calendars
 
     def describe_cloudflare_worker_credentials(self) -> dict[str, object]:
         values = self.get_cloudflare_worker_credentials()

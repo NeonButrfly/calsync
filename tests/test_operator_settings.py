@@ -134,3 +134,36 @@ def test_operator_settings_keeps_existing_apple_password_when_blank_update() -> 
     assert apple_settings["username"] == "household@example.com"
     assert apple_settings["app_specific_password"] == "apple-secret-123"
     assert apple_settings["primary_calendar_url"] == "https://caldav.icloud.com/household/"
+
+
+def test_operator_settings_stores_apple_calendar_catalog() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.set_apple_calendar_catalog(
+        [
+            {
+                "calendar_name": "Family",
+                "calendar_url": "https://caldav.icloud.com/family/",
+                "is_default": True,
+            },
+            {
+                "calendar_name": "School",
+                "calendar_url": "https://caldav.icloud.com/school/",
+                "is_default": False,
+            },
+        ]
+    )
+
+    assert service.get_apple_calendar_catalog() == [
+        {
+            "calendar_name": "Family",
+            "calendar_url": "https://caldav.icloud.com/family/",
+            "is_default": True,
+        },
+        {
+            "calendar_name": "School",
+            "calendar_url": "https://caldav.icloud.com/school/",
+            "is_default": False,
+        },
+    ]

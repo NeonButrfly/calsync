@@ -140,6 +140,41 @@
                 </article>
               </div>
             </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Tracked calendars</p>
+                  <h3>Writable targets</h3>
+                </div>
+              </div>
+              <div class="detail-grid">
+                {% for item in calendar_catalog %}
+                <article class="detail-card">
+                  <p class="eyebrow">{% if item.is_default %}Default target{% else %}Additional target{% endif %}</p>
+                  <strong>{{ item.calendar_name }}</strong>
+                  <span>{{ item.calendar_url }}</span>
+                </article>
+                {% endfor %}
+              </div>
+              <form class="form-grid" method="post" action="/calendar/setup/calendars">
+                <label>
+                  <span>Calendar name</span>
+                  <input name="calendar_name" type="text" placeholder="School" required />
+                </label>
+                <label>
+                  <span>Calendar URL</span>
+                  <input name="calendar_url" type="text" placeholder="https://caldav.icloud.com/..." required />
+                </label>
+                <label class="checkbox-row">
+                  <input name="is_default" type="checkbox" value="true" />
+                  <span>Make this the default target for new appointments</span>
+                </label>
+                <div class="action-row">
+                  <button type="submit">Add another calendar</button>
+                </div>
+              </form>
+            </article>
           </div>
         </section>
       </main>

@@ -84,6 +84,50 @@ class DuplicateSyncingAppleClient(FakeAppleClient):
         return [event, event]
 
 
+class MultiCalendarSyncingAppleClient(FakeAppleClient):
+    def __init__(self, calendar_url: str | None) -> None:
+        self.calendar_url = calendar_url or ""
+
+    def list_events(self, **_: object):
+        if self.calendar_url.endswith("/school/"):
+            return [
+                type(
+                    "ListedEvent",
+                    (),
+                    {
+                        "provider_event_id": "provider-school",
+                        "href": "https://caldav.icloud.com/school/provider-school.ics",
+                        "etag": '"etag-school"',
+                        "title": "School assembly",
+                        "starts_at": "2026-06-12T09:00:00-08:00",
+                        "ends_at": "2026-06-12T10:00:00-08:00",
+                        "all_day": False,
+                        "location": "School gym",
+                        "notes": "Arrive early",
+                        "status": "confirmed",
+                    },
+                )()
+            ]
+        return [
+            type(
+                "ListedEvent",
+                (),
+                {
+                    "provider_event_id": "provider-family",
+                    "href": "https://caldav.icloud.com/family/provider-family.ics",
+                    "etag": '"etag-family"',
+                    "title": "Family dinner",
+                    "starts_at": "2026-06-12T18:00:00-08:00",
+                    "ends_at": "2026-06-12T19:00:00-08:00",
+                    "all_day": False,
+                    "location": "Home",
+                    "notes": "Pizza night",
+                    "status": "confirmed",
+                },
+            )()
+        ]
+
+
 class FailingAppleClient:
     def create_event(self, **_: object):
         raise AppleCalDAVError("Apple/iCloud authentication failed.")
@@ -236,6 +280,42 @@ def test_list_appointments_deduplicates_provider_events_within_sync_response(mon
     body = response.json()
     assert [item["provider_event_id"] for item in body["items"]] == [
         "provider-duplicate"
+    ]
+
+
+def test_list_appointments_syncs_from_multiple_saved_apple_calendars(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self, calendar_url=None: MultiCalendarSyncingAppleClient(calendar_url),
+    )
+    service = AppointmentService(settings=get_settings())
+    service.apple_runtime_config._operator_settings().set_apple_calendar_catalog(
+        [
+            {
+                "calendar_name": "Family",
+                "calendar_url": "https://caldav.icloud.com/family/",
+                "is_default": True,
+            },
+            {
+                "calendar_name": "School",
+                "calendar_url": "https://caldav.icloud.com/school/",
+                "is_default": False,
+            },
+        ]
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get(
+        "/api/appointments?date_from=2026-06-12&date_to=2026-06-12"
+    )
+
+    assert response.status_code == 200
+    assert [item["title"] for item in response.json()["items"]] == [
+        "School assembly",
+        "Family dinner",
     ]
 
 
@@ -445,6 +525,50 @@ def test_update_and_cancel_use_forwarded_channel_as_actor(monkeypatch) -> None:
         "worker:alexa",
         "worker:shortcuts",
     ]
+
+
+def test_create_appointment_can_target_a_specific_saved_apple_calendar(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self, calendar_url=None: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    service = AppointmentService(settings=get_settings())
+    service.apple_runtime_config._operator_settings().set_apple_calendar_catalog(
+        [
+            {
+                "calendar_name": "Family",
+                "calendar_url": "https://caldav.icloud.com/family/",
+                "is_default": True,
+            },
+            {
+                "calendar_name": "School",
+                "calendar_url": "https://caldav.icloud.com/school/",
+                "is_default": False,
+            },
+        ]
+    )
+
+    response = client.post(
+        "/api/appointments",
+        json={
+            "title": "School meeting",
+            "date": "2026-06-05",
+            "start_time": "13:00",
+            "end_time": "14:00",
+            "timezone": "America/Anchorage",
+            "target_calendar_url": "https://caldav.icloud.com/school/",
+        },
+    )
+
+    assert response.status_code == 201
+    detail = client.get(f"/api/appointments/{response.json()['appointment_id']}")
+    assert detail.status_code == 200
+    assert detail.json()["calendar_name"] == "School"
 
 
 def test_create_appointment_surfaces_provider_failure(monkeypatch) -> None:
