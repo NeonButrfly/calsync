@@ -52,6 +52,14 @@
           </div>
         </section>
 
+        {% if flash_message %}
+        <section class="flash flash--success">{{ flash_message }}</section>
+        {% endif %}
+
+        {% if error_message %}
+        <section class="flash flash--error">{{ error_message }}</section>
+        {% endif %}
+
         <section class="workspace-grid">
           <div class="workspace-column">
             <article class="panel">
@@ -79,6 +87,31 @@
               <p class="appointment-detail"><strong>Endpoint:</strong> {{ alexa_endpoint }}</p>
               <p class="appointment-detail"><strong>Privacy policy:</strong> {{ privacy_url }}</p>
               <p class="appointment-detail"><strong>Terms of use:</strong> {{ terms_url }}</p>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Edge config</p>
+                  <h3>Edge Worker controls</h3>
+                </div>
+              </div>
+              <p class="appointment-detail">
+                Update the live Worker flags from the product when this deployment has the right Cloudflare API permission.
+              </p>
+              <p class="appointment-detail"><strong>Worker:</strong> {{ edge_settings.worker_name }}</p>
+              <p class="appointment-detail"><strong>Status:</strong> {{ edge_settings.message }}</p>
+              <form class="form-grid" method="post" action="/alexa/setup">
+                <label class="checkbox-row">
+                  <input name="enable_alexa" type="checkbox" value="true"{% if edge_settings.enable_alexa %} checked{% endif %}{% if not edge_settings.manageable %} disabled{% endif %} />
+                  <span>Enable Alexa on the edge Worker</span>
+                </label>
+                <label>
+                  <span>Allowed skill IDs</span>
+                  <textarea name="allowed_skill_ids" rows="3"{% if not edge_settings.manageable %} disabled{% endif %}>{{ edge_settings.allowed_skill_ids | join(", ") }}</textarea>
+                </label>
+                <button type="submit"{% if not edge_settings.manageable %} disabled{% endif %}>Apply edge settings</button>
+              </form>
             </article>
           </div>
 

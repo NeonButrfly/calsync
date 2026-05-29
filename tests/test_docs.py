@@ -21,8 +21,10 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "readiness surface" in readme_content
     assert "get /api/readiness" in readme_content
     assert "get /alexa/setup" in readme_content
+    assert "post /alexa/setup" in readme_content
     assert "get /alexa/simulator" in readme_content
     assert "alexa setup page" in readme_content
+    assert "edge-settings form" in readme_content
     assert "alexa simulator page" in readme_content
     assert "downloadable skill package" in readme_content
     assert "https://mcp-calsync.kaymayers9.workers.dev/mcp" in readme_content
@@ -47,10 +49,14 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "include_cancelled=true" in ops_content
     assert "get /api/readiness" in ops_content
     assert "get /alexa/setup" in ops_content
+    assert "post /alexa/setup" in ops_content
     assert "get /alexa/simulator" in ops_content
     assert "get /alexa/skill-package.zip" in ops_content
     assert "post /alexa/simulator" in ops_content
     assert "post /alexa/simulate" in ops_content
+    assert "workers scripts write" in ops_content
+    assert "enable_alexa" in ops_content
+    assert "alexa_allowed_skill_ids" in ops_content
     assert "downloadable alexa custom skill package zip" in ops_content
     assert "post /mcp" in ops_content
     assert "mcp_auth_token" in ops_content
@@ -74,6 +80,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /alexa/setup" in prompt_content
     assert "get /alexa/skill-package.zip" in prompt_content
     assert "get /alexa/simulator" in prompt_content
+    assert "enable_alexa" in prompt_content
+    assert "alexa_allowed_skill_ids" in prompt_content
     assert "post /alexa/simulate" in prompt_content
     assert "remote mcp worker requirement" in prompt_content
     assert "https://mcp-calsync.neonbutterfly.net/mcp" in prompt_content
@@ -120,6 +128,7 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "request-signature flow" in ops_content
     assert "skill-package" in ops_content
     assert "alexa simulator page" in ops_content
+    assert "edge worker controls" in ops_content
     assert "spoken response" in ops_content
     assert "token-hash presence flags" in ops_content
 

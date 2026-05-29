@@ -98,6 +98,7 @@ Root experience:
 
 - `GET /`
 - `GET /alexa/setup`
+- `POST /alexa/setup`
 - `GET /alexa/simulator`
 - `POST /alexa/simulator`
 - `POST /appointments`
@@ -113,6 +114,7 @@ Behavior:
 - hides cancelled appointments from the default active schedule views while allowing a reference toggle when you intentionally want historical cancelled items
 - shows a full-stack readiness panel for Apple, channel tokens, edge reachability, and Alexa setup state
 - exposes an in-product Alexa setup page with a live package download instead of forcing repo-only setup
+- can read and update the edge Worker Alexa flags from the setup page when Cloudflare worker-management permission is configured
 - exposes an in-product Alexa simulator page that previews the real Worker voice logic before the Amazon-side turn-on is finished
 - shows a selected appointment detail panel with audit activity and provider metadata
 - edits and cancels the same Apple-backed appointment records used by the API
@@ -121,6 +123,7 @@ Behavior:
 ### Alexa setup page
 
 - `GET /alexa/setup`
+- `POST /alexa/setup`
 - `GET /alexa/simulator`
 - `GET /alexa/skill-package.zip`
 
@@ -130,6 +133,15 @@ This operator-facing flow now serves:
 - the public privacy and terms URLs
 - the current readiness state
 - a downloadable Alexa custom skill package zip from the running app
+- edge Worker controls for:
+  - `ENABLE_ALEXA`
+  - `ALEXA_ALLOWED_SKILL_IDS`
+
+Current management boundary:
+
+- the setup page uses the origin-side Cloudflare API token and account ID
+- the configured token must include `Workers Scripts Write`
+- if the token only has KV permissions, the product shows a clear permission error instead of pretending the edge Worker can be managed
 
 ### Alexa simulator page
 

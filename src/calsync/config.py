@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     cloudflare_account_id: str | None = None
     cloudflare_api_token: str | None = None
     cloudflare_token_kv_namespace_id: str | None = None
+    cloudflare_edge_worker_name: str = "edge-calsync"
     channel_token_runtime_path: str = ".runtime/channel-tokens.json"
     edge_base_url: str = "https://edge-calsync.neonbutterfly.net"
 

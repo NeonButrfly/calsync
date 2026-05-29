@@ -20,6 +20,7 @@ from calsync.schemas.appointments import (
 from calsync.services.apple_caldav import AppleCalDAVError
 from calsync.services.alexa_simulator import AlexaSimulatorService
 from calsync.services.appointments import AppointmentService
+from calsync.services.cloudflare_worker_config import CloudflareWorkerConfigService
 from calsync.services.readiness import ReadinessService
 
 
@@ -61,17 +62,61 @@ def terms_page(request: Request):
 @router.get("/alexa/setup")
 def alexa_setup_page(request: Request):
     readiness = ReadinessService().build()
+    edge_settings = CloudflareWorkerConfigService().get_alexa_settings()
     return _templates.TemplateResponse(
         request,
         "alexa_setup.html",
         {
             "request": request,
             "readiness": readiness,
+            "edge_settings": edge_settings,
             "alexa_endpoint": "https://edge-calsync.neonbutterfly.net/alexa",
             "privacy_url": "https://calsync.neonbutterfly.net/privacy",
             "terms_url": "https://calsync.neonbutterfly.net/terms",
             "simulator_url": "/alexa/simulator",
+            "flash_message": None,
+            "error_message": None,
         },
+    )
+
+
+@router.post("/alexa/setup")
+def alexa_setup_update(
+    request: Request,
+    allowed_skill_ids: str = Form(""),
+    enable_alexa: str | None = Form(None),
+):
+    readiness = ReadinessService().build()
+    service = CloudflareWorkerConfigService()
+    try:
+        edge_settings = service.update_alexa_settings(
+            enable_alexa=enable_alexa == "true",
+            allowed_skill_ids=[
+                value.strip() for value in allowed_skill_ids.split(",") if value.strip()
+            ],
+        )
+        flash_message = "Edge Worker settings updated."
+        error_message = None
+    except ValueError as exc:
+        edge_settings = service.get_alexa_settings()
+        flash_message = None
+        error_message = str(exc)
+
+    return _templates.TemplateResponse(
+        request,
+        "alexa_setup.html",
+        {
+            "request": request,
+            "readiness": readiness,
+            "edge_settings": edge_settings,
+            "alexa_endpoint": "https://edge-calsync.neonbutterfly.net/alexa",
+            "privacy_url": "https://calsync.neonbutterfly.net/privacy",
+            "terms_url": "https://calsync.neonbutterfly.net/terms",
+            "simulator_url": "/alexa/simulator",
+            "flash_message": flash_message,
+            "error_message": error_message,
+        },
+        status_code=200 if error_message is None else 400,
     )
 
 

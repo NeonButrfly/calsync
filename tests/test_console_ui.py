@@ -286,6 +286,21 @@ def test_public_policy_pages_render(monkeypatch) -> None:
 
 def test_alexa_setup_page_renders_operator_steps(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
+
+    class FakeCloudflareWorkerConfigService:
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": True,
+                "message": "Ready to configure the edge Worker from the product.",
+            }
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        FakeCloudflareWorkerConfigService,
+    )
     app = create_app()
     client = TestClient(app)
 
@@ -296,6 +311,77 @@ def test_alexa_setup_page_renders_operator_steps(monkeypatch) -> None:
     assert "Download skill package" in response.text
     assert "https://edge-calsync.neonbutterfly.net/alexa" in response.text
     assert "/alexa/simulator" in response.text
+    assert "Edge Worker controls" in response.text
+    assert 'name="allowed_skill_ids"' in response.text
+    assert "Apply edge settings" in response.text
+
+
+def test_alexa_setup_page_shows_cloudflare_permission_error(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+
+    class FakeCloudflareWorkerConfigService:
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": False,
+                "message": "Cloudflare API token needs Workers Scripts permission.",
+            }
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        FakeCloudflareWorkerConfigService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/alexa/setup")
+
+    assert response.status_code == 200
+    assert "Cloudflare API token needs Workers Scripts permission." in response.text
+
+
+def test_alexa_setup_page_updates_edge_settings(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+
+    class FakeCloudflareWorkerConfigService:
+        def __init__(self):
+            self.called = False
+
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": True,
+                "message": "Ready to configure the edge Worker from the product.",
+            }
+
+        def update_alexa_settings(self, *, enable_alexa: bool, allowed_skill_ids: list[str]):
+            assert enable_alexa is True
+            assert allowed_skill_ids == ["amzn1.ask.skill.real"]
+            self.called = True
+
+    fake_service = FakeCloudflareWorkerConfigService()
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        lambda: fake_service,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/alexa/setup",
+        data={
+            "enable_alexa": "true",
+            "allowed_skill_ids": "amzn1.ask.skill.real",
+        },
+    )
+
+    assert response.status_code == 200
+    assert fake_service.called is True
+    assert "Edge Worker settings updated." in response.text
 
 
 def test_alexa_simulator_page_renders_voice_test_surface(monkeypatch) -> None:

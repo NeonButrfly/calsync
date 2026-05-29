@@ -45,6 +45,7 @@ Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, and `#45` are now
 
 - `GET /`
 - `GET /alexa/setup`
+- `POST /alexa/setup`
 - `GET /alexa/simulator`
 - `POST /alexa/simulator`
 - `GET /api/info`
@@ -70,6 +71,7 @@ The root page now acts as the first family scheduling UX:
 - direct Apple calendar read/write through the same backend used by the API and Worker
 - a first in-product readiness panel that explains whether Apple, tokens, edge, and Alexa are actually ready
 - a first in-product Alexa setup page that links the live endpoint, policy URLs, and skill package download
+- a first in-product Alexa edge-settings form that can read and update Worker Alexa flags when Cloudflare worker-management permission is configured
 - a first in-product Alexa simulator page that previews real voice responses before the final Amazon console turn-on
 
 ### Worker routes
@@ -114,6 +116,7 @@ The first Alexa integration now lives beside the Worker:
 - interaction model: `workers/edge-calsync/alexa/interaction-model.json`
 - importable skill package: `workers/edge-calsync/alexa/skill-package`
 - in-product setup page: `GET /alexa/setup`
+- in-product edge-settings update: `POST /alexa/setup`
 - in-product simulator page: `GET /alexa/simulator`
 - in-product package download: `GET /alexa/skill-package.zip`
 - first intents:
@@ -144,6 +147,7 @@ Current auth shape:
   - `https://calsync.neonbutterfly.net/privacy`
   - `https://calsync.neonbutterfly.net/terms`
 - an authenticated simulator route now exists on the Worker so the product can preview the real voice responses before the skill is fully live
+- the setup page can now read and update `ENABLE_ALEXA` plus `ALEXA_ALLOWED_SKILL_IDS` on the edge Worker when the configured Cloudflare API token has `Workers Scripts Write`
 
 ### Request shape
 
