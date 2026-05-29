@@ -104,9 +104,9 @@
                   <span>{{ google_settings.client_id or "No Google client ID saved yet." }}</span>
                 </article>
                 <article class="detail-card">
-                  <p class="eyebrow">Connected account</p>
-                  <strong>{{ google_runtime.account_email or "Not connected" }}</strong>
-                  <span>{% if google_settings.refresh_token_saved %}Refresh token saved securely.{% else %}No connected Google account yet.{% endif %}</span>
+                  <p class="eyebrow">Connected accounts</p>
+                  <strong>{% if google_accounts %}{{ google_accounts|length }} connected accounts{% else %}Not connected{% endif %}</strong>
+                  <span>{% if google_accounts %}{{ google_accounts|map(attribute='account_email')|join(", ") }}{% else %}No connected Google account yet.{% endif %}</span>
                 </article>
                 <article class="detail-card">
                   <p class="eyebrow">Writable targets</p>

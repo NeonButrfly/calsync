@@ -227,8 +227,25 @@ class OperatorSettingsService:
         self.set_value("google_account_email", normalized_account_email)
         if normalized_refresh_token:
             self.set_value("google_refresh_token", normalized_refresh_token)
+        existing_calendars = self.get_google_calendar_catalog()
+        if existing_calendars:
+            self.upsert_google_account(
+                account_label=normalized_account_label,
+                account_email=normalized_account_email,
+                refresh_token=normalized_refresh_token,
+                calendars=existing_calendars,
+                preserve_existing_refresh_token=preserve_existing_refresh_token,
+            )
 
     def get_google_account_settings(self) -> dict[str, str | None]:
+        accounts = self.get_google_accounts()
+        if accounts:
+            first = accounts[0]
+            return {
+                "account_label": str(first["account_label"] or ""),
+                "account_email": str(first["account_email"] or ""),
+                "refresh_token": str(first["refresh_token"] or ""),
+            }
         return {
             "account_label": self.get_value("google_account_label"),
             "account_email": self.get_value("google_account_email"),
@@ -236,6 +253,198 @@ class OperatorSettingsService:
         }
 
     def set_google_calendar_catalog(self, calendars: list[dict[str, object]]) -> None:
+        normalized = self._normalize_google_calendars(calendars)
+        self.set_value("google_calendar_catalog", json.dumps(normalized))
+        account = self.get_google_account_settings()
+        if account["account_email"]:
+            self.upsert_google_account(
+                account_label=str(account["account_label"] or account["account_email"] or ""),
+                account_email=str(account["account_email"] or ""),
+                refresh_token=str(account["refresh_token"] or ""),
+                calendars=normalized,
+                preserve_existing_refresh_token=True,
+            )
+
+    def get_google_calendar_catalog(self) -> list[dict[str, object]]:
+        accounts = self.get_google_accounts()
+        if accounts:
+            calendars = self._coerce_google_calendars(accounts[0].get("calendars"))
+            if calendars:
+                return calendars
+        raw = self.get_value("google_calendar_catalog")
+        if not raw:
+            return []
+        payload = json.loads(raw)
+        return self._coerce_google_calendars(payload)
+
+    def get_google_accounts(self) -> list[dict[str, object]]:
+        raw = self.get_value("google_accounts")
+        if raw:
+            payload = json.loads(raw)
+            if isinstance(payload, list):
+                accounts = self._coerce_google_accounts(payload)
+                if accounts:
+                    return accounts
+
+        legacy_account = {
+            "account_label": self.get_value("google_account_label"),
+            "account_email": self.get_value("google_account_email"),
+            "refresh_token": self.get_value("google_refresh_token"),
+        }
+        legacy_catalog = self._coerce_google_calendars(
+            json.loads(self.get_value("google_calendar_catalog") or "[]")
+        )
+        if legacy_account["account_email"] and legacy_account["refresh_token"]:
+            return [
+                {
+                    "account_label": legacy_account["account_label"]
+                    or legacy_account["account_email"],
+                    "account_email": legacy_account["account_email"],
+                    "refresh_token": legacy_account["refresh_token"],
+                    "calendars": legacy_catalog,
+                }
+            ]
+        return []
+
+    def upsert_google_account(
+        self,
+        *,
+        account_label: str,
+        account_email: str,
+        refresh_token: str,
+        calendars: list[dict[str, object]],
+        preserve_existing_refresh_token: bool = False,
+    ) -> None:
+        normalized_account_label = account_label.strip()
+        normalized_account_email = account_email.strip()
+        normalized_refresh_token = refresh_token.strip()
+        if not normalized_account_label:
+            raise ValueError("Google account label is required.")
+        if not normalized_account_email:
+            raise ValueError("Google account email is required.")
+        normalized_calendars = self._normalize_google_calendars(calendars)
+
+        accounts = self.get_google_accounts()
+        existing = next(
+            (
+                item
+                for item in accounts
+                if str(item.get("account_email") or "").strip().lower()
+                == normalized_account_email.lower()
+            ),
+            None,
+        )
+        if not normalized_refresh_token and not (
+            preserve_existing_refresh_token and existing and existing.get("refresh_token")
+        ):
+            raise ValueError("Google refresh token is required.")
+
+        next_accounts: list[dict[str, object]] = []
+        replaced = False
+        for item in accounts:
+            if str(item.get("account_email") or "").strip().lower() != normalized_account_email.lower():
+                next_accounts.append(item)
+                continue
+            next_accounts.append(
+                {
+                    "account_label": normalized_account_label,
+                    "account_email": normalized_account_email,
+                    "refresh_token": normalized_refresh_token
+                    or str(item.get("refresh_token") or ""),
+                    "calendars": normalized_calendars,
+                }
+            )
+            replaced = True
+        if not replaced:
+            next_accounts.append(
+                {
+                    "account_label": normalized_account_label,
+                    "account_email": normalized_account_email,
+                    "refresh_token": normalized_refresh_token,
+                    "calendars": normalized_calendars,
+                }
+            )
+
+        self.set_value("google_accounts", json.dumps(next_accounts))
+        first = next_accounts[0]
+        self.set_value("google_account_label", str(first["account_label"]))
+        self.set_value("google_account_email", str(first["account_email"]))
+        self.set_value("google_refresh_token", str(first["refresh_token"]))
+        self.set_value("google_calendar_catalog", json.dumps(first["calendars"]))
+
+    def remove_google_account(self, account_email: str) -> None:
+        normalized_account_email = account_email.strip().lower()
+        accounts = [
+            item
+            for item in self.get_google_accounts()
+            if str(item.get("account_email") or "").strip().lower() != normalized_account_email
+        ]
+        if accounts:
+            self.set_value("google_accounts", json.dumps(accounts))
+            first = accounts[0]
+            self.set_value("google_account_label", str(first["account_label"]))
+            self.set_value("google_account_email", str(first["account_email"]))
+            self.set_value("google_refresh_token", str(first["refresh_token"]))
+            self.set_value("google_calendar_catalog", json.dumps(first["calendars"]))
+            return
+        self.delete_value("google_accounts")
+        self.clear_google_account_settings()
+        self.clear_google_calendar_catalog()
+
+    def _coerce_google_accounts(self, payload: object) -> list[dict[str, object]]:
+        if not isinstance(payload, list):
+            return []
+        accounts: list[dict[str, object]] = []
+        seen_emails: set[str] = set()
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            account_label = str(item.get("account_label") or "").strip()
+            account_email = str(item.get("account_email") or "").strip()
+            refresh_token = str(item.get("refresh_token") or "").strip()
+            calendars = self._coerce_google_calendars(item.get("calendars"))
+            if not account_email or not refresh_token:
+                continue
+            email_key = account_email.lower()
+            if email_key in seen_emails:
+                continue
+            seen_emails.add(email_key)
+            accounts.append(
+                {
+                    "account_label": account_label or account_email,
+                    "account_email": account_email,
+                    "refresh_token": refresh_token,
+                    "calendars": calendars,
+                }
+            )
+        return accounts
+
+    def _coerce_google_calendars(self, payload: object) -> list[dict[str, object]]:
+        if not isinstance(payload, list):
+            return []
+        calendars: list[dict[str, object]] = []
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            calendar_name = str(item.get("calendar_name") or "").strip()
+            calendar_id = str(item.get("calendar_id") or "").strip()
+            if not calendar_name or not calendar_id:
+                continue
+            calendars.append(
+                {
+                    "calendar_name": calendar_name,
+                    "calendar_id": calendar_id,
+                    "is_default": bool(item.get("is_default")),
+                }
+            )
+        if calendars and not any(item["is_default"] for item in calendars):
+            calendars[0]["is_default"] = True
+        return calendars
+
+    def _normalize_google_calendars(
+        self,
+        calendars: list[dict[str, object]],
+    ) -> list[dict[str, object]]:
         if not calendars:
             raise ValueError("At least one Google calendar is required.")
 
@@ -266,39 +475,14 @@ class OperatorSettingsService:
         if default_index is None:
             default_index = 0
         normalized[default_index]["is_default"] = True
-        self.set_value("google_calendar_catalog", json.dumps(normalized))
-
-    def get_google_calendar_catalog(self) -> list[dict[str, object]]:
-        raw = self.get_value("google_calendar_catalog")
-        if not raw:
-            return []
-        payload = json.loads(raw)
-        if not isinstance(payload, list):
-            return []
-        calendars: list[dict[str, object]] = []
-        for item in payload:
-            if not isinstance(item, dict):
-                continue
-            calendar_name = str(item.get("calendar_name") or "").strip()
-            calendar_id = str(item.get("calendar_id") or "").strip()
-            if not calendar_name or not calendar_id:
-                continue
-            calendars.append(
-                {
-                    "calendar_name": calendar_name,
-                    "calendar_id": calendar_id,
-                    "is_default": bool(item.get("is_default")),
-                }
-            )
-        if calendars and not any(item["is_default"] for item in calendars):
-            calendars[0]["is_default"] = True
-        return calendars
+        return normalized
 
     def describe_google_oauth_settings(self) -> dict[str, object]:
         oauth = self.get_google_oauth_settings()
         account = self.get_google_account_settings()
         catalog = self.get_google_calendar_catalog()
-        has_any = any(oauth.values()) or any(account.values()) or bool(catalog)
+        accounts = self.get_google_accounts()
+        has_any = any(oauth.values()) or any(account.values()) or bool(catalog) or bool(accounts)
         return {
             "client_id": oauth["client_id"] or "",
             "client_secret_saved": bool(oauth["client_secret"]),
@@ -306,6 +490,7 @@ class OperatorSettingsService:
             "account_email": account["account_email"] or "",
             "refresh_token_saved": bool(account["refresh_token"]),
             "calendar_count": len(catalog),
+            "account_count": len(accounts),
             "source": "product_vault" if has_any else "missing",
         }
 
@@ -322,6 +507,7 @@ class OperatorSettingsService:
         self.delete_value("google_account_label")
         self.delete_value("google_account_email")
         self.delete_value("google_refresh_token")
+        self.delete_value("google_accounts")
 
     def clear_google_calendar_catalog(self) -> None:
         self.delete_value("google_calendar_catalog")

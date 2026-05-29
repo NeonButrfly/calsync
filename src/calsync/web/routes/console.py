@@ -131,6 +131,7 @@ def connections_page(request: Request):
             "apple_calendar_catalog": apple_runtime_service.list_calendars(),
             "google_settings": google_settings,
             "google_runtime": google_runtime,
+            "google_accounts": google_runtime_service.list_accounts(),
             "google_calendar_catalog": google_runtime_service.list_calendars(),
             "readiness": ReadinessService().build(),
         },
@@ -239,6 +240,7 @@ def google_setup_page(request: Request):
             "request": request,
             "google_settings": google_settings,
             "runtime_config": runtime_config,
+            "google_accounts": runtime_service.list_accounts(),
             "calendar_catalog": runtime_service.list_calendars(),
             "flash_message": None,
             "error_message": None,
@@ -249,23 +251,23 @@ def google_setup_page(request: Request):
 
 def _build_google_client_from_settings(
     operator_settings: OperatorSettingsService,
+    *,
+    account_email: str | None = None,
 ) -> GoogleCalendarClient:
     oauth_settings = operator_settings.get_google_oauth_settings()
-    account_settings = operator_settings.get_google_account_settings()
-    runtime_config = GoogleRuntimeConfigService(
-        operator_settings=operator_settings
-    ).resolve()
+    runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
+    runtime_config = runtime_service.resolve(account_email=account_email)
     client_id = str(oauth_settings["client_id"] or "").strip()
     client_secret = str(oauth_settings["client_secret"] or "").strip()
-    refresh_token = str(account_settings["refresh_token"] or "").strip()
+    refresh_token = str(runtime_config["refresh_token"] or "").strip()
     if not client_id or not client_secret:
         raise ValueError("Google OAuth settings are incomplete.")
     if not refresh_token:
         raise ValueError("Google account is not connected yet.")
     return GoogleCalendarClient(
         GoogleOAuthConfig(
-            account_label=str(account_settings["account_label"] or "Google"),
-            account_email=str(account_settings["account_email"] or ""),
+            account_label=str(runtime_config["account_label"] or "Google"),
+            account_email=str(runtime_config["account_email"] or ""),
             client_id=client_id,
             client_secret=client_secret,
             refresh_token=refresh_token,
@@ -304,6 +306,7 @@ def google_setup_update(
             "request": request,
             "google_settings": google_settings,
             "runtime_config": runtime_config,
+            "google_accounts": runtime_service.list_accounts(),
             "calendar_catalog": runtime_service.list_calendars(),
             "flash_message": flash_message,
             "error_message": error_message,
@@ -316,17 +319,26 @@ def google_setup_update(
 @router.post("/google/setup/refresh")
 def google_setup_refresh(request: Request):
     operator_settings = OperatorSettingsService()
+    requested_account_email = str((request.query_params.get("account_email") or "")).strip() or None
     try:
-        client = _build_google_client_from_settings(operator_settings)
+        client = _build_google_client_from_settings(
+            operator_settings,
+            account_email=requested_account_email,
+        )
+        selected_runtime = GoogleRuntimeConfigService(
+            operator_settings=operator_settings
+        ).resolve(account_email=requested_account_email)
         account_email = client.current_user_email()
         calendar_catalog = client.list_calendars()
-        operator_settings.set_google_account_settings(
+        previous_account_email = str(selected_runtime["account_email"] or "").strip()
+        if previous_account_email and previous_account_email.lower() != account_email.lower():
+            operator_settings.remove_google_account(previous_account_email)
+        operator_settings.upsert_google_account(
             account_label=account_email,
             account_email=account_email,
-            refresh_token="",
-            preserve_existing_refresh_token=True,
+            refresh_token=str(selected_runtime["refresh_token"] or ""),
+            calendars=calendar_catalog,
         )
-        operator_settings.set_google_calendar_catalog(calendar_catalog)
         flash_message = "Google calendars refreshed from the live account."
         error_message = None
     except (GoogleCalendarError, ValueError) as exc:
@@ -343,6 +355,7 @@ def google_setup_refresh(request: Request):
             "request": request,
             "google_settings": google_settings,
             "runtime_config": runtime_config,
+            "google_accounts": runtime_service.list_accounts(),
             "calendar_catalog": runtime_service.list_calendars(),
             "flash_message": flash_message,
             "error_message": error_message,
@@ -356,11 +369,27 @@ def google_setup_refresh(request: Request):
 def google_setup_disconnect(request: Request):
     operator_settings = OperatorSettingsService()
     operator_settings.clear_google_oauth_state()
-    operator_settings.clear_google_account_settings()
-    operator_settings.clear_google_calendar_catalog()
+    account_email = str((request.query_params.get("account_email") or "")).strip() or None
+    if account_email:
+        operator_settings.remove_google_account(account_email)
+    else:
+        operator_settings.clear_google_account_settings()
+        operator_settings.clear_google_calendar_catalog()
     google_settings = operator_settings.describe_google_oauth_settings()
     runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
-    runtime_config = runtime_service.resolve()
+    runtime_config = runtime_service.resolve() if runtime_service.list_accounts() else {
+        "account_label": "",
+        "account_email": "",
+        "refresh_token": "",
+        "client_id": str(operator_settings.get_google_oauth_settings()["client_id"] or ""),
+        "client_secret": str(operator_settings.get_google_oauth_settings()["client_secret"] or ""),
+        "primary_calendar_id": "",
+        "primary_calendar_name": "",
+        "source": "product_vault" if google_settings["client_id"] else "missing",
+        "ready": False,
+        "calendars": [],
+        "accounts": [],
+    }
     return _templates.TemplateResponse(
         request,
         "google_setup.html",
@@ -368,6 +397,7 @@ def google_setup_disconnect(request: Request):
             "request": request,
             "google_settings": google_settings,
             "runtime_config": runtime_config,
+            "google_accounts": runtime_service.list_accounts(),
             "calendar_catalog": runtime_service.list_calendars(),
             "flash_message": "Google account disconnected. The shared OAuth app is still saved.",
             "error_message": None,
@@ -445,12 +475,12 @@ def google_oauth_callback(
     access_token = str(token_payload["access_token"] or "").strip()
     account_email = client.current_user_email(access_token=access_token)
     calendar_catalog = client.list_calendars(access_token=access_token)
-    operator_settings.set_google_account_settings(
+    operator_settings.upsert_google_account(
         account_label=account_email,
         account_email=account_email,
         refresh_token=refresh_token,
+        calendars=calendar_catalog,
     )
-    operator_settings.set_google_calendar_catalog(calendar_catalog)
 
     runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
     google_settings = operator_settings.describe_google_oauth_settings()
@@ -462,6 +492,7 @@ def google_oauth_callback(
             "request": request,
             "google_settings": google_settings,
             "runtime_config": runtime_config,
+            "google_accounts": runtime_service.list_accounts(),
             "calendar_catalog": runtime_service.list_calendars(),
             "flash_message": "Google account connected and calendars discovered.",
             "error_message": None,

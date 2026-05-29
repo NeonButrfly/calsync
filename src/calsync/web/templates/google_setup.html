@@ -88,7 +88,7 @@
                 </label>
                 <div class="action-row">
                   <button type="submit">Save Google OAuth setup</button>
-                  <a class="button-link button-link--secondary" href="{{ connect_url }}">{% if google_settings.refresh_token_saved %}Reconnect Google account{% else %}Connect Google account{% endif %}</a>
+                  <a class="button-link button-link--secondary" href="{{ connect_url }}">{% if google_settings.refresh_token_saved %}Connect another Google account{% else %}Connect Google account{% endif %}</a>
                 </div>
               </form>
             </article>
@@ -98,8 +98,8 @@
             <article class="panel">
               <div class="panel-head">
                 <div>
-                  <p class="eyebrow">Connected account</p>
-                  <h3>What the live app will use</h3>
+                  <p class="eyebrow">Connected accounts</p>
+                  <h3>Connected Google accounts</h3>
                 </div>
               </div>
               <div class="detail-grid">
@@ -124,16 +124,31 @@
                   <span>Used to refresh Google Calendar access without reauth every time.</span>
                 </article>
               </div>
-              <div class="action-row">
-                <form method="post" action="/google/setup/refresh">
-                  <button type="submit" {% if not google_settings.refresh_token_saved %}disabled{% endif %}>Refresh Google calendars</button>
-                </form>
-                {% if google_settings.refresh_token_saved %}
-                <form method="post" action="/google/setup/disconnect">
-                  <button class="danger-button" type="submit">Disconnect Google account</button>
-                </form>
-                {% endif %}
+              {% if google_accounts %}
+              <div class="detail-stack">
+                {% for account in google_accounts %}
+                <article class="detail-card">
+                  <p class="eyebrow">Google account</p>
+                  <strong>{{ account.account_label }}</strong>
+                  <span>{{ account.account_email }}</span>
+                  <p class="appointment-detail"><strong>Writable targets:</strong> {{ account.calendars|length }}</p>
+                  <div class="action-row">
+                    <form method="post" action="/google/setup/refresh?account_email={{ account.account_email|urlencode }}">
+                      <button type="submit">Refresh calendars</button>
+                    </form>
+                    <form method="post" action="/google/setup/disconnect?account_email={{ account.account_email|urlencode }}">
+                      <button class="danger-button" type="submit">Disconnect this account</button>
+                    </form>
+                  </div>
+                </article>
+                {% endfor %}
               </div>
+              {% else %}
+              <div class="empty-state">
+                <h4>No Google account connected yet</h4>
+                <p>Save the shared OAuth app, then connect one or more Google accounts in the browser.</p>
+              </div>
+              {% endif %}
             </article>
 
             <article class="panel">
@@ -149,7 +164,8 @@
                 <article class="detail-card">
                   <p class="eyebrow">{% if item.is_default %}Default target{% else %}Additional target{% endif %}</p>
                   <strong>{{ item.calendar_name }}</strong>
-                  <span>{{ item.calendar_id }}</span>
+                  <span>{{ item.account_label }} · {{ item.account_email }}</span>
+                  <p class="appointment-detail">{{ item.calendar_id }}</p>
                 </article>
                 {% endfor %}
               </div>

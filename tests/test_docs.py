@@ -42,6 +42,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "apple calendar target manager" in readme_content
     assert "browser-based google oauth connect on the live calsync domain" in readme_content
     assert "google calendar refresh and disconnect controls" in readme_content
+    assert "multiple connected google accounts under one shared oauth app" in readme_content
     assert "writable google calendar targets" in readme_content
     assert "connections workspace at `/connections`" in readme_content
     assert "target-calendar picker" in readme_content
@@ -100,9 +101,10 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "apple calendar setup page" in ops_content
     assert "google setup page" in ops_content
     assert "browser-based account connect on the live calsync domain" in ops_content
+    assert "multiple connected google accounts under the same shared oauth app" in ops_content
     assert "writable google targets appear in the same picker" in ops_content
-    assert "refresh action that resyncs the connected google account email and discovered calendars" in ops_content
-    assert "disconnect action that clears the linked google account" in ops_content
+    assert "refresh action that resyncs one connected google account email and discovered calendars" in ops_content
+    assert "disconnect action that clears one linked google account" in ops_content
     assert "target apple calendar" in ops_content
     assert "additional tracked apple calendar targets" in ops_content
     assert "move an appointment from one saved apple calendar target to another" in ops_content
@@ -154,6 +156,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /connections" in prompt_content
     assert "save the shared google oauth client id and client secret" in prompt_content
     assert "save the google refresh token" in prompt_content
+    assert "support more than one connected google account under that shared oauth app" in prompt_content
     assert "expose a live refresh path" in prompt_content
     assert "safe disconnect path" in prompt_content
     assert "create, update, cancel, and date-range sync google events" in prompt_content

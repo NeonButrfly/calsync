@@ -139,6 +139,48 @@ def test_connections_page_renders_provider_summary(monkeypatch) -> None:
     assert "Open Google setup" in response.text
 
 
+def test_connections_page_shows_multiple_google_accounts(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.upsert_google_account(
+        account_label="Kay Google",
+        account_email="kay@example.com",
+        refresh_token="kay-refresh-token",
+        calendars=[
+            {
+                "calendar_name": "Primary",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ],
+    )
+    service.upsert_google_account(
+        account_label="Work Google",
+        account_email="work@example.com",
+        refresh_token="work-refresh-token",
+        calendars=[
+            {
+                "calendar_name": "Work",
+                "calendar_id": "work",
+                "is_default": True,
+            }
+        ],
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/connections")
+
+    assert response.status_code == 200
+    assert "2 connected accounts" in response.text
+    assert "kay@example.com" in response.text
+    assert "work@example.com" in response.text
+
+
 def test_console_create_flow_redirects_and_shows_created_appointment(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     monkeypatch.setattr(
@@ -347,9 +389,9 @@ def test_google_setup_page_shows_refresh_and_disconnect_for_connected_account(mo
     response = client.get("/google/setup")
 
     assert response.status_code == 200
-    assert "Reconnect Google account" in response.text
-    assert "Refresh Google calendars" in response.text
-    assert "Disconnect Google account" in response.text
+    assert "Connect another Google account" in response.text
+    assert "Refresh calendars" in response.text
+    assert "Disconnect this account" in response.text
 
 
 def test_google_oauth_start_redirects_with_saved_state(monkeypatch) -> None:
@@ -436,6 +478,95 @@ def test_google_oauth_callback_saves_account_and_clears_state(monkeypatch) -> No
             "calendar_id": "primary",
             "is_default": True,
         }
+    ]
+
+
+def test_google_oauth_callback_can_append_another_google_account(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.upsert_google_account(
+        account_label="kay@example.com",
+        account_email="kay@example.com",
+        refresh_token="kay-refresh-token",
+        calendars=[
+            {
+                "calendar_name": "Primary",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ],
+    )
+    service.set_google_oauth_state("state-456")
+
+    class FakeGoogleCalendarClient:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def exchange_code(self, *, code: str, redirect_uri: str):
+            assert code == "work-code"
+            assert redirect_uri.endswith("/auth/google/callback")
+            return {
+                "refresh_token": "work-refresh-token",
+                "access_token": "work-access-token",
+            }
+
+        def current_user_email(self, *, access_token: str | None = None) -> str:
+            assert access_token == "work-access-token"
+            return "work@example.com"
+
+        def list_calendars(self, *, access_token: str | None = None):
+            assert access_token == "work-access-token"
+            return [
+                {
+                    "calendar_name": "Work",
+                    "calendar_id": "work",
+                    "is_default": True,
+                }
+            ]
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.GoogleCalendarClient",
+        FakeGoogleCalendarClient,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/auth/google/callback?state=state-456&code=work-code")
+
+    assert response.status_code == 200
+    assert "Google account connected and calendars discovered." in response.text
+    assert "Connected Google accounts" in response.text
+    assert "kay@example.com" in response.text
+    assert "work@example.com" in response.text
+    assert service.get_google_accounts() == [
+        {
+            "account_label": "kay@example.com",
+            "account_email": "kay@example.com",
+            "refresh_token": "kay-refresh-token",
+            "calendars": [
+                {
+                    "calendar_name": "Primary",
+                    "calendar_id": "primary",
+                    "is_default": True,
+                }
+            ],
+        },
+        {
+            "account_label": "work@example.com",
+            "account_email": "work@example.com",
+            "refresh_token": "work-refresh-token",
+            "calendars": [
+                {
+                    "calendar_name": "Work",
+                    "calendar_id": "work",
+                    "is_default": True,
+                }
+            ],
+        },
     ]
 
 

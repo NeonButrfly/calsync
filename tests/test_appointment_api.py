@@ -223,6 +223,38 @@ def _configure_google_settings() -> None:
     )
 
 
+def _configure_multiple_google_accounts() -> None:
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.upsert_google_account(
+        account_label="Kay Google",
+        account_email="kay@example.com",
+        refresh_token="kay-refresh-token",
+        calendars=[
+            {
+                "calendar_name": "Primary",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ],
+    )
+    service.upsert_google_account(
+        account_label="Work Google",
+        account_email="work@example.com",
+        refresh_token="work-refresh-token",
+        calendars=[
+            {
+                "calendar_name": "Work",
+                "calendar_id": "work",
+                "is_default": True,
+            }
+        ],
+    )
+
+
 def test_create_appointment_returns_local_id(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     monkeypatch.setattr(
@@ -321,6 +353,44 @@ def test_create_appointment_can_target_google_calendar(monkeypatch) -> None:
     assert detail_response.status_code == 200
     assert detail_response.json()["provider_type"] == "google_calendar"
     assert detail_response.json()["calendar_name"] == "Primary"
+
+
+def test_create_appointment_can_target_a_specific_google_account_calendar(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    _configure_multiple_google_accounts()
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_google_client",
+        lambda self, calendar_id=None, account_email=None, calendar_name=None: FakeGoogleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Work planning",
+            "date": "2026-06-05",
+            "start_time": "15:00",
+            "end_time": "16:00",
+            "timezone": "America/Anchorage",
+            "target_calendar_url": "google:work@example.com:work",
+        },
+    )
+
+    assert response.status_code == 201
+    detail_response = client.get(f"/api/appointments/{response.json()['appointment_id']}")
+    assert detail_response.status_code == 200
+    assert detail_response.json()["provider_type"] == "google_calendar"
+    assert detail_response.json()["calendar_name"] == "Work"
+    assert detail_response.json()["account_label"] == "Work Google"
 
 
 def test_list_appointments_syncs_google_calendar_events(monkeypatch) -> None:

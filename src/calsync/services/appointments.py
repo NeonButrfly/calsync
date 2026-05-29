@@ -467,10 +467,12 @@ class AppointmentService:
         self,
         calendar_id: str | None = None,
         calendar_name: str | None = None,
+        account_email: str | None = None,
     ) -> GoogleCalendarClient:
         config = self.google_runtime_config.resolve(
             calendar_id=calendar_id,
             calendar_name=calendar_name,
+            account_email=account_email,
         )
         if not config["ready"]:
             raise ValueError("Google calendar settings are incomplete.")
@@ -492,18 +494,25 @@ class AppointmentService:
         *,
         target_calendar_value: str | None = None,
     ) -> AppleCalendarConnection:
-        provider_type, external_id = self._parse_target_calendar_value(
+        provider_type, external_id, account_email = self._parse_target_calendar_value(
             target_calendar_value
         )
         if provider_type == "google_calendar":
-            config = self.google_runtime_config.resolve(calendar_id=external_id)
+            config = self.google_runtime_config.resolve(
+                calendar_id=external_id,
+                account_email=account_email,
+            )
             if not config["ready"]:
                 raise ValueError("Google calendar settings are incomplete.")
+            target_value = self.google_runtime_config.encode_target_value(
+                str(config["account_email"]),
+                str(config["primary_calendar_id"]),
+            )
             existing = session.scalar(
                 select(AppleCalendarConnection).where(
                     AppleCalendarConnection.provider_type == "google_calendar",
                     AppleCalendarConnection.primary_calendar_url
-                    == str(config["primary_calendar_id"]),
+                    == target_value,
                 )
             )
             if existing is not None:
@@ -511,7 +520,14 @@ class AppointmentService:
                 existing.apple_username = str(config["account_email"])
                 existing.primary_calendar_name = str(config["primary_calendar_name"])
                 existing.is_primary = bool(
-                    self.google_runtime_config.resolve()["primary_calendar_id"]
+                    self.google_runtime_config.encode_target_value(
+                        str(config["account_email"]),
+                        str(
+                            self.google_runtime_config.resolve(
+                                account_email=str(config["account_email"])
+                            )["primary_calendar_id"]
+                        ),
+                    )
                     == existing.primary_calendar_url
                 )
                 return existing
@@ -519,11 +535,18 @@ class AppointmentService:
                 provider_type="google_calendar",
                 account_label=str(config["account_label"]),
                 apple_username=str(config["account_email"]),
-                primary_calendar_url=str(config["primary_calendar_id"]),
+                primary_calendar_url=target_value,
                 primary_calendar_name=str(config["primary_calendar_name"]),
                 is_primary=bool(
-                    self.google_runtime_config.resolve()["primary_calendar_id"]
-                    == str(config["primary_calendar_id"])
+                    self.google_runtime_config.encode_target_value(
+                        str(config["account_email"]),
+                        str(
+                            self.google_runtime_config.resolve(
+                                account_email=str(config["account_email"])
+                            )["primary_calendar_id"]
+                        ),
+                    )
+                    == target_value
                 ),
             )
             session.add(connection)
@@ -594,14 +617,20 @@ class AppointmentService:
         calendar: dict[str, object],
     ) -> None:
         target_value = str(calendar["calendar_url"])
-        provider_type, external_id = self._parse_target_calendar_value(target_value)
+        provider_type, external_id, account_email = self._parse_target_calendar_value(
+            target_value
+        )
         connection = self._ensure_connection(
             session,
             target_calendar_value=target_value,
         )
         provider_events = self._list_provider_events(
             provider_type=provider_type,
-            external_id=external_id,
+            external_id=(
+                self.google_runtime_config.encode_target_value(account_email, external_id)
+                if provider_type == "google_calendar" and account_email
+                else external_id
+            ),
             starts_at=starts_at,
             ends_at=ends_at + timedelta(days=1),
         )
@@ -772,13 +801,16 @@ class AppointmentService:
             return target_calendar_url
         if target_calendar_name:
             try:
-                calendar_id = str(
-                    self.google_runtime_config.resolve(
+                google_target = self.google_runtime_config.resolve(
                         calendar_name=target_calendar_name,
-                    )["primary_calendar_id"]
                 )
-                if calendar_id:
-                    return f"google:{calendar_id}"
+                calendar_id = str(google_target["primary_calendar_id"])
+                account_email = str(google_target["account_email"])
+                if calendar_id and account_email:
+                    return self.google_runtime_config.encode_target_value(
+                        account_email,
+                        calendar_id,
+                    )
             except ValueError:
                 pass
         return str(
@@ -788,15 +820,21 @@ class AppointmentService:
             )["primary_calendar_url"]
         )
 
-    def _parse_target_calendar_value(self, value: str | None) -> tuple[str, str]:
+    def _parse_target_calendar_value(
+        self,
+        value: str | None,
+    ) -> tuple[str, str, str | None]:
         raw = str(value or "").strip()
         if raw.startswith("google:"):
-            return ("google_calendar", raw.split(":", 1)[1])
-        return ("icloud_caldav", raw)
+            account_email, calendar_id = self.google_runtime_config.decode_target_value(raw)
+            return ("google_calendar", calendar_id, account_email)
+        return ("icloud_caldav", raw, None)
 
     def _connection_target_value(self, connection: AppleCalendarConnection) -> str:
         if connection.provider_type == "google_calendar":
-            return f"google:{connection.primary_calendar_url}"
+            if str(connection.primary_calendar_url).startswith("google:"):
+                return connection.primary_calendar_url
+            return f"google:{connection.apple_username}:{connection.primary_calendar_url}"
         return connection.primary_calendar_url
 
     def _create_provider_event(
@@ -811,10 +849,14 @@ class AppointmentService:
         notes: str | None,
     ):
         if connection.provider_type == "google_calendar":
+            calendar_account_email, calendar_id = self.google_runtime_config.decode_target_value(
+                self._connection_target_value(connection)
+            )
             return self._google_client_for_calendar(
-                connection.primary_calendar_url
+                calendar_id,
+                account_email=calendar_account_email,
             ).create_event(
-                calendar_id=connection.primary_calendar_url,
+                calendar_id=calendar_id,
                 title=title,
                 starts_at=starts_at,
                 ends_at=ends_at,
@@ -846,10 +888,14 @@ class AppointmentService:
         etag: str | None,
     ):
         if connection.provider_type == "google_calendar":
+            calendar_account_email, calendar_id = self.google_runtime_config.decode_target_value(
+                self._connection_target_value(connection)
+            )
             return self._google_client_for_calendar(
-                connection.primary_calendar_url
+                calendar_id,
+                account_email=calendar_account_email,
             ).update_event(
-                calendar_id=connection.primary_calendar_url,
+                calendar_id=calendar_id,
                 provider_event_id=provider_event_id,
                 title=title,
                 starts_at=starts_at,
@@ -881,8 +927,14 @@ class AppointmentService:
         etag: str | None,
     ) -> None:
         if connection.provider_type == "google_calendar":
-            self._google_client_for_calendar(connection.primary_calendar_url).cancel_event(
-                calendar_id=connection.primary_calendar_url,
+            calendar_account_email, calendar_id = self.google_runtime_config.decode_target_value(
+                self._connection_target_value(connection)
+            )
+            self._google_client_for_calendar(
+                calendar_id,
+                account_email=calendar_account_email,
+            ).cancel_event(
+                calendar_id=calendar_id,
                 provider_event_id=provider_event_id,
                 href=href,
                 etag=etag,
@@ -903,11 +955,17 @@ class AppointmentService:
         ends_at: datetime,
     ) -> list[AppleListedEvent | GoogleListedEvent]:
         if provider_type == "google_calendar":
-            client = self._google_client_for_calendar(external_id)
+            account_email, calendar_id = self.google_runtime_config.decode_target_value(
+                f"google:{external_id}" if ":" not in external_id else external_id
+            )
+            client = self._google_client_for_calendar(
+                calendar_id,
+                account_email=account_email,
+            )
             if not hasattr(client, "list_events"):
                 return []
             return client.list_events(
-                calendar_id=external_id,
+                calendar_id=calendar_id,
                 starts_at=starts_at,
                 ends_at=ends_at,
             )
@@ -925,9 +983,17 @@ class AppointmentService:
         except TypeError:
             return self._build_apple_client()
 
-    def _google_client_for_calendar(self, calendar_id: str) -> GoogleCalendarClient:
+    def _google_client_for_calendar(
+        self,
+        calendar_id: str,
+        *,
+        account_email: str | None = None,
+    ) -> GoogleCalendarClient:
         try:
-            return self._build_google_client(calendar_id=calendar_id)
+            return self._build_google_client(
+                calendar_id=calendar_id,
+                account_email=account_email,
+            )
         except TypeError:
             return self._build_google_client()
 
@@ -969,9 +1035,9 @@ class AppointmentService:
                 {
                     "provider_type": "google_calendar",
                     "calendar_name": str(item["calendar_name"]),
-                    "calendar_url": f"google:{item['calendar_id']}",
+                    "calendar_url": str(item["target_value"]),
                     "is_default": bool(item.get("is_default")),
-                    "account_label": str(google["account_label"]),
+                    "account_label": str(item["account_label"]),
                 }
                 for item in self.google_runtime_config.list_calendars()
             ]

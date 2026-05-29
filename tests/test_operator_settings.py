@@ -250,3 +250,70 @@ def test_operator_settings_can_clear_google_account_state() -> None:
     }
     assert service.get_google_calendar_catalog() == []
     assert service.get_google_oauth_state() is None
+
+
+def test_operator_settings_can_store_multiple_google_accounts() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.upsert_google_account(
+        account_label="Kay Google",
+        account_email="kay@example.com",
+        refresh_token="kay-refresh-token",
+        calendars=[
+            {
+                "calendar_name": "Primary",
+                "calendar_id": "primary",
+                "is_default": True,
+            },
+            {
+                "calendar_name": "Family",
+                "calendar_id": "family",
+                "is_default": False,
+            },
+        ],
+    )
+    service.upsert_google_account(
+        account_label="Work Google",
+        account_email="work@example.com",
+        refresh_token="work-refresh-token",
+        calendars=[
+            {
+                "calendar_name": "Work",
+                "calendar_id": "work",
+                "is_default": True,
+            }
+        ],
+    )
+
+    assert service.get_google_accounts() == [
+        {
+            "account_label": "Kay Google",
+            "account_email": "kay@example.com",
+            "refresh_token": "kay-refresh-token",
+            "calendars": [
+                {
+                    "calendar_name": "Primary",
+                    "calendar_id": "primary",
+                    "is_default": True,
+                },
+                {
+                    "calendar_name": "Family",
+                    "calendar_id": "family",
+                    "is_default": False,
+                },
+            ],
+        },
+        {
+            "account_label": "Work Google",
+            "account_email": "work@example.com",
+            "refresh_token": "work-refresh-token",
+            "calendars": [
+                {
+                    "calendar_name": "Work",
+                    "calendar_id": "work",
+                    "is_default": True,
+                }
+            ],
+        },
+    ]
