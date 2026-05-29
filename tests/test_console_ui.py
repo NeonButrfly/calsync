@@ -10,6 +10,7 @@ from calsync.main import create_app
 from calsync.models import Base
 from calsync.services.appointments import AppointmentService
 from calsync.services.apple_caldav import AppleCalDAVError
+from calsync.services.operator_settings import OperatorSettingsService
 
 
 class FakeAppleClient:
@@ -294,6 +295,7 @@ def test_alexa_setup_page_renders_operator_steps(monkeypatch) -> None:
                 "enable_alexa": False,
                 "allowed_skill_ids": [],
                 "manageable": True,
+                "credential_source": "product_vault",
                 "message": "Ready to configure the edge Worker from the product.",
             }
 
@@ -312,6 +314,9 @@ def test_alexa_setup_page_renders_operator_steps(monkeypatch) -> None:
     assert "https://edge-calsync.neonbutterfly.net/alexa" in response.text
     assert "/alexa/simulator" in response.text
     assert "Edge Worker controls" in response.text
+    assert 'name="cloudflare_account_id"' in response.text
+    assert 'name="cloudflare_api_token"' in response.text
+    assert "Cloudflare worker access" in response.text
     assert 'name="allowed_skill_ids"' in response.text
     assert "Apply edge settings" in response.text
 
@@ -326,6 +331,7 @@ def test_alexa_setup_page_shows_cloudflare_permission_error(monkeypatch) -> None
                 "enable_alexa": False,
                 "allowed_skill_ids": [],
                 "manageable": False,
+                "credential_source": "missing",
                 "message": "Cloudflare API token needs Workers Scripts permission.",
             }
 
@@ -355,6 +361,7 @@ def test_alexa_setup_page_updates_edge_settings(monkeypatch) -> None:
                 "enable_alexa": False,
                 "allowed_skill_ids": [],
                 "manageable": True,
+                "credential_source": "product_vault",
                 "message": "Ready to configure the edge Worker from the product.",
             }
 
@@ -382,6 +389,45 @@ def test_alexa_setup_page_updates_edge_settings(monkeypatch) -> None:
     assert response.status_code == 200
     assert fake_service.called is True
     assert "Edge Worker settings updated." in response.text
+
+
+def test_alexa_setup_page_saves_cloudflare_credentials(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+
+    class FakeCloudflareWorkerConfigService:
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": True,
+                "credential_source": "product_vault",
+                "message": "Ready to configure the edge Worker from the product.",
+            }
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        FakeCloudflareWorkerConfigService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/alexa/setup/cloudflare",
+        data={
+            "cloudflare_account_id": "acct-123",
+            "cloudflare_api_token": "token-123",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Cloudflare Worker credentials saved securely." in response.text
+
+    service = OperatorSettingsService(settings=get_settings())
+    assert service.get_cloudflare_worker_credentials() == {
+        "account_id": "acct-123",
+        "api_token": "token-123",
+    }
 
 
 def test_alexa_simulator_page_renders_voice_test_surface(monkeypatch) -> None:

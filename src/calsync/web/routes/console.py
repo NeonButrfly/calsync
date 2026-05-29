@@ -21,6 +21,7 @@ from calsync.services.apple_caldav import AppleCalDAVError
 from calsync.services.alexa_simulator import AlexaSimulatorService
 from calsync.services.appointments import AppointmentService
 from calsync.services.cloudflare_worker_config import CloudflareWorkerConfigService
+from calsync.services.operator_settings import OperatorSettingsService
 from calsync.services.readiness import ReadinessService
 
 
@@ -63,6 +64,7 @@ def terms_page(request: Request):
 def alexa_setup_page(request: Request):
     readiness = ReadinessService().build()
     edge_settings = CloudflareWorkerConfigService().get_alexa_settings()
+    cloudflare_credentials = OperatorSettingsService().describe_cloudflare_worker_credentials()
     return _templates.TemplateResponse(
         request,
         "alexa_setup.html",
@@ -70,6 +72,7 @@ def alexa_setup_page(request: Request):
             "request": request,
             "readiness": readiness,
             "edge_settings": edge_settings,
+            "cloudflare_credentials": cloudflare_credentials,
             "alexa_endpoint": "https://edge-calsync.neonbutterfly.net/alexa",
             "privacy_url": "https://calsync.neonbutterfly.net/privacy",
             "terms_url": "https://calsync.neonbutterfly.net/terms",
@@ -102,6 +105,7 @@ def alexa_setup_update(
         flash_message = None
         error_message = str(exc)
 
+    cloudflare_credentials = OperatorSettingsService().describe_cloudflare_worker_credentials()
     return _templates.TemplateResponse(
         request,
         "alexa_setup.html",
@@ -109,6 +113,48 @@ def alexa_setup_update(
             "request": request,
             "readiness": readiness,
             "edge_settings": edge_settings,
+            "cloudflare_credentials": cloudflare_credentials,
+            "alexa_endpoint": "https://edge-calsync.neonbutterfly.net/alexa",
+            "privacy_url": "https://calsync.neonbutterfly.net/privacy",
+            "terms_url": "https://calsync.neonbutterfly.net/terms",
+            "simulator_url": "/alexa/simulator",
+            "flash_message": flash_message,
+            "error_message": error_message,
+        },
+        status_code=200 if error_message is None else 400,
+    )
+
+
+@router.post("/alexa/setup/cloudflare")
+def alexa_setup_update_cloudflare_credentials(
+    request: Request,
+    cloudflare_account_id: str = Form(""),
+    cloudflare_api_token: str = Form(""),
+):
+    readiness = ReadinessService().build()
+    operator_settings = OperatorSettingsService()
+    try:
+        operator_settings.set_cloudflare_worker_credentials(
+            account_id=cloudflare_account_id,
+            api_token=cloudflare_api_token,
+            preserve_existing_token=True,
+        )
+        flash_message = "Cloudflare Worker credentials saved securely."
+        error_message = None
+    except ValueError as exc:
+        flash_message = None
+        error_message = str(exc)
+
+    edge_settings = CloudflareWorkerConfigService().get_alexa_settings()
+    cloudflare_credentials = operator_settings.describe_cloudflare_worker_credentials()
+    return _templates.TemplateResponse(
+        request,
+        "alexa_setup.html",
+        {
+            "request": request,
+            "readiness": readiness,
+            "edge_settings": edge_settings,
+            "cloudflare_credentials": cloudflare_credentials,
             "alexa_endpoint": "https://edge-calsync.neonbutterfly.net/alexa",
             "privacy_url": "https://calsync.neonbutterfly.net/privacy",
             "terms_url": "https://calsync.neonbutterfly.net/terms",

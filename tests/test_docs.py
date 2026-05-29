@@ -25,6 +25,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /alexa/simulator" in readme_content
     assert "alexa setup page" in readme_content
     assert "edge-settings form" in readme_content
+    assert "cloudflare access form" in readme_content
+    assert "product vault" in readme_content
     assert "alexa simulator page" in readme_content
     assert "downloadable skill package" in readme_content
     assert "https://mcp-calsync.kaymayers9.workers.dev/mcp" in readme_content
@@ -54,6 +56,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /alexa/skill-package.zip" in ops_content
     assert "post /alexa/simulator" in ops_content
     assert "post /alexa/simulate" in ops_content
+    assert "cloudflare worker access form" in ops_content
+    assert "encrypted with `encryption_key`" in ops_content
     assert "workers scripts write" in ops_content
     assert "enable_alexa" in ops_content
     assert "alexa_allowed_skill_ids" in ops_content
@@ -80,6 +84,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /alexa/setup" in prompt_content
     assert "get /alexa/skill-package.zip" in prompt_content
     assert "get /alexa/simulator" in prompt_content
+    assert "save cloudflare worker-management credentials inside the product" in prompt_content
+    assert "stored encrypted at rest with `encryption_key`" in prompt_content
     assert "enable_alexa" in prompt_content
     assert "alexa_allowed_skill_ids" in prompt_content
     assert "post /alexa/simulate" in prompt_content

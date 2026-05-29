@@ -230,6 +230,8 @@ Expected behavior:
 - `GET /alexa/setup` should render a voice setup page inside the product
 - `GET /alexa/skill-package.zip` should return the Alexa custom skill package from the running app
 - the setup page should show the live edge endpoint, privacy URL, terms URL, and current readiness state
+- the setup page should let the operator save Cloudflare Worker-management credentials inside the product instead of relying only on host `.env` edits
+- those product-managed Worker credentials should be stored encrypted at rest with `ENCRYPTION_KEY`
 - the setup page should read the current edge Worker Alexa flags when Cloudflare worker-management settings are available
 - the setup page should let the operator update `ENABLE_ALEXA` and `ALEXA_ALLOWED_SKILL_IDS` from the product when the Cloudflare token has `Workers Scripts Write`
 - the root scheduling workspace should link operators into the Alexa setup flow

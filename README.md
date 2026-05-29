@@ -40,6 +40,7 @@ Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, and `#45` are now
 - live Apple primary-calendar reads, so existing household events show up in the shared workspace and voice flows
 - a product-facing readiness surface for Apple setup, channel tokens, edge reachability, and Alexa status
 - an in-product Alexa setup page plus downloadable skill package
+- an encrypted product vault for Cloudflare Worker-management credentials, so the Alexa setup flow can store operator access safely inside CalSync
 
 ### Endpoints
 
@@ -71,6 +72,7 @@ The root page now acts as the first family scheduling UX:
 - direct Apple calendar read/write through the same backend used by the API and Worker
 - a first in-product readiness panel that explains whether Apple, tokens, edge, and Alexa are actually ready
 - a first in-product Alexa setup page that links the live endpoint, policy URLs, and skill package download
+- a first in-product Cloudflare access form that stores Worker-management credentials securely in the product vault
 - a first in-product Alexa edge-settings form that can read and update Worker Alexa flags when Cloudflare worker-management permission is configured
 - a first in-product Alexa simulator page that previews real voice responses before the final Amazon console turn-on
 
@@ -147,6 +149,7 @@ Current auth shape:
   - `https://calsync.neonbutterfly.net/privacy`
   - `https://calsync.neonbutterfly.net/terms`
 - an authenticated simulator route now exists on the Worker so the product can preview the real voice responses before the skill is fully live
+- the setup page can now save Cloudflare Worker-management credentials in the product vault, encrypted at rest with `ENCRYPTION_KEY`
 - the setup page can now read and update `ENABLE_ALEXA` plus `ALEXA_ALLOWED_SKILL_IDS` on the edge Worker when the configured Cloudflare API token has `Workers Scripts Write`
 
 ### Request shape
@@ -197,23 +200,26 @@ Current channels:
 2. Fill in the Apple/iCloud settings:
    - `APPLE_USERNAME`
    - `APPLE_APP_SPECIFIC_PASSWORD`
-- `APPLE_PRIMARY_CALENDAR_URL`
+   - `APPLE_PRIMARY_CALENDAR_URL`
 3. Choose a real `POSTGRES_PASSWORD`.
 4. Optionally override the display timezone used for synced provider events:
    - `DEFAULT_TIMEZONE`
-5. If you want Pi-driven Cloudflare KV sync from the app runtime, also fill in:
+5. Choose a real `ENCRYPTION_KEY` so product-vault secrets are encrypted safely at rest.
+6. If you want Pi-driven Cloudflare KV sync from the app runtime, also fill in:
    - `CLOUDFLARE_ACCOUNT_ID`
    - `CLOUDFLARE_API_TOKEN`
    - `CLOUDFLARE_TOKEN_KV_NAMESPACE_ID`
    - `EDGE_BASE_URL`
-6. Start the stack with Docker Compose.
-7. Verify `http://127.0.0.1:3080/healthz`.
-8. Open `http://127.0.0.1:3080/` for the scheduling console.
-9. If you are preparing the Alexa slice, also set:
-- `ALEXA_ALLOWED_SKILL_IDS`
+7. Start the stack with Docker Compose.
+8. Verify `http://127.0.0.1:3080/healthz`.
+9. Open `http://127.0.0.1:3080/` for the scheduling console.
+10. If you are preparing the Alexa slice, also set:
+  - `ALEXA_ALLOWED_SKILL_IDS`
   - `ALEXA_DEFAULT_TIMEZONE`
 
 The API will not create calendar events until the Apple settings are populated.
+
+If you prefer not to keep a Worker-management API token in the host `.env`, the Alexa setup page can now save the Cloudflare account ID and API token inside CalSync. The product vault encrypts those values at rest with `ENCRYPTION_KEY`, then uses them for live `ENABLE_ALEXA` and `ALEXA_ALLOWED_SKILL_IDS` management.
 
 ## Tracking
 

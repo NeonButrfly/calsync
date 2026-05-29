@@ -65,6 +65,60 @@
             <article class="panel">
               <div class="panel-head">
                 <div>
+                  <p class="eyebrow">Step 0</p>
+                  <h3>Cloudflare worker access</h3>
+                </div>
+              </div>
+              <p class="appointment-detail">
+                Save the Cloudflare account ID and a Worker-management API token so
+                CalSync can update the live Alexa edge flags without SSHing into the host.
+              </p>
+              <form class="form-grid" method="post" action="/alexa/setup/cloudflare">
+                <label>
+                  <span>Cloudflare account ID</span>
+                  <input
+                    name="cloudflare_account_id"
+                    type="text"
+                    value="{{ cloudflare_credentials.account_id }}"
+                    placeholder="8f394c6a3a3905f22b0da1514c947d75"
+                    required
+                  />
+                </label>
+                <label>
+                  <span>Cloudflare API token</span>
+                  <input
+                    name="cloudflare_api_token"
+                    type="password"
+                    placeholder="{% if cloudflare_credentials.api_token_saved %}Saved securely. Leave blank to keep it.{% else %}Paste a token with Workers Scripts Write{% endif %}"
+                  />
+                </label>
+                <div class="detail-grid">
+                  <article class="detail-card">
+                    <p class="eyebrow">Credential source</p>
+                    <strong>{{ cloudflare_credentials.source.replace("_", " ").title() }}</strong>
+                    <span>
+                      {% if cloudflare_credentials.api_token_saved %}
+                      API token is already saved in the product vault.
+                      {% else %}
+                      No Cloudflare API token saved yet.
+                      {% endif %}
+                    </span>
+                  </article>
+                  <article class="detail-card">
+                    <p class="eyebrow">What this unlocks</p>
+                    <strong>Live edge control</strong>
+                    <span>Lets this page update `ENABLE_ALEXA` and `ALEXA_ALLOWED_SKILL_IDS` directly.</span>
+                  </article>
+                </div>
+                <div class="action-row">
+                  <button type="submit">Save Cloudflare access</button>
+                </div>
+              </form>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div>
                   <p class="eyebrow">Step 1</p>
                   <h3>Download skill package</h3>
                 </div>

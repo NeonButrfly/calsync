@@ -12,3 +12,4 @@ def test_metadata_exposes_expected_tables() -> None:
     assert "appointments" in tables
     assert "appointment_external_links" in tables
     assert "audit_entries" in tables
+    assert "operator_settings" in tables

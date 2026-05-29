@@ -6,30 +6,42 @@ from typing import Any
 import httpx
 
 from calsync.config import Settings, get_settings
+from calsync.services.operator_settings import OperatorSettingsService
 
 
 class CloudflareWorkerConfigService:
-    def __init__(self, *, settings: Settings | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        settings: Settings | None = None,
+        operator_settings: OperatorSettingsService | None = None,
+    ) -> None:
         self.settings = settings or get_settings()
+        self.operator_settings = operator_settings or OperatorSettingsService(
+            settings=self.settings
+        )
 
     def get_alexa_settings(self) -> dict[str, Any]:
-        if not self._is_configured():
+        resolved = self._resolved_cloudflare_worker_credentials()
+        if not self._is_configured(resolved):
             return {
                 "worker_name": self.settings.cloudflare_edge_worker_name,
                 "enable_alexa": False,
                 "allowed_skill_ids": [],
                 "manageable": False,
+                "credential_source": resolved["source"],
                 "message": "Cloudflare worker management is not configured for this deployment.",
             }
 
         try:
-            settings_payload = self._get_worker_settings()
+            settings_payload = self._get_worker_settings(resolved)
         except httpx.HTTPStatusError as exc:
             return {
                 "worker_name": self.settings.cloudflare_edge_worker_name,
                 "enable_alexa": False,
                 "allowed_skill_ids": [],
                 "manageable": False,
+                "credential_source": resolved["source"],
                 "message": self._http_error_message(exc),
             }
         except (httpx.HTTPError, ValueError):
@@ -38,6 +50,7 @@ class CloudflareWorkerConfigService:
                 "enable_alexa": False,
                 "allowed_skill_ids": [],
                 "manageable": False,
+                "credential_source": resolved["source"],
                 "message": "Cloudflare worker settings are unavailable right now.",
             }
 
@@ -51,6 +64,7 @@ class CloudflareWorkerConfigService:
             "enable_alexa": enable_alexa,
             "allowed_skill_ids": allowed_skill_ids,
             "manageable": True,
+            "credential_source": resolved["source"],
             "message": "Ready to configure the edge Worker from the product.",
         }
 
@@ -60,13 +74,14 @@ class CloudflareWorkerConfigService:
         enable_alexa: bool,
         allowed_skill_ids: list[str],
     ) -> dict[str, Any]:
-        if not self._is_configured():
+        resolved = self._resolved_cloudflare_worker_credentials()
+        if not self._is_configured(resolved):
             raise ValueError(
                 "Cloudflare worker management is not configured for this deployment."
             )
 
         try:
-            settings_payload = self._get_worker_settings()
+            settings_payload = self._get_worker_settings(resolved)
             bindings = list(settings_payload.get("bindings", []))
             bindings = self._upsert_plain_text_binding(
                 bindings,
@@ -98,8 +113,8 @@ class CloudflareWorkerConfigService:
             outgoing["bindings"] = bindings
 
             response = httpx.patch(
-                self._settings_url(),
-                headers=self._headers(),
+                self._settings_url(resolved),
+                headers=self._headers(resolved),
                 files={
                     "settings": (
                         None,
@@ -119,10 +134,10 @@ class CloudflareWorkerConfigService:
 
         return self.get_alexa_settings()
 
-    def _get_worker_settings(self) -> dict[str, Any]:
+    def _get_worker_settings(self, resolved: dict[str, str]) -> dict[str, Any]:
         response = httpx.get(
-            self._settings_url(),
-            headers=self._headers(),
+            self._settings_url(resolved),
+            headers=self._headers(resolved),
             timeout=10.0,
         )
         response.raise_for_status()
@@ -132,24 +147,46 @@ class CloudflareWorkerConfigService:
             raise ValueError("Cloudflare returned an unexpected worker settings payload.")
         return result
 
-    def _settings_url(self) -> str:
+    def _settings_url(self, resolved: dict[str, str]) -> str:
         return (
             "https://api.cloudflare.com/client/v4/accounts/"
-            f"{self.settings.cloudflare_account_id}/workers/scripts/"
+            f"{resolved['account_id']}/workers/scripts/"
             f"{self.settings.cloudflare_edge_worker_name}/settings"
         )
 
-    def _headers(self) -> dict[str, str]:
+    def _headers(self, resolved: dict[str, str]) -> dict[str, str]:
         return {
-            "Authorization": f"Bearer {self.settings.cloudflare_api_token}",
+            "Authorization": f"Bearer {resolved['api_token']}",
         }
 
-    def _is_configured(self) -> bool:
+    def _is_configured(self, resolved: dict[str, str]) -> bool:
         return bool(
-            self.settings.cloudflare_account_id
-            and self.settings.cloudflare_api_token
+            resolved["account_id"]
+            and resolved["api_token"]
             and self.settings.cloudflare_edge_worker_name
         )
+
+    def _resolved_cloudflare_worker_credentials(self) -> dict[str, str]:
+        if self.settings.cloudflare_account_id and self.settings.cloudflare_api_token:
+            return {
+                "account_id": self.settings.cloudflare_account_id,
+                "api_token": self.settings.cloudflare_api_token,
+                "source": "deployment_env",
+            }
+
+        stored = self.operator_settings.get_cloudflare_worker_credentials()
+        if stored["account_id"] and stored["api_token"]:
+            return {
+                "account_id": stored["account_id"],
+                "api_token": stored["api_token"],
+                "source": "product_vault",
+            }
+
+        return {
+            "account_id": "",
+            "api_token": "",
+            "source": "missing",
+        }
 
     @staticmethod
     def _binding_text(bindings: list[dict[str, Any]], name: str) -> str | None:

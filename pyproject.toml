@@ -9,6 +9,7 @@ description = "Apple-first conversational scheduling service"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "cryptography>=43.0.0",
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
     "jinja2>=3.1.4",

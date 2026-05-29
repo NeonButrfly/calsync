@@ -21,12 +21,14 @@ class Base(DeclarativeBase):
 from .apple_connection import AppleCalendarConnection
 from .appointments import Appointment, AppointmentExternalLink
 from .audit import AuditEntry
+from .operator_settings import OperatorSetting
 
 __all__ = [
     "AppleCalendarConnection",
     "Appointment",
     "AppointmentExternalLink",
     "AuditEntry",
+    "OperatorSetting",
     "Base",
     "new_uuid",
     "utcnow",

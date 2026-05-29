@@ -25,6 +25,7 @@ Copy `.env.example` to `.env` and fill in:
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
 - `DATABASE_URL`
+- `ENCRYPTION_KEY`
 - `APPLE_ACCOUNT_LABEL`
 - `APPLE_USERNAME`
 - `APPLE_APP_SPECIFIC_PASSWORD`
@@ -133,13 +134,17 @@ This operator-facing flow now serves:
 - the public privacy and terms URLs
 - the current readiness state
 - a downloadable Alexa custom skill package zip from the running app
+- a Cloudflare Worker access form for:
+  - `CLOUDFLARE_ACCOUNT_ID`
+  - `CLOUDFLARE_API_TOKEN`
 - edge Worker controls for:
   - `ENABLE_ALEXA`
   - `ALEXA_ALLOWED_SKILL_IDS`
 
 Current management boundary:
 
-- the setup page uses the origin-side Cloudflare API token and account ID
+- the setup page can use either deployment env credentials or product-vault credentials saved from the setup page
+- product-vault credentials are encrypted with `ENCRYPTION_KEY`
 - the configured token must include `Workers Scripts Write`
 - if the token only has KV permissions, the product shows a clear permission error instead of pretending the edge Worker can be managed
 

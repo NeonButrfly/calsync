@@ -5,6 +5,7 @@ import pytest
 
 from calsync.config import Settings
 from calsync.services.cloudflare_worker_config import CloudflareWorkerConfigService
+from calsync.services.operator_settings import OperatorSettingsService
 
 
 class _FakeResponse:
@@ -169,3 +170,48 @@ def test_surfaces_permission_error_from_cloudflare(monkeypatch) -> None:
 
     assert result["manageable"] is False
     assert "Workers Scripts" in result["message"]
+
+
+def test_uses_product_vault_credentials_when_env_is_missing(monkeypatch) -> None:
+    settings = Settings.model_construct(
+        app_host="0.0.0.0",
+        app_port=3080,
+        database_url="sqlite+pysqlite:///:memory:",
+        default_timezone="America/Anchorage",
+        apple_account_label="Family",
+        apple_username="family@example.com",
+        apple_app_specific_password="secret",
+        apple_primary_calendar_url="https://caldav.icloud.com/calendar/",
+        apple_primary_calendar_name="Family",
+        cloudflare_account_id=None,
+        cloudflare_api_token=None,
+        cloudflare_token_kv_namespace_id="kv-123",
+        channel_token_runtime_path=".runtime/channel-tokens.json",
+        edge_base_url="https://edge-calsync.neonbutterfly.net",
+        cloudflare_edge_worker_name="edge-calsync",
+        encryption_key="unit-test-encryption-key",
+    )
+    operator_settings = OperatorSettingsService(settings=settings)
+    operator_settings.set_cloudflare_worker_credentials(
+        account_id="acct-from-vault",
+        api_token="token-from-vault",
+    )
+    service = CloudflareWorkerConfigService(
+        settings=settings,
+        operator_settings=operator_settings,
+    )
+
+    def fake_get(url: str, *, headers: dict[str, str], timeout: float):
+        assert url.endswith(
+            "/accounts/acct-from-vault/workers/scripts/edge-calsync/settings"
+        )
+        assert headers["Authorization"] == "Bearer token-from-vault"
+        assert timeout == 10.0
+        return _FakeResponse(status_code=200, payload={"result": {"bindings": []}})
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+
+    result = service.get_alexa_settings()
+
+    assert result["manageable"] is True
+    assert result["credential_source"] == "product_vault"

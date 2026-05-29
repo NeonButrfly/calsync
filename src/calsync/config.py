@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     app_port: int = 3080
     database_url: str = "postgresql+psycopg://calsync:calsync@db:5432/calsync"
+    encryption_key: str = "replace-with-a-long-random-secret"
     default_timezone: str = "America/Anchorage"
     apple_account_label: str = "Family"
     apple_username: str | None = None
