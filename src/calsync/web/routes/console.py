@@ -61,12 +61,14 @@ def scheduling_console(
     cancelled: str | None = None,
     view: str = "week",
     appointment_id: str | None = None,
+    show_cancelled: bool = False,
 ):
     service = AppointmentService()
     date_from, date_to, selected_window = _resolve_window(view)
     appointments = service.list_range(
         date_from=date_from.isoformat(),
         date_to=date_to.isoformat(),
+        include_cancelled=show_cancelled,
     ).items
     selected_detail = _resolve_selected_detail(service, appointments, appointment_id)
     return _templates.TemplateResponse(
@@ -81,6 +83,7 @@ def scheduling_console(
             error_message=None,
             form_values=_empty_form_values(),
             selected_window=selected_window,
+            show_cancelled=show_cancelled,
         ),
     )
 
@@ -145,6 +148,7 @@ def create_appointment_from_console(
                     "all_day": all_day,
                 },
                 selected_window=selected_window,
+                show_cancelled=False,
             ),
             status_code=400,
         )
@@ -175,7 +179,11 @@ def edit_appointment_page(appointment_id: str, request: Request):
                 "all_day": appointment.all_day,
             },
             "error_message": None,
-            "window_options": _window_options(selected_window="week", selected_appointment_id=appointment_id),
+            "window_options": _window_options(
+                selected_window="week",
+                show_cancelled=False,
+                selected_appointment_id=appointment_id,
+            ),
         },
     )
 
@@ -231,13 +239,17 @@ def edit_appointment_from_console(
                     "location": location,
                     "notes": notes,
                     "attendees_text": attendees_text,
-                    "all_day": all_day,
-                },
-                "error_message": str(exc),
-                "window_options": _window_options(selected_window="week", selected_appointment_id=appointment_id),
+                "all_day": all_day,
             },
-            status_code=400,
-        )
+            "error_message": str(exc),
+            "window_options": _window_options(
+                selected_window="week",
+                show_cancelled=False,
+                selected_appointment_id=appointment_id,
+            ),
+        },
+        status_code=400,
+    )
     except AppleCalDAVError as exc:
         appointment = service.get(appointment_id)
         return _templates.TemplateResponse(
@@ -255,13 +267,17 @@ def edit_appointment_from_console(
                     "location": location,
                     "notes": notes,
                     "attendees_text": attendees_text,
-                    "all_day": all_day,
-                },
-                "error_message": str(exc),
-                "window_options": _window_options(selected_window="week", selected_appointment_id=appointment_id),
+                "all_day": all_day,
             },
-            status_code=400,
-        )
+            "error_message": str(exc),
+            "window_options": _window_options(
+                selected_window="week",
+                show_cancelled=False,
+                selected_appointment_id=appointment_id,
+            ),
+        },
+        status_code=400,
+    )
 
 
 @router.post("/appointments/{appointment_id}/cancel")
@@ -310,19 +326,26 @@ def _build_console_context(
     error_message: str | None,
     form_values: dict[str, object],
     selected_window: str,
+    show_cancelled: bool,
 ) -> dict[str, object]:
-    active_appointments = [item for item in appointments if item.status != "cancelled"]
-    hero_subject = active_appointments[0] if active_appointments else None
+    hero_subject = appointments[0] if appointments else None
     return {
         "request": request,
         "flash_message": flash_message,
         "error_message": error_message,
+        "reference_message": (
+            "Showing cancelled appointments for reference."
+            if show_cancelled
+            else None
+        ),
         "form_values": form_values,
         "calendar_label": service.settings.apple_primary_calendar_name,
         "account_label": service.settings.apple_account_label,
         "selected_window": selected_window,
+        "show_cancelled": show_cancelled,
         "window_options": _window_options(
             selected_window=selected_window,
+            show_cancelled=show_cancelled,
             selected_appointment_id=selected_detail.appointment_id if selected_detail else None,
         ),
         "window_label": _WINDOWS[selected_window][0],
@@ -330,11 +353,12 @@ def _build_console_context(
         "schedule_sections": _build_schedule_sections(
             appointments,
             selected_window=selected_window,
+            show_cancelled=show_cancelled,
             selected_appointment_id=selected_detail.appointment_id if selected_detail else None,
         ),
         "selected_appointment": _serialize_detail(selected_detail),
         "appointment_count": len(appointments),
-        "active_count": len(active_appointments),
+        "active_count": len(appointments),
         "cancelled_count": sum(1 for item in appointments if item.status == "cancelled"),
         "next_up_label": _next_up_label(hero_subject),
     }
@@ -344,6 +368,7 @@ def _build_schedule_sections(
     appointments: list[AppointmentListItem],
     *,
     selected_window: str,
+    show_cancelled: bool,
     selected_appointment_id: str | None,
 ) -> list[dict[str, object]]:
     sections: list[dict[str, object]] = []
@@ -364,7 +389,11 @@ def _build_schedule_sections(
                         "time_label": _time_label(item),
                         "people_label": item.attendees_text,
                         "location_label": item.location,
-                        "detail_href": f"/?view={selected_window}&appointment_id={item.appointment_id}",
+                        "detail_href": _detail_href(
+                            selected_window=selected_window,
+                            appointment_id=item.appointment_id,
+                            show_cancelled=show_cancelled,
+                        ),
                         "is_selected": item.appointment_id == selected_appointment_id,
                     }
                     for item in items
@@ -423,11 +452,14 @@ def _window_summary(selected_window: str) -> str:
 def _window_options(
     *,
     selected_window: str,
+    show_cancelled: bool,
     selected_appointment_id: str | None,
 ) -> list[dict[str, object]]:
     options: list[dict[str, object]] = []
     for value, (label, _) in _WINDOWS.items():
         href = f"/?view={value}"
+        if show_cancelled:
+            href = f"{href}&show_cancelled=1"
         if selected_appointment_id:
             href = f"{href}&appointment_id={selected_appointment_id}"
         options.append(
@@ -438,6 +470,18 @@ def _window_options(
             }
         )
     return options
+
+
+def _detail_href(
+    *,
+    selected_window: str,
+    appointment_id: str,
+    show_cancelled: bool,
+) -> str:
+    href = f"/?view={selected_window}&appointment_id={appointment_id}"
+    if show_cancelled:
+        href = f"{href}&show_cancelled=1"
+    return href
 
 
 def _friendly_date_label(day: str, *, include_weekday: bool = False) -> str:

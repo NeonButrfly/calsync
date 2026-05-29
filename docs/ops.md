@@ -104,6 +104,7 @@ Behavior:
 - shows a clean create-appointment form
 - browses appointments by day, week, or month
 - syncs the requested Apple calendar date window before rendering the schedule
+- hides cancelled appointments from the default active schedule views while allowing a reference toggle when you intentionally want historical cancelled items
 - shows a selected appointment detail panel with audit activity and provider metadata
 - edits and cancels the same Apple-backed appointment records used by the API
 - is intended to be the first family-facing control surface instead of forcing operators to work from raw API calls
@@ -147,6 +148,10 @@ This powers the Worker-side “look up before editing or cancelling” flow.
 
 It now also syncs the requested Apple date range into the local appointment store so existing family-calendar events can be listed, edited, cancelled, and used by Alexa.
 
+Default behavior hides cancelled appointments from active list views. To include them for reference, call:
+
+`GET /api/appointments?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&include_cancelled=true`
+
 ### Appointment detail
 
 `GET /api/appointments/{appointment_id}`
@@ -188,6 +193,7 @@ Supported first intents:
 
 - `CreateAppointmentIntent`
 - `ListAppointmentsIntent`
+- `NextAppointmentIntent`
 - `CancelAppointmentIntent`
 - `RescheduleAppointmentIntent`
 - `AMAZON.HelpIntent`
@@ -205,6 +211,7 @@ Current scope:
 
 - create an appointment through the shared scheduling brain
 - read appointments for a requested day
+- read the next upcoming appointment in the next 30 days
 - cancel a matching appointment by title and date
 - reschedule a matching appointment to a new day or time
 - keep all actual calendar writes in the origin service

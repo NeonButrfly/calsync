@@ -13,6 +13,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "polished scheduling workspace" in readme_content
     assert "live apple primary-calendar reads" in readme_content
     assert "selected appointment detail" in readme_content
+    assert "hide cancelled appointments by default" in readme_content
     assert "http://127.0.0.1:3080/" in readme_content
 
     assert "#39" in ops_content
@@ -23,6 +24,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "post /appointments" in ops_content
     assert "professional web scheduling workspace" in ops_content
     assert "get /api/appointments/{appointment_id}" in ops_content
+    assert "include_cancelled=true" in ops_content
 
     assert "#39" in prompt_content
     assert "#40" in prompt_content
@@ -30,6 +32,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "apple live calendar sync requirement" in prompt_content
     assert "selected appointment detail surface" in prompt_content
     assert "get /v1/appointments/{appointment_id}" in prompt_content
+    assert "default active views should hide cancelled appointments" in prompt_content
 
 
 def test_docs_cover_first_alexa_skill_slice() -> None:
@@ -60,11 +63,13 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "/terms" in readme_content
     assert "cancelappointmentintent" in readme_content
     assert "rescheduleappointmentintent" in readme_content
+    assert "next upcoming appointment" in readme_content
 
     assert "#38" in ops_content
     assert "createappointmentintent" in ops_content
     assert "cancelappointmentintent" in ops_content
     assert "rescheduleappointmentintent" in ops_content
+    assert "nextappointmentintent" in ops_content
     assert "request-signature flow" in ops_content
     assert "skill-package" in ops_content
 
@@ -75,9 +80,11 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "get /privacy" in prompt_content
     assert "cancel a matching appointment" in prompt_content
     assert "reschedule a matching appointment" in prompt_content
+    assert "read the next upcoming appointment" in prompt_content
 
     assert "createappointmentintent" in interaction_model_content
     assert "listappointmentsintent" in interaction_model_content
+    assert "nextappointmentintent" in interaction_model_content
     assert "cancelappointmentintent" in interaction_model_content
     assert "rescheduleappointmentintent" in interaction_model_content
     assert (
@@ -101,3 +108,4 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
         == "cal sync family"
     )
     assert "create or import the custom skill package" in alexa_readme_content
+    assert "next upcoming appointment" in alexa_readme_content

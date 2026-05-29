@@ -102,6 +102,8 @@ Expected behavior:
 
 - date-range schedule views should sync existing Apple calendar events into the shared appointment store before rendering
 - `GET /api/appointments` should surface Apple events that already existed before CalSync created anything
+- default active views should hide cancelled appointments so stale noise does not dominate the schedule or voice responses
+- cancelled items should still remain available for explicit reference when the operator intentionally asks for them
 - edit and cancel flows should work for provider-synced Apple events, not just locally originated writes
 - Alexa day-list, cancel, and reschedule flows should benefit from the same synced Apple event inventory because they already call the shared origin APIs
 
@@ -156,6 +158,7 @@ Expected voice behavior:
   - launch and help
   - create appointment
   - list appointments for a requested day
+  - read the next upcoming appointment
   - cancel a matching appointment
   - reschedule a matching appointment
 - all actual calendar mutation must still happen in the origin service

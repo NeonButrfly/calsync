@@ -107,6 +107,7 @@ class AppointmentService:
         *,
         date_from: str,
         date_to: str,
+        include_cancelled: bool = False,
     ) -> ListAppointmentsResponse:
         start = datetime.combine(date.fromisoformat(date_from), time.min, tzinfo=UTC)
         end = datetime.combine(date.fromisoformat(date_to), time.max, tzinfo=UTC)
@@ -123,7 +124,7 @@ class AppointmentService:
                 session.commit()
             except (AppleCalDAVError, AttributeError):
                 session.rollback()
-            rows = session.execute(
+            query = (
                 select(Appointment, AppointmentExternalLink)
                 .join(
                     AppointmentExternalLink,
@@ -133,7 +134,10 @@ class AppointmentService:
                 .where(Appointment.starts_at >= start)
                 .where(Appointment.starts_at <= end)
                 .order_by(Appointment.starts_at.asc())
-            ).all()
+            )
+            if not include_cancelled:
+                query = query.where(Appointment.status != "cancelled")
+            rows = session.execute(query).all()
 
         items = [
             self._to_list_item(appointment, external_link)

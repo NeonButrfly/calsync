@@ -17,9 +17,14 @@ router = APIRouter(prefix="/api/appointments", tags=["appointments"])
 def list_appointments(
     date_from: str,
     date_to: str,
+    include_cancelled: bool = False,
 ) -> ListAppointmentsResponse:
     try:
-        return AppointmentService().list_range(date_from=date_from, date_to=date_to)
+        return AppointmentService().list_range(
+            date_from=date_from,
+            date_to=date_to,
+            include_cancelled=include_cancelled,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

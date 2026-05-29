@@ -244,6 +244,80 @@ describe("alexa worker adapter", () => {
     });
   });
 
+  it("announces the next active appointment", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input, init) => {
+        expect(String(input)).toBe(
+          "https://calsync.neonbutterfly.net/api/appointments?date_from=2026-06-02&date_to=2026-07-02",
+        );
+        const headers = init?.headers as Headers;
+        expect(headers.get("X-CalSync-Channel")).toBe("alexa");
+
+        return new Response(
+          JSON.stringify({
+            items: [
+              {
+                appointment_id: "appt-cancelled",
+                title: "Old Dentist",
+                status: "cancelled",
+                date: "2026-06-02",
+                start_time: "09:00",
+                end_time: "10:00",
+                timezone: "America/Anchorage",
+              },
+              {
+                appointment_id: "appt-next",
+                title: "Health Coach",
+                status: "active",
+                date: "2026-06-03",
+                start_time: "13:00",
+                end_time: "14:00",
+                timezone: "America/Anchorage",
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+            },
+          },
+        );
+      });
+    const request = buildAlexaRequest({
+      session: {
+        application: {
+          applicationId: "amzn1.ask.skill.test",
+        },
+      },
+      request: {
+        type: "IntentRequest",
+        timestamp: "2026-06-02T16:00:00Z",
+        intent: {
+          name: "NextAppointmentIntent",
+        },
+      },
+    });
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, alexaEnv(), ctx);
+
+    await waitOnExecutionContext(ctx);
+
+    expect(alexaVerifierMock).toHaveBeenCalledOnce();
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      response: {
+        outputSpeech: {
+          text: expect.stringContaining(
+            "Your next appointment is Health Coach on Wednesday, June 3, 2026 at 1:00 PM",
+          ),
+        },
+      },
+    });
+  });
+
   it("cancels a matching appointment through the shared origin path", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")

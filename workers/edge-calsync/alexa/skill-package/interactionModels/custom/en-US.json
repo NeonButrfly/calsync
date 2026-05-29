@@ -54,6 +54,15 @@
           ]
         },
         {
+          "name": "NextAppointmentIntent",
+          "samples": [
+            "what is my next appointment",
+            "what is next on the calendar",
+            "when is my next appointment",
+            "what do I have next"
+          ]
+        },
+        {
           "name": "CancelAppointmentIntent",
           "slots": [
             {

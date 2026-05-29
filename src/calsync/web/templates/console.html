@@ -78,20 +78,29 @@
         <section class="flash flash--error">{{ error_message }}</section>
         {% endif %}
 
+        {% if reference_message %}
+        <section class="flash">{{ reference_message }}</section>
+        {% endif %}
+
         <section class="toolbar panel">
           <div>
             <p class="eyebrow">Browse</p>
             <h3>Schedule windows</h3>
           </div>
-          <div class="filter-row" role="tablist" aria-label="Schedule windows">
-            {% for option in window_options %}
-            <a
-              class="filter-pill{% if option.is_active %} filter-pill--active{% endif %}"
-              href="{{ option.href }}"
-            >
-              {{ option.label }}
+          <div class="toolbar-actions">
+            <div class="filter-row" role="tablist" aria-label="Schedule windows">
+              {% for option in window_options %}
+              <a
+                class="filter-pill{% if option.is_active %} filter-pill--active{% endif %}"
+                href="{{ option.href }}"
+              >
+                {{ option.label }}
+              </a>
+              {% endfor %}
+            </div>
+            <a class="text-action" href="/?view={{ selected_window }}{% if selected_appointment %}&appointment_id={{ selected_appointment.appointment_id }}{% endif %}{% if not show_cancelled %}&show_cancelled=1{% endif %}">
+              {% if show_cancelled %}Hide cancelled{% else %}Show cancelled for reference{% endif %}
             </a>
-            {% endfor %}
           </div>
         </section>
 

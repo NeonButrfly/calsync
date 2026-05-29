@@ -305,6 +305,25 @@ button:hover,
   gap: 0.75rem;
 }
 
+.toolbar-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.text-action {
+  color: var(--accent-strong);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.text-action:hover,
+.text-action:focus-visible {
+  text-decoration: underline;
+}
+
 .filter-pill {
   align-items: center;
   border-radius: 999px;
@@ -594,6 +613,11 @@ button:hover,
   }
 
   .filter-row {
+    width: 100%;
+  }
+
+  .toolbar-actions {
+    justify-content: flex-start;
     width: 100%;
   }
 

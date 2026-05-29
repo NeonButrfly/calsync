@@ -54,6 +54,7 @@ The root page now acts as the first family scheduling UX:
 - polished create-appointment form
 - day, week, and month schedule browsing
 - real Apple calendar events synced into the local scheduling brain for the requested window
+- active schedule views hide cancelled appointments by default while still allowing a reference view when you explicitly show them
 - selected appointment detail with audit trail and provider metadata
 - edit flow for existing appointments
 - cancel flow for existing appointments
@@ -89,6 +90,7 @@ Current voice capabilities:
 
 - create a new appointment
 - read appointments for a requested day
+- read the next upcoming appointment in the next 30 days
 - cancel a matching appointment by title and date
 - reschedule a matching appointment to a new day or time
 - act on Apple events that already existed in the family calendar once the origin has synced the requested date window

@@ -23,6 +23,7 @@ interface AlexaEnvelope {
   };
   request: {
     type: string;
+    timestamp?: string;
     intent?: {
       name: string;
       slots?: Record<string, AlexaSlot>;
@@ -147,6 +148,8 @@ export async function handleAlexaRequest(
       return handleCreateIntent(payload, env, requestId);
     case "ListAppointmentsIntent":
       return handleListIntent(payload, env, requestId);
+    case "NextAppointmentIntent":
+      return handleNextAppointmentIntent(payload, env, requestId);
     case "CancelAppointmentIntent":
       return handleCancelIntent(payload, env, requestId);
     case "RescheduleAppointmentIntent":
@@ -282,6 +285,57 @@ async function handleListIntent(
       items.length > 3 ? ` Plus ${items.length - 3} more appointments.` : "";
     return alexaResponse({
       speech: `On ${humanDate(date)}, you have ${summary}.${overflow}`,
+      shouldEndSession: true,
+    });
+  } catch {
+    return alexaResponse({
+      speech: "CalSync could not read the calendar right now.",
+      shouldEndSession: true,
+    });
+  }
+}
+
+async function handleNextAppointmentIntent(
+  payload: AlexaEnvelope,
+  env: WorkerEnv,
+  requestId: string,
+): Promise<Response> {
+  const windowStart = requestDate(payload, env);
+  const windowEnd = shiftDate(windowStart, 30);
+
+  try {
+    const originResponse = await callOriginJson(env, {
+      method: "GET",
+      path: `/api/appointments?date_from=${encodeURIComponent(windowStart)}&date_to=${encodeURIComponent(windowEnd)}`,
+      channel: "alexa",
+      requestId,
+    });
+    const originBody = (await originResponse.json()) as AlexaListResponse & {
+      message?: string;
+      detail?: string;
+    };
+    if (!originResponse.ok) {
+      return alexaResponse({
+        speech:
+          originBody.message ??
+          originBody.detail ??
+          "I could not look up your next appointment right now.",
+        shouldEndSession: true,
+      });
+    }
+
+    const nextAppointment = (originBody.items ?? []).find(
+      (item) => (item.status ?? "active") !== "cancelled",
+    );
+    if (!nextAppointment) {
+      return alexaResponse({
+        speech: "You do not have an upcoming appointment in the next 30 days.",
+        shouldEndSession: true,
+      });
+    }
+
+    return alexaResponse({
+      speech: `Your next appointment is ${nextAppointment.title} on ${humanDate(nextAppointment.date)} at ${humanTime(nextAppointment.start_time)}.`,
       shouldEndSession: true,
     });
   } catch {
@@ -641,6 +695,25 @@ function humanTime(time: string): string {
     minute: "2-digit",
     timeZone: "UTC",
   });
+}
+
+function requestDate(payload: AlexaEnvelope, env: WorkerEnv): string {
+  const timezone = env.ALEXA_DEFAULT_TIMEZONE || "America/Anchorage";
+  const requestTimestamp = payload.request.timestamp
+    ? new Date(payload.request.timestamp)
+    : new Date();
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(requestTimestamp);
+}
+
+function shiftDate(dateValue: string, days: number): string {
+  const parsed = new Date(`${dateValue}T12:00:00Z`);
+  parsed.setUTCDate(parsed.getUTCDate() + days);
+  return parsed.toISOString().slice(0, 10);
 }
 
 function alexaResponse(options: AlexaSpeechOptions): Response {

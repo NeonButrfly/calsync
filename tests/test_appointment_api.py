@@ -333,6 +333,48 @@ def test_cancel_appointment_marks_status_cancelled(monkeypatch) -> None:
     assert cancel_response.json()["status"] == "cancelled"
 
 
+def test_list_appointments_hides_cancelled_by_default_but_can_include_them(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Family follow-up",
+            "date": "2026-06-02",
+            "start_time": "09:00",
+            "end_time": "09:30",
+            "timezone": "America/Anchorage",
+            "all_day": False,
+        },
+    )
+    appointment_id = create_response.json()["appointment_id"]
+    cancel_response = client.post(f"/api/appointments/{appointment_id}/cancel")
+
+    assert cancel_response.status_code == 200
+
+    hidden_response = client.get(
+        "/api/appointments?date_from=2026-06-02&date_to=2026-06-02"
+    )
+    assert hidden_response.status_code == 200
+    assert hidden_response.json()["items"] == []
+
+    included_response = client.get(
+        "/api/appointments?date_from=2026-06-02&date_to=2026-06-02&include_cancelled=true"
+    )
+    assert included_response.status_code == 200
+    assert [item["title"] for item in included_response.json()["items"]] == [
+        "Family follow-up"
+    ]
+    assert included_response.json()["items"][0]["status"] == "cancelled"
+
+
 def test_cancel_appointment_can_target_synced_apple_event(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     monkeypatch.setattr(

@@ -205,7 +205,40 @@ def test_console_cancel_flow_marks_appointment_cancelled(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert "Appointment cancelled on your Apple calendar." in response.text
-    assert "cancelled" in response.text
+    assert "Follow-up" not in response.text
+
+
+def test_console_hides_cancelled_by_default_but_can_show_them_for_reference(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Cancelled consult",
+            "date": "2026-06-03",
+            "start_time": "11:00",
+            "end_time": "11:30",
+            "timezone": "America/Anchorage",
+        },
+    )
+    appointment_id = create_response.json()["appointment_id"]
+    client.post(f"/api/appointments/{appointment_id}/cancel")
+
+    active_response = client.get("/?view=month")
+    assert active_response.status_code == 200
+    assert "Cancelled consult" not in active_response.text
+
+    reference_response = client.get("/?view=month&show_cancelled=1")
+    assert reference_response.status_code == 200
+    assert "Cancelled consult" in reference_response.text
+    assert "Showing cancelled appointments for reference." in reference_response.text
 
 
 def test_console_surfaces_provider_failure(monkeypatch) -> None:
