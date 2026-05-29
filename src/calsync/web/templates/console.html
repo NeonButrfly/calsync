@@ -33,6 +33,36 @@
         </div>
 
         <div class="sidebar-card">
+          <p class="eyebrow">System readiness</p>
+          <strong>
+            {% if readiness.origin.apple_ready %}
+            Apple calendar ready
+            {% else %}
+            Apple setup still needed
+            {% endif %}
+          </strong>
+          <span>{{ readiness.next_action }}</span>
+          <ul class="feature-list">
+            <li>
+              ChatGPT token:
+              {% if readiness.channel_tokens.chatgpt %}ready{% else %}missing{% endif %}
+            </li>
+            <li>
+              Alexa token:
+              {% if readiness.channel_tokens.alexa %}ready{% else %}missing{% endif %}
+            </li>
+            <li>
+              Edge Worker:
+              {% if readiness.edge.reachable %}reachable{% else %}unavailable{% endif %}
+            </li>
+            <li>
+              Alexa edge route:
+              {% if readiness.edge.reachable and readiness.edge.alexa.enabled %}enabled{% else %}not live yet{% endif %}
+            </li>
+          </ul>
+        </div>
+
+        <div class="sidebar-card">
           <p class="eyebrow">What works today</p>
           <ul class="feature-list">
             <li>Read existing Apple calendar events</li>

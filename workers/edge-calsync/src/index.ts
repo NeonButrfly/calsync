@@ -1,13 +1,15 @@
 import { validateChannelToken } from "./auth";
 import { handleAlexaRequest } from "./alexa";
 import {
+  allowedAlexaSkillIds,
+  CHANNEL_FLAGS,
   isEnabled,
   isChannelEnabled,
   type ChannelName,
   type WorkerEnv,
 } from "./env";
 import { forwardToOrigin } from "./origin";
-import { errorResponse, normalizeOriginResponse } from "./responses";
+import { errorResponse, jsonResponse, normalizeOriginResponse } from "./responses";
 
 export default {
   async fetch(
@@ -17,6 +19,15 @@ export default {
   ): Promise<Response> {
     const requestId = crypto.randomUUID();
     const url = new URL(request.url);
+
+    if (url.pathname === "/status" && request.method === "GET") {
+      return jsonResponse(200, {
+        ok: true,
+        message: "Worker readiness retrieved.",
+        data: await buildPublicStatus(env),
+        request_id: requestId,
+      });
+    }
 
     if (url.pathname === "/alexa" && request.method === "POST") {
       if (!isEnabled(env.ENABLE_ALEXA)) {
@@ -133,4 +144,32 @@ async function proxyRequest(
   } catch {
     return errorResponse(502, "Origin unavailable.", requestId);
   }
+}
+
+async function buildPublicStatus(env: WorkerEnv): Promise<Record<string, unknown>> {
+  const channelStatuses = await Promise.all(
+    Object.keys(CHANNEL_FLAGS).map(async (channel) => {
+      const channelName = channel as ChannelName;
+      const storedHash = await env.TOKEN_HASHES.get(channelName);
+      return [
+        channelName,
+        {
+          enabled: isChannelEnabled(env, channelName),
+          token_hash_present: Boolean(storedHash),
+        },
+      ] as const;
+    }),
+  );
+
+  return {
+    origin_base_url_configured: Boolean(env.ORIGIN_BASE_URL),
+    admin_routes_enabled: isEnabled(env.ENABLE_ADMIN_ROUTES),
+    channels: Object.fromEntries(channelStatuses),
+    alexa: {
+      enabled: isEnabled(env.ENABLE_ALEXA),
+      skill_ids_configured: allowedAlexaSkillIds(env).length > 0,
+      allowed_skill_id_count: allowedAlexaSkillIds(env).length,
+      default_timezone: env.ALEXA_DEFAULT_TIMEZONE || "America/Anchorage",
+    },
+  };
 }

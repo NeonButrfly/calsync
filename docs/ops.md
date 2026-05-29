@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, edge Worker, and first Alexa adapter tracked in issues `#32`, `#36`, `#38`, `#39`, `#40`, and `#41`.
+This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, edge Worker, Alexa adapter, and readiness surface tracked in issues `#32`, `#36`, `#38`, `#39`, `#40`, `#41`, and `#43`.
 
 ## What This Service Does
 
@@ -33,6 +33,7 @@ Copy `.env.example` to `.env` and fill in:
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_TOKEN_KV_NAMESPACE_ID`
 - `CHANNEL_TOKEN_RUNTIME_PATH`
+- `EDGE_BASE_URL`
 - `ALEXA_ALLOWED_SKILL_IDS`
 - `ALEXA_DEFAULT_TIMEZONE`
 
@@ -105,9 +106,23 @@ Behavior:
 - browses appointments by day, week, or month
 - syncs the requested Apple calendar date window before rendering the schedule
 - hides cancelled appointments from the default active schedule views while allowing a reference toggle when you intentionally want historical cancelled items
+- shows a full-stack readiness panel for Apple, channel tokens, edge reachability, and Alexa setup state
 - shows a selected appointment detail panel with audit activity and provider metadata
 - edits and cancels the same Apple-backed appointment records used by the API
 - is intended to be the first family-facing control surface instead of forcing operators to work from raw API calls
+
+### Readiness snapshot
+
+`GET /api/readiness`
+
+This returns a safe operator-facing summary of:
+
+- Apple calendar write-readiness on the origin
+- local channel-token presence for `chatgpt`, `shortcuts`, `alexa`, and `webhooks`
+- edge Worker reachability
+- edge channel enablement
+- Alexa allowlist and enablement status
+- the next recommended operator action
 
 ### Create appointment
 
@@ -166,6 +181,7 @@ Live edge hostname:
 
 Worker routes:
 
+- `GET /status`
 - `GET /v1/appointments`
 - `GET /v1/appointments/{appointment_id}`
 - `POST /v1/appointments`
@@ -206,6 +222,11 @@ Current auth shape:
 - the Worker verifies incoming Alexa web-service requests using the Amazon certificate and request-signature flow
 - the Worker only accepts configured skill IDs from `ALEXA_ALLOWED_SKILL_IDS`
 - the route stays disabled until `ENABLE_ALEXA=true`
+
+Current readiness support:
+
+- `GET /status` is intentionally public and returns a safe readiness summary only
+- it exposes enabled-channel flags, token-hash presence flags, and Alexa allowlist readiness without revealing any secrets
 
 Current scope:
 

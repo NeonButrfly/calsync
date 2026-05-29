@@ -52,6 +52,10 @@ class ChannelTokenManager:
             for channel, value in data.items()
         }
 
+    def channel_presence(self, channels: list[str]) -> dict[str, bool]:
+        data = self._load()
+        return {channel: channel in data for channel in channels}
+
     def sync_hashes_to_cloudflare(
         self,
         *,

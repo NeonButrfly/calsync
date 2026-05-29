@@ -182,3 +182,16 @@ Current repo artifacts:
 Known boundary in this slice:
 
 - this is a first shared-household Alexa adapter, not a full multi-user account-linking platform
+
+## Full-Stack Readiness Requirement
+
+- GitHub issue: `#43`
+- interpreted requirement: the product itself should explain whether the Apple-first origin, channel tokens, edge Worker, and Alexa setup are actually ready, instead of forcing operators to infer readiness from docs or deployment memory
+
+Expected behavior:
+
+- `GET /api/readiness` should return a safe merged readiness snapshot
+- the root scheduling workspace should surface that snapshot in plain language
+- `GET /status` on the edge Worker should return public-safe channel and Alexa readiness without requiring auth
+- the readiness surface should never expose raw tokens, secrets, or skill IDs
+- the app should point to the next meaningful operator action when Alexa or channel setup is incomplete

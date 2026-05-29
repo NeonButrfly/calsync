@@ -10,29 +10,37 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#39" in readme_content
     assert "#40" in readme_content
     assert "#41" in readme_content
+    assert "#43" in readme_content
     assert "polished scheduling workspace" in readme_content
     assert "live apple primary-calendar reads" in readme_content
     assert "selected appointment detail" in readme_content
     assert "hide cancelled appointments by default" in readme_content
+    assert "readiness surface" in readme_content
+    assert "get /api/readiness" in readme_content
     assert "http://127.0.0.1:3080/" in readme_content
 
     assert "#39" in ops_content
     assert "#40" in ops_content
     assert "#41" in ops_content
+    assert "#43" in ops_content
     assert "web scheduling workspace" in ops_content
     assert "syncs existing apple calendar events" in ops_content
     assert "post /appointments" in ops_content
     assert "professional web scheduling workspace" in ops_content
     assert "get /api/appointments/{appointment_id}" in ops_content
     assert "include_cancelled=true" in ops_content
+    assert "get /api/readiness" in ops_content
+    assert "get /status" in ops_content
 
     assert "#39" in prompt_content
     assert "#40" in prompt_content
     assert "#41" in prompt_content
+    assert "#43" in prompt_content
     assert "apple live calendar sync requirement" in prompt_content
     assert "selected appointment detail surface" in prompt_content
     assert "get /v1/appointments/{appointment_id}" in prompt_content
     assert "default active views should hide cancelled appointments" in prompt_content
+    assert "full-stack readiness requirement" in prompt_content
 
 
 def test_docs_cover_first_alexa_skill_slice() -> None:
@@ -72,6 +80,7 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "nextappointmentintent" in ops_content
     assert "request-signature flow" in ops_content
     assert "skill-package" in ops_content
+    assert "token-hash presence flags" in ops_content
 
     assert "#38" in prompt_content
     assert "post /alexa" in prompt_content

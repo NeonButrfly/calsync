@@ -44,6 +44,39 @@ describe("edge worker smoke", () => {
     });
   });
 
+  it("returns a public readiness summary", async () => {
+    await env.TOKEN_HASHES.put("chatgpt", await sha256Hex("chatgpt-token"));
+    await env.TOKEN_HASHES.put("alexa", await sha256Hex("alexa-token"));
+
+    const request = new Request("https://edge-calsync.neonbutterfly.net/status");
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, env, ctx);
+
+    await waitOnExecutionContext(ctx);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        origin_base_url_configured: true,
+        channels: {
+          chatgpt: {
+            enabled: true,
+            token_hash_present: true,
+          },
+          alexa: {
+            enabled: false,
+            token_hash_present: true,
+          },
+        },
+        alexa: {
+          enabled: false,
+          skill_ids_configured: false,
+        },
+      },
+    });
+  });
+
   it("rejects invalid bearer tokens", async () => {
     const request = new Request(
       "https://edge-calsync.neonbutterfly.net/v1/appointments",

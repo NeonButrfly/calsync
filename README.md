@@ -22,7 +22,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#32`, `#36`, `#38`, `#39`, `#40`, and `#41` are now backed by:
+Issues `#32`, `#36`, `#38`, `#39`, `#40`, `#41`, and `#43` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -35,12 +35,14 @@ Issues `#32`, `#36`, `#38`, `#39`, `#40`, and `#41` are now backed by:
 - Live Pi origin hostname: `https://calsync.neonbutterfly.net`
 - a first Alexa custom-skill adapter on top of the same shared scheduling brain
 - live Apple primary-calendar reads, so existing household events show up in the shared workspace and voice flows
+- a product-facing readiness surface for Apple setup, channel tokens, edge reachability, and Alexa status
 
 ### Endpoints
 
 - `GET /`
 - `GET /api/info`
 - `GET /healthz`
+- `GET /api/readiness`
 - `GET /api/appointments`
 - `GET /api/appointments/{appointment_id}`
 - `POST /api/appointments`
@@ -59,9 +61,11 @@ The root page now acts as the first family scheduling UX:
 - edit flow for existing appointments
 - cancel flow for existing appointments
 - direct Apple calendar read/write through the same backend used by the API and Worker
+- a first in-product readiness panel that explains whether Apple, tokens, edge, and Alexa are actually ready
 
 ### Worker routes
 
+- `GET /status`
 - `GET /v1/appointments`
 - `GET /v1/appointments/{appointment_id}`
 - `POST /v1/appointments`
@@ -158,6 +162,7 @@ Current channels:
    - `CLOUDFLARE_ACCOUNT_ID`
    - `CLOUDFLARE_API_TOKEN`
    - `CLOUDFLARE_TOKEN_KV_NAMESPACE_ID`
+   - `EDGE_BASE_URL`
 6. Start the stack with Docker Compose.
 7. Verify `http://127.0.0.1:3080/healthz`.
 8. Open `http://127.0.0.1:3080/` for the scheduling console.
@@ -175,6 +180,7 @@ The API will not create calendar events until the Apple settings are populated.
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`
 - Apple live calendar sync into the shared workspace and Alexa: issue `#41`
+- Full-stack readiness and Alexa status surface: issue `#43`
 - Legacy archive and clean reset: issue `#33`
 
 ## Legacy archive

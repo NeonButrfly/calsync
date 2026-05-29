@@ -16,6 +16,7 @@ from calsync.schemas.appointments import (
 )
 from calsync.services.apple_caldav import AppleCalDAVError
 from calsync.services.appointments import AppointmentService
+from calsync.services.readiness import ReadinessService
 
 
 router = APIRouter(tags=["console"])
@@ -64,6 +65,7 @@ def scheduling_console(
     show_cancelled: bool = False,
 ):
     service = AppointmentService()
+    readiness = ReadinessService().build()
     date_from, date_to, selected_window = _resolve_window(view)
     appointments = service.list_range(
         date_from=date_from.isoformat(),
@@ -84,6 +86,7 @@ def scheduling_console(
             form_values=_empty_form_values(),
             selected_window=selected_window,
             show_cancelled=show_cancelled,
+            readiness=readiness,
         ),
     )
 
@@ -149,6 +152,7 @@ def create_appointment_from_console(
                 },
                 selected_window=selected_window,
                 show_cancelled=False,
+                readiness=ReadinessService().build(),
             ),
             status_code=400,
         )
@@ -327,6 +331,7 @@ def _build_console_context(
     form_values: dict[str, object],
     selected_window: str,
     show_cancelled: bool,
+    readiness: dict[str, object],
 ) -> dict[str, object]:
     hero_subject = appointments[0] if appointments else None
     return {
@@ -361,6 +366,7 @@ def _build_console_context(
         "active_count": len(appointments),
         "cancelled_count": sum(1 for item in appointments if item.status == "cancelled"),
         "next_up_label": _next_up_label(hero_subject),
+        "readiness": readiness,
     }
 
 

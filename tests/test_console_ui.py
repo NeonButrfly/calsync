@@ -96,6 +96,7 @@ def test_console_root_renders_scheduler_surface(monkeypatch) -> None:
     assert "New appointment" in response.text
     assert "Calendar view" in response.text
     assert "Details that actually help" in response.text
+    assert "System readiness" in response.text
 
 
 def test_console_create_flow_redirects_and_shows_created_appointment(monkeypatch) -> None:

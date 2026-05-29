@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     cloudflare_api_token: str | None = None
     cloudflare_token_kv_namespace_id: str | None = None
     channel_token_runtime_path: str = ".runtime/channel-tokens.json"
+    edge_base_url: str = "https://edge-calsync.neonbutterfly.net"
 
 
 @lru_cache(maxsize=1)
