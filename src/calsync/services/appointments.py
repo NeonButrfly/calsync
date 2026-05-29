@@ -220,6 +220,12 @@ class AppointmentService:
                 message="Appointment cancelled.",
             )
 
+    def get(self, appointment_id: str) -> AppointmentListItem:
+        with self.session_factory() as session:
+            appointment = self._get_appointment(session, appointment_id)
+            external_link = self._get_external_link(session, appointment_id)
+            return self._to_list_item(appointment, external_link)
+
     def _build_apple_client(self) -> AppleCalDAVClient:
         if not (
             self.settings.apple_username

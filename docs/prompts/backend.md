@@ -62,6 +62,19 @@
 - no structured medical metadata API fields yet
 - no ChatGPT Apps SDK wrapper yet; the Worker is the live edge, but the dedicated ChatGPT app layer is still future work
 
+## First Scheduling UX Requirement
+
+- GitHub issue: `#39`
+- interpreted requirement: make the rebooted Apple-first backend usable through a clean family scheduling console instead of only API calls and future design notes
+
+Expected UX behavior:
+
+- `GET /` should render a polished scheduling console
+- the root experience should let users create appointments directly into the Apple calendar through CalSync
+- existing appointments should be visible, editable, and cancellable from the same console
+- the UX should feel like a professional product surface, not a raw API debug page
+- the web console should reuse the same appointment service and audit-backed write path as the API and Worker layers
+
 ## Cloudflare Deployment Requirement
 
 - GitHub issue: `#35`

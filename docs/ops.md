@@ -1,11 +1,12 @@
 # Operations Guide
 
-This guide covers the current Apple-first CalSync service and edge Worker tracked in issues `#32` and `#36`.
+This guide covers the current Apple-first CalSync service, first scheduling UX, and edge Worker tracked in issues `#32`, `#36`, and `#39`.
 
 ## What This Service Does
 
 - exposes a small API for appointment create, edit, and cancel
 - exposes a date-range appointment list API for Worker lookup flows
+- exposes a professional web scheduling console at `/` for create, edit, cancel, and review
 - stores normalized appointment records locally
 - writes calendar mutations to one configured iCloud calendar through CalDAV
 - keeps local audit entries for every mutation
@@ -60,7 +61,13 @@ curl http://127.0.0.1:3080/healthz
 curl http://127.0.0.1:3080/
 ```
 
-6. Optionally bootstrap channel tokens:
+6. Open the scheduling console in a browser:
+
+```text
+http://127.0.0.1:3080/
+```
+
+7. Optionally bootstrap channel tokens:
 
 ```powershell
 docker compose run --rm -v ${PWD}/.runtime:/app/.runtime api python scripts/manage_channel_tokens.py bootstrap --channels chatgpt,shortcuts,alexa,webhooks
@@ -77,6 +84,23 @@ npm --prefix workers/edge-calsync test
 ```
 
 ## API Summary
+
+## Web console summary
+
+Root experience:
+
+- `GET /`
+- `POST /appointments`
+- `GET /appointments/{appointment_id}/edit`
+- `POST /appointments/{appointment_id}/edit`
+- `POST /appointments/{appointment_id}/cancel`
+
+Behavior:
+
+- shows a clean create-appointment form
+- lists the next 30 days of appointments from the local store
+- edits and cancels the same Apple-backed appointment records used by the API
+- is intended to be the first family-facing control surface instead of forcing operators to work from raw API calls
 
 ### Create appointment
 
@@ -147,6 +171,7 @@ Current planned target:
 6. Verify:
    - `http://127.0.0.1:3080/healthz` on-host
    - `http://192.168.50.232:3080/healthz` over the network
+   - `http://127.0.0.1:3080/` renders the scheduling console on-host
    - `GET /api/appointments` works on the public origin hostname
    - the edge Worker returns `401` without auth
    - the edge Worker can list, create, and cancel with the ChatGPT token

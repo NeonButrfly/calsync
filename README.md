@@ -22,12 +22,13 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#32` and `#36` are now backed by:
+Issues `#32`, `#36`, and `#39` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
 - Alembic migrations
 - Apple CalDAV write adapter for create, update, cancel, and list-backed lookup flows
+- a first real scheduling console at `/` for create, edit, cancel, and upcoming-list workflows
 - Local audit entries and appointment-to-provider event mapping
 - A dedicated Cloudflare Worker in `workers/edge-calsync`
 - Live ChatGPT-first edge hostname: `https://edge-calsync.neonbutterfly.net`
@@ -36,11 +37,22 @@ Issues `#32` and `#36` are now backed by:
 ### Endpoints
 
 - `GET /`
+- `GET /api/info`
 - `GET /healthz`
 - `GET /api/appointments`
 - `POST /api/appointments`
 - `PATCH /api/appointments/{appointment_id}`
 - `POST /api/appointments/{appointment_id}/cancel`
+
+### Web console
+
+The root page now acts as the first family scheduling UX:
+
+- polished create-appointment form
+- upcoming 30-day appointment list
+- edit flow for existing appointments
+- cancel flow for existing appointments
+- direct Apple calendar write-back through the same backend used by the API and Worker
 
 ### Worker routes
 
@@ -103,6 +115,7 @@ Current channels:
    - `CLOUDFLARE_TOKEN_KV_NAMESPACE_ID`
 5. Start the stack with Docker Compose.
 6. Verify `http://127.0.0.1:3080/healthz`.
+7. Open `http://127.0.0.1:3080/` for the scheduling console.
 
 The API will not create calendar events until the Apple settings are populated.
 
@@ -110,6 +123,7 @@ The API will not create calendar events until the Apple settings are populated.
 
 - Conversational Apple-first app slice: issue `#32`
 - Cloudflare edge Worker slice: issue `#36`
+- First family scheduling UX: issue `#39`
 - Legacy archive and clean reset: issue `#33`
 
 ## Legacy archive

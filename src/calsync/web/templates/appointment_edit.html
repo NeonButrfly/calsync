@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Edit appointment - CalSync</title>
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <div class="editor-shell">
+      <main class="editor-card panel">
+        <p class="eyebrow">Edit</p>
+        <h1>Update appointment</h1>
+        <p class="hero-copy">
+          Keep the shared Apple calendar accurate without leaving CalSync.
+        </p>
+
+        {% if error_message %}
+        <section class="flash flash--error">{{ error_message }}</section>
+        {% endif %}
+
+        <form class="form-grid" method="post" action="/appointments/{{ appointment.appointment_id }}/edit">
+          <label>
+            <span>Title</span>
+            <input name="title" type="text" value="{{ form_values.title }}" required />
+          </label>
+          <label>
+            <span>Date</span>
+            <input name="date_value" type="date" value="{{ form_values.date }}" required />
+          </label>
+          <div class="two-up">
+            <label>
+              <span>Start</span>
+              <input name="start_time" type="time" value="{{ form_values.start_time }}" required />
+            </label>
+            <label>
+              <span>End</span>
+              <input name="end_time" type="time" value="{{ form_values.end_time }}" required />
+            </label>
+          </div>
+          <label>
+            <span>Timezone</span>
+            <input name="timezone" type="text" value="{{ form_values.timezone }}" required />
+          </label>
+          <label>
+            <span>Location</span>
+            <input name="location" type="text" value="{{ form_values.location }}" />
+          </label>
+          <label>
+            <span>Who is involved</span>
+            <input name="attendees_text" type="text" value="{{ form_values.attendees_text }}" />
+          </label>
+          <label>
+            <span>Notes</span>
+            <textarea name="notes" rows="4">{{ form_values.notes }}</textarea>
+          </label>
+          <label class="checkbox-row">
+            <input name="all_day" type="checkbox" value="true"{% if form_values.all_day %} checked{% endif %} />
+            <span>All-day appointment</span>
+          </label>
+          <div class="action-row">
+            <button type="submit">Save changes</button>
+            <a class="button-link button-link--secondary" href="/">Back to schedule</a>
+          </div>
+        </form>
+      </main>
+    </div>
+  </body>
+</html>
