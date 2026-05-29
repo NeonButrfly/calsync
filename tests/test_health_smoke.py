@@ -1,3 +1,5 @@
+from importlib.resources import files
+
 from fastapi.testclient import TestClient
 
 from calsync.main import create_app
@@ -33,3 +35,11 @@ def test_api_info_returns_service_identity() -> None:
     assert response.status_code == 200
     assert response.json()["service"] == "calsync"
     assert response.json()["mode"] == "apple-first"
+
+
+def test_web_console_assets_are_packaged() -> None:
+    web_package = files("calsync.web")
+
+    assert (web_package / "templates" / "console.html").is_file()
+    assert (web_package / "templates" / "appointment_edit.html").is_file()
+    assert (web_package / "static" / "app.css").is_file()
