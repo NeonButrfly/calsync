@@ -35,11 +35,12 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
 
     assert "#38" in ops_content
     assert "createappointmentintent" in ops_content
-    assert "linked access token" in ops_content
+    assert "request-signature flow" in ops_content
 
     assert "#38" in prompt_content
     assert "post /alexa" in prompt_content
     assert "shared-household alexa adapter" in prompt_content
+    assert "request-signature flow" in prompt_content
 
     assert "createappointmentintent" in interaction_model_content
     assert "listappointmentsintent" in interaction_model_content

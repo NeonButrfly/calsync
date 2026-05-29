@@ -6,8 +6,15 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import worker from "../src/index";
-import { sha256Hex } from "../src/auth";
 import type { WorkerEnv } from "../src/env";
+
+const { alexaVerifierMock } = vi.hoisted(() => ({
+  alexaVerifierMock: vi.fn(async () => undefined),
+}));
+
+vi.mock("alexa-verifier", () => ({
+  default: alexaVerifierMock,
+}));
 
 declare module "cloudflare:test" {
   interface ProvidedEnv extends WorkerEnv {}
@@ -24,12 +31,22 @@ function alexaEnv(): WorkerEnv {
 
 function buildAlexaRequest(
   body: Record<string, unknown>,
+  options?: {
+    includeSignatureHeaders?: boolean;
+  },
 ): Request {
+  const includeSignatureHeaders = options?.includeSignatureHeaders ?? true;
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+  };
+  if (includeSignatureHeaders) {
+    headers.SignatureCertChainUrl =
+      "https://s3.amazonaws.com/echo.api/echo-api-cert.pem";
+    headers["Signature-256"] = "ZmFrZS1zaWduYXR1cmU=";
+  }
   return new Request("https://edge-calsync.neonbutterfly.net/alexa", {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
+    headers,
     body: JSON.stringify(body),
   });
 }
@@ -37,21 +54,19 @@ function buildAlexaRequest(
 describe("alexa worker adapter", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    alexaVerifierMock.mockClear();
   });
 
   it("returns a welcome response for launch requests", async () => {
-    await env.TOKEN_HASHES.put("alexa", await sha256Hex("alexa-token"));
     const request = buildAlexaRequest({
       session: {
         application: {
           applicationId: "amzn1.ask.skill.test",
         },
-        user: {
-          accessToken: "alexa-token",
-        },
       },
       request: {
         type: "LaunchRequest",
+        timestamp: new Date().toISOString(),
       },
     });
     const ctx = createExecutionContext();
@@ -59,6 +74,7 @@ describe("alexa worker adapter", () => {
 
     await waitOnExecutionContext(ctx);
 
+    expect(alexaVerifierMock).toHaveBeenCalledOnce();
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       version: "1.0",
@@ -71,7 +87,7 @@ describe("alexa worker adapter", () => {
     });
   });
 
-  it("returns a link-account card when the Alexa access token is missing", async () => {
+  it("returns 400 when Alexa signature headers are missing", async () => {
     const request = buildAlexaRequest({
       session: {
         application: {
@@ -80,25 +96,22 @@ describe("alexa worker adapter", () => {
       },
       request: {
         type: "LaunchRequest",
+        timestamp: new Date().toISOString(),
       },
-    });
+    }, { includeSignatureHeaders: false });
     const ctx = createExecutionContext();
     const response = await worker.fetch(request, alexaEnv(), ctx);
 
     await waitOnExecutionContext(ctx);
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
-      response: {
-        card: {
-          type: "LinkAccount",
-        },
-      },
+      ok: false,
+      message: "Alexa signature headers are required.",
     });
   });
 
   it("creates an appointment through the shared origin path", async () => {
-    await env.TOKEN_HASHES.put("alexa", await sha256Hex("alexa-token"));
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockImplementation(async (input, init) => {
@@ -132,12 +145,10 @@ describe("alexa worker adapter", () => {
         application: {
           applicationId: "amzn1.ask.skill.test",
         },
-        user: {
-          accessToken: "alexa-token",
-        },
       },
       request: {
         type: "IntentRequest",
+        timestamp: new Date().toISOString(),
         intent: {
           name: "CreateAppointmentIntent",
           slots: {
@@ -154,6 +165,7 @@ describe("alexa worker adapter", () => {
 
     await waitOnExecutionContext(ctx);
 
+    expect(alexaVerifierMock).toHaveBeenCalledOnce();
     expect(fetchSpy).toHaveBeenCalledOnce();
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
@@ -166,7 +178,6 @@ describe("alexa worker adapter", () => {
   });
 
   it("lists appointments for a requested date", async () => {
-    await env.TOKEN_HASHES.put("alexa", await sha256Hex("alexa-token"));
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockImplementation(async (input, init) => {
@@ -204,12 +215,10 @@ describe("alexa worker adapter", () => {
         application: {
           applicationId: "amzn1.ask.skill.test",
         },
-        user: {
-          accessToken: "alexa-token",
-        },
       },
       request: {
         type: "IntentRequest",
+        timestamp: new Date().toISOString(),
         intent: {
           name: "ListAppointmentsIntent",
           slots: {
@@ -223,6 +232,7 @@ describe("alexa worker adapter", () => {
 
     await waitOnExecutionContext(ctx);
 
+    expect(alexaVerifierMock).toHaveBeenCalledOnce();
     expect(fetchSpy).toHaveBeenCalledOnce();
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
@@ -231,6 +241,31 @@ describe("alexa worker adapter", () => {
           text: expect.stringContaining("Dentist at 10:00 AM"),
         },
       },
+    });
+  });
+
+  it("returns 400 when Alexa request verification fails", async () => {
+    alexaVerifierMock.mockRejectedValueOnce(new Error("invalid signature"));
+    const request = buildAlexaRequest({
+      session: {
+        application: {
+          applicationId: "amzn1.ask.skill.test",
+        },
+      },
+      request: {
+        type: "LaunchRequest",
+        timestamp: new Date().toISOString(),
+      },
+    });
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, alexaEnv(), ctx);
+
+    await waitOnExecutionContext(ctx);
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      message: "Alexa request verification failed: invalid signature",
     });
   });
 });

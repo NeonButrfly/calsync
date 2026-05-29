@@ -125,7 +125,7 @@ Expected voice behavior:
 
 Expected auth shape:
 
-- the Alexa skill should present the CalSync `alexa` channel token as the linked access token
+- the Alexa route should verify signed Alexa web-service requests using Amazon's certificate and request-signature flow
 - the Worker should only accept configured Alexa skill IDs from `ALEXA_ALLOWED_SKILL_IDS`
 - the route should remain disabled until `ENABLE_ALEXA=true`
 

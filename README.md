@@ -79,7 +79,7 @@ The first Alexa integration now lives beside the Worker:
 
 Current auth shape:
 
-- the Alexa skill should send the CalSync `alexa` channel token as the linked access token
+- the Worker verifies incoming Alexa web-service requests using the Amazon certificate and request-signature flow
 - the Worker also checks the configured Alexa skill ID allowlist in `ALEXA_ALLOWED_SKILL_IDS`
 - the voice route stays disabled until `ENABLE_ALEXA=true`
 

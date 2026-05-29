@@ -1,4 +1,4 @@
-import { matchTokenToChannel } from "./auth";
+import alexaVerifier from "alexa-verifier";
 import { allowedAlexaSkillIds, type WorkerEnv } from "./env";
 import { callOriginJson } from "./origin";
 
@@ -56,36 +56,28 @@ export async function handleAlexaRequest(
   env: WorkerEnv,
   requestId: string,
 ): Promise<Response> {
-  const payload = (await request.json()) as AlexaEnvelope;
+  const requestBody = await request.text();
+  const payload = JSON.parse(requestBody) as AlexaEnvelope;
   const skillId = extractSkillId(payload);
   const allowedSkillIds = allowedAlexaSkillIds(env);
 
   if (!skillId || (allowedSkillIds.length > 0 && !allowedSkillIds.includes(skillId))) {
-    return new Response(
-      JSON.stringify({
-        ok: false,
-        message: "Alexa skill ID is not allowed.",
-        request_id: requestId,
-      }),
-      {
-        status: 403,
-        headers: {
-          "content-type": "application/json; charset=utf-8",
-        },
-      },
-    );
+    return alexaErrorResponse(403, "Alexa skill ID is not allowed.", requestId);
   }
 
-  const accessToken = extractAccessToken(payload);
-  if (!accessToken || (await matchTokenToChannel(accessToken, env)) !== "alexa") {
-    return alexaResponse({
-      speech:
-        "Please link your CalSync account in the Alexa app before using this skill.",
-      cardText:
-        "Link your CalSync account in the Alexa app, then try again.",
-      shouldEndSession: true,
-      linkAccount: true,
-    });
+  const certChainUrl = request.headers.get("SignatureCertChainUrl");
+  const signature =
+    request.headers.get("Signature-256") ?? request.headers.get("Signature");
+  if (!certChainUrl || !signature) {
+    return alexaErrorResponse(400, "Alexa signature headers are required.", requestId);
+  }
+
+  try {
+    await alexaVerifier(certChainUrl, signature, requestBody);
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message ? error.message : String(error);
+    return alexaErrorResponse(400, `Alexa request verification failed: ${message}`, requestId);
   }
 
   const requestType = payload.request.type;
@@ -288,14 +280,6 @@ function extractSkillId(payload: AlexaEnvelope): string | null {
   );
 }
 
-function extractAccessToken(payload: AlexaEnvelope): string | null {
-  return (
-    payload.context?.System?.user?.accessToken ??
-    payload.session?.user?.accessToken ??
-    null
-  );
-}
-
 function slotValue(payload: AlexaEnvelope, slotName: string): string | null {
   const value = payload.request.intent?.slots?.[slotName]?.value?.trim();
   return value || null;
@@ -375,6 +359,26 @@ function alexaResponse(options: AlexaSpeechOptions): Response {
     }),
     {
       status: 200,
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+      },
+    },
+  );
+}
+
+function alexaErrorResponse(
+  status: number,
+  message: string,
+  requestId: string,
+): Response {
+  return new Response(
+    JSON.stringify({
+      ok: false,
+      message,
+      request_id: requestId,
+    }),
+    {
+      status,
       headers: {
         "content-type": "application/json; charset=utf-8",
       },

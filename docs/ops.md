@@ -176,7 +176,7 @@ Supported first intents:
 
 Current auth shape:
 
-- the Alexa skill should send the CalSync `alexa` channel token as the linked access token
+- the Worker verifies incoming Alexa web-service requests using the Amazon certificate and request-signature flow
 - the Worker only accepts configured skill IDs from `ALEXA_ALLOWED_SKILL_IDS`
 - the route stays disabled until `ENABLE_ALEXA=true`
 
