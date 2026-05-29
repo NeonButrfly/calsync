@@ -86,6 +86,29 @@ Behavioral boundary:
 - this slice adds a shared Google write path inside the product, not a full Google-native standalone experience
 - Apple remains the first family-facing target, but the scheduling brain should now treat connected Google calendars as first-class writable options
 
+## In-Product Microsoft OAuth Setup And Writable Targets Requirement
+
+- GitHub issue: `#49`
+- interpreted requirement: the product should support browser-based Microsoft account connection and writable Outlook scheduling without forcing the operator to hand-edit host secrets or use a separate admin tool
+
+Expected behavior:
+
+- `GET /microsoft/setup` should render an operator-facing Microsoft setup page
+- `POST /microsoft/setup` should save the shared Microsoft OAuth client ID and client secret
+- those Microsoft OAuth settings should be stored encrypted at rest with `ENCRYPTION_KEY`
+- `GET /auth/microsoft/start` should begin a browser-based Microsoft OAuth flow on the live CalSync domain
+- `GET /auth/microsoft/callback` should exchange the code, save the Microsoft refresh token, and discover the available calendars
+- the product should support more than one connected Microsoft account under that shared OAuth app
+- the product should expose a live refresh path so operators can resync one connected Microsoft account and its discovered calendar catalog without reconnecting unnecessarily
+- the product should expose a safe disconnect path that clears one linked Microsoft account and its calendar list while preserving the shared deployment-wide OAuth client
+- discovered Microsoft calendars should appear as writable targets in the same create and edit flows used by the workspace
+- the shared appointment service should be able to create, update, cancel, and date-range sync Microsoft events through those targets
+
+Behavioral boundary:
+
+- this slice adds a shared Microsoft write path inside the product, not a full Outlook-native standalone experience
+- Apple remains the first family-facing target, but the scheduling brain should now treat connected Microsoft calendars as first-class writable options beside Apple and Google
+
 ## First Scheduling UX Requirement
 
 - GitHub issue: `#39`
@@ -120,9 +143,10 @@ Expected UX behavior:
 Expected behavior:
 
 - `GET /connections` should summarize the live Apple and Google connection state in one place
+- `GET /connections` should summarize the live Apple, Google, and Microsoft connection state in one place
 - operators should be able to see which provider paths are already writable and which still need setup
 - the shared workspace shell should link to that Connections surface directly
-- Apple setup and Google setup can remain separate deeper pages, but the day-to-day operator experience should have one clear entry point for connection state
+- Apple setup, Google setup, and Microsoft setup can remain separate deeper pages, but the day-to-day operator experience should have one clear entry point for connection state
 
 Expected API/edge support:
 

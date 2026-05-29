@@ -13,7 +13,7 @@
           <p class="eyebrow">CalSync</p>
           <h1>Connections that feel like one product</h1>
           <p>
-            Keep Apple and Google account setup, writable targets, and next
+            Keep Apple, Google, and Microsoft account setup, writable targets, and next
             actions in one calm operator surface instead of hunting through
             disconnected forms.
           </p>
@@ -24,6 +24,7 @@
           <a class="sidebar-nav__item sidebar-nav__item--active" href="/connections">Connections</a>
           <a class="sidebar-nav__item" href="/calendar/setup">Apple setup</a>
           <a class="sidebar-nav__item" href="/google/setup">Google setup</a>
+          <a class="sidebar-nav__item" href="/microsoft/setup">Microsoft setup</a>
           <a class="sidebar-nav__item" href="/alexa/setup">Alexa setup</a>
           <a class="sidebar-nav__item" href="/alexa/simulator">Alexa simulator</a>
           <a class="sidebar-nav__item" href="/privacy">Privacy policy</a>
@@ -118,6 +119,40 @@
                 <a class="button-link" href="/google/setup">Open Google setup</a>
               </div>
             </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Microsoft calendar</p>
+                  <h3>Browser-connected Outlook path</h3>
+                </div>
+              </div>
+              <div class="detail-grid">
+                <article class="detail-card">
+                  <p class="eyebrow">Status</p>
+                  <strong>{% if microsoft_runtime.ready %}Ready{% else %}Needs setup{% endif %}</strong>
+                  <span>{% if microsoft_runtime.ready %}Microsoft writable scheduling is available in the shared appointment service.{% else %}Save the shared OAuth app and connect an Outlook account to finish this path.{% endif %}</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">OAuth app</p>
+                  <strong>{% if microsoft_settings.client_secret_saved %}Saved{% else %}Missing{% endif %}</strong>
+                  <span>{{ microsoft_settings.client_id or "No Microsoft client ID saved yet." }}</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Connected accounts</p>
+                  <strong>{% if microsoft_accounts %}{{ microsoft_accounts|length }} connected accounts{% else %}Not connected{% endif %}</strong>
+                  <span>{% if microsoft_accounts %}{{ microsoft_accounts|map(attribute='account_email')|join(", ") }}{% else %}No connected Microsoft account yet.{% endif %}</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Writable targets</p>
+                  <strong>{{ microsoft_calendar_catalog|length }}</strong>
+                  <span>Discovered Outlook calendars available to create and edit flows.</span>
+                </article>
+              </div>
+              <div class="action-row">
+                <a class="button-link" href="/microsoft/setup">Open Microsoft setup</a>
+              </div>
+            </article>
           </div>
 
           <div class="workspace-column workspace-column--stack">
@@ -129,7 +164,7 @@
                 </div>
               </div>
               <div class="detail-stack">
-                <p class="appointment-detail"><strong>Create and edit:</strong> the same appointment flow can already target Apple or Google when those connections are ready.</p>
+                <p class="appointment-detail"><strong>Create and edit:</strong> the same appointment flow can already target Apple, Google, or Microsoft when those connections are ready.</p>
                 <p class="appointment-detail"><strong>Availability:</strong> open-time lookup uses the same synced appointment inventory behind the workspace and Alexa.</p>
                 <p class="appointment-detail"><strong>Alexa:</strong> voice flows benefit from the same connected calendar paths once the edge turn-on is complete.</p>
               </div>
@@ -146,6 +181,7 @@
                 <p class="appointment-detail"><strong>Readiness guidance:</strong> {{ readiness.next_action }}</p>
                 <p class="appointment-detail"><strong>Apple:</strong> {% if apple_runtime.ready %}already usable for live scheduling{% else %}open Apple setup and save the household calendar connection{% endif %}</p>
                 <p class="appointment-detail"><strong>Google:</strong> {% if google_runtime.ready %}already usable for live scheduling{% else %}open Google setup and connect the Google account through the browser{% endif %}</p>
+                <p class="appointment-detail"><strong>Microsoft:</strong> {% if microsoft_runtime.ready %}already usable for live scheduling{% else %}open Microsoft setup and connect the Outlook account through the browser{% endif %}</p>
                 <p class="appointment-detail"><strong>Alexa:</strong> finish edge enablement and skill-ID allowlisting from the Alexa setup page.</p>
               </div>
               <div class="action-row">

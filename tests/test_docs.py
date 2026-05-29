@@ -16,6 +16,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#46" in readme_content
     assert "#47" in readme_content
     assert "#48" in readme_content
+    assert "#49" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -36,6 +37,12 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "post /google/setup" in readme_content
     assert "get /auth/google/start" in readme_content
     assert "get /auth/google/callback" in readme_content
+    assert "get /microsoft/setup" in readme_content
+    assert "post /microsoft/setup" in readme_content
+    assert "post /microsoft/setup/refresh" in readme_content
+    assert "post /microsoft/setup/disconnect" in readme_content
+    assert "get /auth/microsoft/start" in readme_content
+    assert "get /auth/microsoft/callback" in readme_content
     assert "get /alexa/simulator" in readme_content
     assert "alexa setup page" in readme_content
     assert "apple calendar setup page" in readme_content
@@ -45,6 +52,10 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "google calendar refresh and disconnect controls" in readme_content
     assert "multiple connected google accounts under one shared oauth app" in readme_content
     assert "writable google calendar targets" in readme_content
+    assert "browser-based microsoft oauth connect on the live calsync domain" in readme_content
+    assert "microsoft calendar refresh and disconnect controls" in readme_content
+    assert "multiple connected microsoft accounts under one shared oauth app" in readme_content
+    assert "writable microsoft calendar targets" in readme_content
     assert "connections workspace at `/connections`" in readme_content
     assert "target-calendar picker" in readme_content
     assert "open-time finder" in readme_content
@@ -71,6 +82,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#46" in ops_content
     assert "#47" in ops_content
     assert "#48" in ops_content
+    assert "#49" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -91,6 +103,12 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "post /google/setup" in ops_content
     assert "get /auth/google/start" in ops_content
     assert "get /auth/google/callback" in ops_content
+    assert "get /microsoft/setup" in ops_content
+    assert "post /microsoft/setup" in ops_content
+    assert "post /microsoft/setup/refresh" in ops_content
+    assert "post /microsoft/setup/disconnect" in ops_content
+    assert "get /auth/microsoft/start" in ops_content
+    assert "get /auth/microsoft/callback" in ops_content
     assert "get /alexa/setup" in ops_content
     assert "post /alexa/setup" in ops_content
     assert "get /alexa/simulator" in ops_content
@@ -107,6 +125,12 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "writable google targets appear in the same picker" in ops_content
     assert "refresh action that resyncs one connected google account email and discovered calendars" in ops_content
     assert "disconnect action that clears one linked google account" in ops_content
+    assert "microsoft setup page" in ops_content
+    assert "browser-based account connect on the live calsync domain" in ops_content
+    assert "multiple connected microsoft accounts under the same shared oauth app" in ops_content
+    assert "writable microsoft targets appear in the same picker" in ops_content
+    assert "refresh action that resyncs one connected microsoft account email and discovered calendars" in ops_content
+    assert "disconnect action that clears one linked microsoft account" in ops_content
     assert "target apple calendar" in ops_content
     assert "additional tracked apple calendar targets" in ops_content
     assert "move an appointment from one saved apple calendar target to another" in ops_content
@@ -130,6 +154,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#46" in prompt_content
     assert "#47" in prompt_content
     assert "#48" in prompt_content
+    assert "#49" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -152,6 +177,10 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "post /google/setup" in prompt_content
     assert "get /auth/google/start" in prompt_content
     assert "get /auth/google/callback" in prompt_content
+    assert "get /microsoft/setup" in prompt_content
+    assert "post /microsoft/setup" in prompt_content
+    assert "get /auth/microsoft/start" in prompt_content
+    assert "get /auth/microsoft/callback" in prompt_content
     assert "save the apple account label" in prompt_content
     assert "support more than one connected apple account under that setup surface" in prompt_content
     assert "in-product google oauth setup and writable targets requirement" in prompt_content
@@ -163,6 +192,11 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "expose a live refresh path" in prompt_content
     assert "safe disconnect path" in prompt_content
     assert "create, update, cancel, and date-range sync google events" in prompt_content
+    assert "in-product microsoft oauth setup and writable targets requirement" in prompt_content
+    assert "save the shared microsoft oauth client id and client secret" in prompt_content
+    assert "save the microsoft refresh token" in prompt_content
+    assert "support more than one connected microsoft account under that shared oauth app" in prompt_content
+    assert "create, update, cancel, and date-range sync microsoft events" in prompt_content
     assert "multi-calendar apple target requirement" in prompt_content
     assert "target_calendar_url" in prompt_content
     assert "create and edit flows should expose a target calendar picker" in prompt_content

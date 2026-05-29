@@ -39,6 +39,13 @@ from calsync.services.google_calendar import (
     GoogleOAuthConfig,
 )
 from calsync.services.google_runtime_config import GoogleRuntimeConfigService
+from calsync.services.microsoft_calendar import (
+    MicrosoftCalendarClient,
+    MicrosoftCalendarError,
+    MicrosoftListedEvent,
+    MicrosoftOAuthConfig,
+)
+from calsync.services.microsoft_runtime_config import MicrosoftRuntimeConfigService
 
 
 class AppointmentService:
@@ -52,6 +59,7 @@ class AppointmentService:
         self.session_factory = session_factory
         self.apple_runtime_config = AppleRuntimeConfigService(settings=self.settings)
         self.google_runtime_config = GoogleRuntimeConfigService(settings=self.settings)
+        self.microsoft_runtime_config = MicrosoftRuntimeConfigService(settings=self.settings)
 
     def create(
         self,
@@ -144,7 +152,12 @@ class AppointmentService:
                         calendar=calendar,
                     )
                 session.commit()
-            except (AppleCalDAVError, GoogleCalendarError, AttributeError):
+            except (
+                AppleCalDAVError,
+                GoogleCalendarError,
+                MicrosoftCalendarError,
+                AttributeError,
+            ):
                 session.rollback()
             query = (
                 select(Appointment, AppointmentExternalLink)
@@ -307,7 +320,12 @@ class AppointmentService:
                         calendar=calendar,
                     )
                 session.commit()
-            except (AppleCalDAVError, GoogleCalendarError, AttributeError):
+            except (
+                AppleCalDAVError,
+                GoogleCalendarError,
+                MicrosoftCalendarError,
+                AttributeError,
+            ):
                 session.rollback()
 
             appointments = session.scalars(
@@ -488,6 +506,31 @@ class AppointmentService:
             )
         )
 
+    def _build_microsoft_client(
+        self,
+        calendar_id: str | None = None,
+        calendar_name: str | None = None,
+        account_email: str | None = None,
+    ) -> MicrosoftCalendarClient:
+        config = self.microsoft_runtime_config.resolve(
+            calendar_id=calendar_id,
+            calendar_name=calendar_name,
+            account_email=account_email,
+        )
+        if not config["ready"]:
+            raise ValueError("Microsoft calendar settings are incomplete.")
+        return MicrosoftCalendarClient(
+            MicrosoftOAuthConfig(
+                account_label=str(config["account_label"]),
+                account_email=str(config["account_email"]),
+                client_id=str(config["client_id"]),
+                client_secret=str(config["client_secret"]),
+                refresh_token=str(config["refresh_token"]),
+                primary_calendar_id=str(config["primary_calendar_id"]),
+                primary_calendar_name=str(config["primary_calendar_name"]),
+            )
+        )
+
     def _ensure_connection(
         self,
         session: Session,
@@ -542,6 +585,61 @@ class AppointmentService:
                         str(config["account_email"]),
                         str(
                             self.google_runtime_config.resolve(
+                                account_email=str(config["account_email"])
+                            )["primary_calendar_id"]
+                        ),
+                    )
+                    == target_value
+                ),
+            )
+            session.add(connection)
+            session.flush()
+            return connection
+
+        if provider_type == "microsoft_calendar":
+            config = self.microsoft_runtime_config.resolve(
+                calendar_id=external_id,
+                account_email=account_email,
+            )
+            if not config["ready"]:
+                raise ValueError("Microsoft calendar settings are incomplete.")
+            target_value = self.microsoft_runtime_config.encode_target_value(
+                str(config["account_email"]),
+                str(config["primary_calendar_id"]),
+            )
+            existing = session.scalar(
+                select(AppleCalendarConnection).where(
+                    AppleCalendarConnection.provider_type == "microsoft_calendar",
+                    AppleCalendarConnection.primary_calendar_url == target_value,
+                )
+            )
+            if existing is not None:
+                existing.account_label = str(config["account_label"])
+                existing.apple_username = str(config["account_email"])
+                existing.primary_calendar_name = str(config["primary_calendar_name"])
+                existing.is_primary = bool(
+                    self.microsoft_runtime_config.encode_target_value(
+                        str(config["account_email"]),
+                        str(
+                            self.microsoft_runtime_config.resolve(
+                                account_email=str(config["account_email"])
+                            )["primary_calendar_id"]
+                        ),
+                    )
+                    == existing.primary_calendar_url
+                )
+                return existing
+            connection = AppleCalendarConnection(
+                provider_type="microsoft_calendar",
+                account_label=str(config["account_label"]),
+                apple_username=str(config["account_email"]),
+                primary_calendar_url=target_value,
+                primary_calendar_name=str(config["primary_calendar_name"]),
+                is_primary=bool(
+                    self.microsoft_runtime_config.encode_target_value(
+                        str(config["account_email"]),
+                        str(
+                            self.microsoft_runtime_config.resolve(
                                 account_email=str(config["account_email"])
                             )["primary_calendar_id"]
                         ),
@@ -629,6 +727,8 @@ class AppointmentService:
             external_id=(
                 self.google_runtime_config.encode_target_value(account_email, external_id)
                 if provider_type == "google_calendar" and account_email
+                else self.microsoft_runtime_config.encode_target_value(account_email, external_id)
+                if provider_type == "microsoft_calendar" and account_email
                 else external_id
             ),
             starts_at=starts_at,
@@ -651,7 +751,7 @@ class AppointmentService:
         session: Session,
         *,
         connection: AppleCalendarConnection,
-        provider_event: AppleListedEvent | GoogleListedEvent | object,
+        provider_event: AppleListedEvent | GoogleListedEvent | MicrosoftListedEvent | object,
     ) -> None:
         provider_event_id = str(getattr(provider_event, "provider_event_id"))
         external_links = session.scalars(
@@ -799,7 +899,22 @@ class AppointmentService:
     ) -> str:
         if target_calendar_url and target_calendar_url.startswith("google:"):
             return target_calendar_url
+        if target_calendar_url and target_calendar_url.startswith("microsoft:"):
+            return target_calendar_url
         if target_calendar_name:
+            try:
+                microsoft_target = self.microsoft_runtime_config.resolve(
+                    calendar_name=target_calendar_name,
+                )
+                calendar_id = str(microsoft_target["primary_calendar_id"])
+                account_email = str(microsoft_target["account_email"])
+                if calendar_id and account_email:
+                    return self.microsoft_runtime_config.encode_target_value(
+                        account_email,
+                        calendar_id,
+                    )
+            except ValueError:
+                pass
             try:
                 google_target = self.google_runtime_config.resolve(
                         calendar_name=target_calendar_name,
@@ -828,6 +943,9 @@ class AppointmentService:
         if raw.startswith("google:"):
             account_email, calendar_id = self.google_runtime_config.decode_target_value(raw)
             return ("google_calendar", calendar_id, account_email)
+        if raw.startswith("microsoft:"):
+            account_email, calendar_id = self.microsoft_runtime_config.decode_target_value(raw)
+            return ("microsoft_calendar", calendar_id, account_email)
         return ("icloud_caldav", raw, None)
 
     def _connection_target_value(self, connection: AppleCalendarConnection) -> str:
@@ -835,6 +953,10 @@ class AppointmentService:
             if str(connection.primary_calendar_url).startswith("google:"):
                 return connection.primary_calendar_url
             return f"google:{connection.apple_username}:{connection.primary_calendar_url}"
+        if connection.provider_type == "microsoft_calendar":
+            if str(connection.primary_calendar_url).startswith("microsoft:"):
+                return connection.primary_calendar_url
+            return f"microsoft:{connection.apple_username}:{connection.primary_calendar_url}"
         return connection.primary_calendar_url
 
     def _create_provider_event(
@@ -853,6 +975,22 @@ class AppointmentService:
                 self._connection_target_value(connection)
             )
             return self._google_client_for_calendar(
+                calendar_id,
+                account_email=calendar_account_email,
+            ).create_event(
+                calendar_id=calendar_id,
+                title=title,
+                starts_at=starts_at,
+                ends_at=ends_at,
+                all_day=all_day,
+                location=location,
+                notes=notes,
+            )
+        if connection.provider_type == "microsoft_calendar":
+            calendar_account_email, calendar_id = self.microsoft_runtime_config.decode_target_value(
+                self._connection_target_value(connection)
+            )
+            return self._microsoft_client_for_calendar(
                 calendar_id,
                 account_email=calendar_account_email,
             ).create_event(
@@ -906,6 +1044,25 @@ class AppointmentService:
                 href=href,
                 etag=etag,
             )
+        if connection.provider_type == "microsoft_calendar":
+            calendar_account_email, calendar_id = self.microsoft_runtime_config.decode_target_value(
+                self._connection_target_value(connection)
+            )
+            return self._microsoft_client_for_calendar(
+                calendar_id,
+                account_email=calendar_account_email,
+            ).update_event(
+                calendar_id=calendar_id,
+                provider_event_id=provider_event_id,
+                title=title,
+                starts_at=starts_at,
+                ends_at=ends_at,
+                all_day=all_day,
+                location=location,
+                notes=notes,
+                href=href,
+                etag=etag,
+            )
         return self._apple_client_for_calendar(connection.primary_calendar_url).update_event(
             provider_event_id=provider_event_id,
             title=title,
@@ -940,6 +1097,20 @@ class AppointmentService:
                 etag=etag,
             )
             return
+        if connection.provider_type == "microsoft_calendar":
+            calendar_account_email, calendar_id = self.microsoft_runtime_config.decode_target_value(
+                self._connection_target_value(connection)
+            )
+            self._microsoft_client_for_calendar(
+                calendar_id,
+                account_email=calendar_account_email,
+            ).cancel_event(
+                calendar_id=calendar_id,
+                provider_event_id=provider_event_id,
+                href=href,
+                etag=etag,
+            )
+            return
         self._apple_client_for_calendar(connection.primary_calendar_url).cancel_event(
             provider_event_id=provider_event_id,
             href=href,
@@ -953,12 +1124,27 @@ class AppointmentService:
         external_id: str,
         starts_at: datetime,
         ends_at: datetime,
-    ) -> list[AppleListedEvent | GoogleListedEvent]:
+    ) -> list[AppleListedEvent | GoogleListedEvent | MicrosoftListedEvent]:
         if provider_type == "google_calendar":
             account_email, calendar_id = self.google_runtime_config.decode_target_value(
                 f"google:{external_id}" if ":" not in external_id else external_id
             )
             client = self._google_client_for_calendar(
+                calendar_id,
+                account_email=account_email,
+            )
+            if not hasattr(client, "list_events"):
+                return []
+            return client.list_events(
+                calendar_id=calendar_id,
+                starts_at=starts_at,
+                ends_at=ends_at,
+            )
+        if provider_type == "microsoft_calendar":
+            account_email, calendar_id = self.microsoft_runtime_config.decode_target_value(
+                f"microsoft:{external_id}" if ":" not in external_id else external_id
+            )
+            client = self._microsoft_client_for_calendar(
                 calendar_id,
                 account_email=account_email,
             )
@@ -997,6 +1183,20 @@ class AppointmentService:
         except TypeError:
             return self._build_google_client()
 
+    def _microsoft_client_for_calendar(
+        self,
+        calendar_id: str,
+        *,
+        account_email: str | None = None,
+    ) -> MicrosoftCalendarClient:
+        try:
+            return self._build_microsoft_client(
+                calendar_id=calendar_id,
+                account_email=account_email,
+            )
+        except TypeError:
+            return self._build_microsoft_client()
+
     @property
     def display_account_label(self) -> str:
         apple = self.apple_runtime_config.resolve()
@@ -1005,6 +1205,9 @@ class AppointmentService:
         google = self.google_runtime_config.resolve()
         if google["ready"]:
             return str(google["account_label"])
+        microsoft = self.microsoft_runtime_config.resolve()
+        if microsoft["ready"]:
+            return str(microsoft["account_label"])
         return "Not connected"
 
     @property
@@ -1015,6 +1218,9 @@ class AppointmentService:
         google = self.google_runtime_config.resolve()
         if google["ready"]:
             return str(google["primary_calendar_name"])
+        microsoft = self.microsoft_runtime_config.resolve()
+        if microsoft["ready"]:
+            return str(microsoft["primary_calendar_name"])
         return "No calendar selected"
 
     @property
@@ -1040,6 +1246,18 @@ class AppointmentService:
                     "account_label": str(item["account_label"]),
                 }
                 for item in self.google_runtime_config.list_calendars()
+            ]
+        )
+        calendars.extend(
+            [
+                {
+                    "provider_type": "microsoft_calendar",
+                    "calendar_name": str(item["calendar_name"]),
+                    "calendar_url": str(item["target_value"]),
+                    "is_default": bool(item.get("is_default")),
+                    "account_label": str(item["account_label"]),
+                }
+                for item in self.microsoft_runtime_config.list_calendars()
             ]
         )
         return calendars

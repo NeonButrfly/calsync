@@ -181,6 +181,37 @@ def test_connections_page_shows_multiple_google_accounts(monkeypatch) -> None:
     assert "work@example.com" in response.text
 
 
+def test_connections_page_renders_microsoft_summary(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_microsoft_oauth_settings(
+        client_id="microsoft-client-id",
+        client_secret="microsoft-client-secret",
+    )
+    service.set_microsoft_account_settings(
+        account_label="Kay Microsoft",
+        account_email="kay@example.com",
+        refresh_token="microsoft-refresh-token",
+    )
+    service.set_microsoft_calendar_catalog(
+        [
+            {
+                "calendar_name": "Calendar",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ]
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/connections")
+
+    assert response.status_code == 200
+    assert "Browser-connected Outlook path" in response.text
+    assert "Open Microsoft setup" in response.text
+
+
 def test_console_create_flow_redirects_and_shows_created_appointment(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     monkeypatch.setattr(
@@ -683,6 +714,144 @@ def test_google_setup_disconnect_clears_account_but_keeps_oauth_app(monkeypatch)
         "refresh_token": None,
     }
     assert service.get_google_calendar_catalog() == []
+
+
+def test_microsoft_setup_page_renders_oauth_connect_surface(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/microsoft/setup")
+
+    assert response.status_code == 200
+    assert "Microsoft setup" in response.text
+    assert "Save Microsoft OAuth setup" in response.text
+    assert "Connect Microsoft account" in response.text
+
+
+def test_microsoft_oauth_start_redirects_with_saved_state(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_microsoft_oauth_settings(
+        client_id="microsoft-client-id",
+        client_secret="microsoft-client-secret",
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/auth/microsoft/start", follow_redirects=False)
+
+    assert response.status_code == 302
+    redirect_target = response.headers["location"]
+    parsed = urlparse(redirect_target)
+    query = parse_qs(parsed.query)
+    assert parsed.netloc == "login.microsoftonline.com"
+    assert query["client_id"] == ["microsoft-client-id"]
+    assert query["scope"] == ["offline_access openid User.Read Calendars.ReadWrite"]
+    saved_state = service.get_microsoft_oauth_state()
+    assert saved_state
+    assert query["state"] == [saved_state]
+
+
+def test_microsoft_oauth_callback_saves_account_and_clears_state(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_microsoft_oauth_settings(
+        client_id="microsoft-client-id",
+        client_secret="microsoft-client-secret",
+    )
+    service.set_microsoft_oauth_state("microsoft-state-123")
+
+    class FakeMicrosoftCalendarClient:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def exchange_code(self, *, code: str, redirect_uri: str):
+            assert code == "real-code"
+            assert redirect_uri.endswith("/auth/microsoft/callback")
+            return {
+                "refresh_token": "microsoft-refresh-token",
+                "access_token": "microsoft-access-token",
+            }
+
+        def current_user_email(self, *, access_token: str | None = None) -> str:
+            assert access_token == "microsoft-access-token"
+            return "kay@example.com"
+
+        def list_calendars(self, *, access_token: str | None = None):
+            assert access_token == "microsoft-access-token"
+            return [
+                {
+                    "calendar_name": "Calendar",
+                    "calendar_id": "primary",
+                    "is_default": True,
+                }
+            ]
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.MicrosoftCalendarClient",
+        FakeMicrosoftCalendarClient,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/auth/microsoft/callback?state=microsoft-state-123&code=real-code")
+
+    assert response.status_code == 200
+    assert "Microsoft account connected and calendars discovered." in response.text
+    assert service.get_microsoft_oauth_state() is None
+    assert service.get_microsoft_account_settings() == {
+        "account_label": "kay@example.com",
+        "account_email": "kay@example.com",
+        "refresh_token": "microsoft-refresh-token",
+    }
+    assert service.get_microsoft_calendar_catalog() == [
+        {
+            "calendar_name": "Calendar",
+            "calendar_id": "primary",
+            "is_default": True,
+        }
+    ]
+
+
+def test_microsoft_setup_disconnect_clears_account_but_keeps_oauth_app(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_microsoft_oauth_settings(
+        client_id="microsoft-client-id",
+        client_secret="microsoft-client-secret",
+    )
+    service.set_microsoft_account_settings(
+        account_label="Kay Microsoft",
+        account_email="kay@example.com",
+        refresh_token="microsoft-refresh-token",
+    )
+    service.set_microsoft_calendar_catalog(
+        [
+            {
+                "calendar_name": "Calendar",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ]
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post("/microsoft/setup/disconnect")
+
+    assert response.status_code == 200
+    assert "Microsoft account disconnected. The shared OAuth app is still saved." in response.text
+    assert service.get_microsoft_oauth_settings() == {
+        "client_id": "microsoft-client-id",
+        "client_secret": "microsoft-client-secret",
+    }
+    assert service.get_microsoft_account_settings() == {
+        "account_label": None,
+        "account_email": None,
+        "refresh_token": None,
+    }
+    assert service.get_microsoft_calendar_catalog() == []
 
 
 def test_public_policy_pages_render(monkeypatch) -> None:

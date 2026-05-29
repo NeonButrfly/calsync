@@ -31,6 +31,12 @@ from calsync.services.google_calendar import (
     GoogleOAuthConfig,
 )
 from calsync.services.google_runtime_config import GoogleRuntimeConfigService
+from calsync.services.microsoft_calendar import (
+    MicrosoftCalendarClient,
+    MicrosoftCalendarError,
+    MicrosoftOAuthConfig,
+)
+from calsync.services.microsoft_runtime_config import MicrosoftRuntimeConfigService
 from calsync.services.operator_settings import OperatorSettingsService
 from calsync.services.readiness import ReadinessService
 
@@ -119,10 +125,13 @@ def connections_page(request: Request):
     operator_settings = OperatorSettingsService()
     apple_runtime_service = AppleRuntimeConfigService(operator_settings=operator_settings)
     google_runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
+    microsoft_runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
     apple_settings = operator_settings.describe_apple_calendar_settings()
     google_settings = operator_settings.describe_google_oauth_settings()
+    microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
     apple_runtime = apple_runtime_service.resolve()
     google_runtime = google_runtime_service.resolve()
+    microsoft_runtime = microsoft_runtime_service.resolve()
     return _templates.TemplateResponse(
         request,
         "connections.html",
@@ -136,6 +145,10 @@ def connections_page(request: Request):
             "google_runtime": google_runtime,
             "google_accounts": google_runtime_service.list_accounts(),
             "google_calendar_catalog": google_runtime_service.list_calendars(),
+            "microsoft_settings": microsoft_settings,
+            "microsoft_runtime": microsoft_runtime,
+            "microsoft_accounts": microsoft_runtime_service.list_accounts(),
+            "microsoft_calendar_catalog": microsoft_runtime_service.list_calendars(),
             "readiness": ReadinessService().build(),
         },
     )
@@ -294,6 +307,34 @@ def _build_google_client_from_settings(
     return GoogleCalendarClient(
         GoogleOAuthConfig(
             account_label=str(runtime_config["account_label"] or "Google"),
+            account_email=str(runtime_config["account_email"] or ""),
+            client_id=client_id,
+            client_secret=client_secret,
+            refresh_token=refresh_token,
+            primary_calendar_id=str(runtime_config["primary_calendar_id"] or "primary"),
+            primary_calendar_name=str(runtime_config["primary_calendar_name"] or "Primary"),
+        )
+    )
+
+
+def _build_microsoft_client_from_settings(
+    operator_settings: OperatorSettingsService,
+    *,
+    account_email: str | None = None,
+) -> MicrosoftCalendarClient:
+    oauth_settings = operator_settings.get_microsoft_oauth_settings()
+    runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
+    runtime_config = runtime_service.resolve(account_email=account_email)
+    client_id = str(oauth_settings["client_id"] or "").strip()
+    client_secret = str(oauth_settings["client_secret"] or "").strip()
+    refresh_token = str(runtime_config["refresh_token"] or "").strip()
+    if not client_id or not client_secret:
+        raise ValueError("Microsoft OAuth settings are incomplete.")
+    if not refresh_token:
+        raise ValueError("Microsoft account is not connected yet.")
+    return MicrosoftCalendarClient(
+        MicrosoftOAuthConfig(
+            account_label=str(runtime_config["account_label"] or "Microsoft"),
             account_email=str(runtime_config["account_email"] or ""),
             client_id=client_id,
             client_secret=client_secret,
@@ -524,6 +565,252 @@ def google_oauth_callback(
             "flash_message": "Google account connected and calendars discovered.",
             "error_message": None,
             "connect_url": "/auth/google/start",
+        },
+    )
+
+
+@router.get("/microsoft/setup")
+def microsoft_setup_page(request: Request):
+    operator_settings = OperatorSettingsService()
+    microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
+    runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
+    runtime_config = runtime_service.resolve()
+    return _templates.TemplateResponse(
+        request,
+        "microsoft_setup.html",
+        {
+            "request": request,
+            "microsoft_settings": microsoft_settings,
+            "runtime_config": runtime_config,
+            "microsoft_accounts": runtime_service.list_accounts(),
+            "calendar_catalog": runtime_service.list_calendars(),
+            "flash_message": None,
+            "error_message": None,
+            "connect_url": "/auth/microsoft/start",
+        },
+    )
+
+
+@router.post("/microsoft/setup")
+def microsoft_setup_update(
+    request: Request,
+    microsoft_client_id: str = Form(""),
+    microsoft_client_secret: str = Form(""),
+):
+    operator_settings = OperatorSettingsService()
+    try:
+        operator_settings.set_microsoft_oauth_settings(
+            client_id=microsoft_client_id,
+            client_secret=microsoft_client_secret,
+            preserve_existing_secret=True,
+        )
+        flash_message = "Microsoft OAuth settings saved securely."
+        error_message = None
+    except ValueError as exc:
+        flash_message = None
+        error_message = str(exc)
+
+    microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
+    runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
+    runtime_config = runtime_service.resolve()
+    return _templates.TemplateResponse(
+        request,
+        "microsoft_setup.html",
+        {
+            "request": request,
+            "microsoft_settings": microsoft_settings,
+            "runtime_config": runtime_config,
+            "microsoft_accounts": runtime_service.list_accounts(),
+            "calendar_catalog": runtime_service.list_calendars(),
+            "flash_message": flash_message,
+            "error_message": error_message,
+            "connect_url": "/auth/microsoft/start",
+        },
+        status_code=200 if error_message is None else 400,
+    )
+
+
+@router.post("/microsoft/setup/refresh")
+def microsoft_setup_refresh(request: Request):
+    operator_settings = OperatorSettingsService()
+    requested_account_email = str((request.query_params.get("account_email") or "")).strip() or None
+    try:
+        client = _build_microsoft_client_from_settings(
+            operator_settings,
+            account_email=requested_account_email,
+        )
+        selected_runtime = MicrosoftRuntimeConfigService(
+            operator_settings=operator_settings
+        ).resolve(account_email=requested_account_email)
+        account_email = client.current_user_email()
+        calendar_catalog = client.list_calendars()
+        previous_account_email = str(selected_runtime["account_email"] or "").strip()
+        if previous_account_email and previous_account_email.lower() != account_email.lower():
+            operator_settings.remove_microsoft_account(previous_account_email)
+        operator_settings.upsert_microsoft_account(
+            account_label=account_email,
+            account_email=account_email,
+            refresh_token=str(selected_runtime["refresh_token"] or ""),
+            calendars=calendar_catalog,
+        )
+        flash_message = "Microsoft calendars refreshed from the live account."
+        error_message = None
+    except (MicrosoftCalendarError, ValueError) as exc:
+        flash_message = None
+        error_message = str(exc)
+
+    microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
+    runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
+    runtime_config = runtime_service.resolve()
+    return _templates.TemplateResponse(
+        request,
+        "microsoft_setup.html",
+        {
+            "request": request,
+            "microsoft_settings": microsoft_settings,
+            "runtime_config": runtime_config,
+            "microsoft_accounts": runtime_service.list_accounts(),
+            "calendar_catalog": runtime_service.list_calendars(),
+            "flash_message": flash_message,
+            "error_message": error_message,
+            "connect_url": "/auth/microsoft/start",
+        },
+        status_code=200 if error_message is None else 400,
+    )
+
+
+@router.post("/microsoft/setup/disconnect")
+def microsoft_setup_disconnect(request: Request):
+    operator_settings = OperatorSettingsService()
+    operator_settings.clear_microsoft_oauth_state()
+    account_email = str((request.query_params.get("account_email") or "")).strip() or None
+    if account_email:
+        operator_settings.remove_microsoft_account(account_email)
+    else:
+        operator_settings.clear_microsoft_account_settings()
+        operator_settings.clear_microsoft_calendar_catalog()
+    microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
+    runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
+    runtime_config = runtime_service.resolve() if runtime_service.list_accounts() else {
+        "account_label": "",
+        "account_email": "",
+        "refresh_token": "",
+        "client_id": str(operator_settings.get_microsoft_oauth_settings()["client_id"] or ""),
+        "client_secret": str(operator_settings.get_microsoft_oauth_settings()["client_secret"] or ""),
+        "primary_calendar_id": "",
+        "primary_calendar_name": "",
+        "source": "product_vault" if microsoft_settings["client_id"] else "missing",
+        "ready": False,
+        "calendars": [],
+        "accounts": [],
+    }
+    return _templates.TemplateResponse(
+        request,
+        "microsoft_setup.html",
+        {
+            "request": request,
+            "microsoft_settings": microsoft_settings,
+            "runtime_config": runtime_config,
+            "microsoft_accounts": runtime_service.list_accounts(),
+            "calendar_catalog": runtime_service.list_calendars(),
+            "flash_message": "Microsoft account disconnected. The shared OAuth app is still saved.",
+            "error_message": None,
+            "connect_url": "/auth/microsoft/start",
+        },
+    )
+
+
+@router.get("/auth/microsoft/start")
+def microsoft_oauth_start(request: Request):
+    operator_settings = OperatorSettingsService()
+    oauth_settings = operator_settings.get_microsoft_oauth_settings()
+    client_id = str(oauth_settings["client_id"] or "").strip()
+    client_secret = str(oauth_settings["client_secret"] or "").strip()
+    if not client_id or not client_secret:
+        raise HTTPException(status_code=400, detail="Microsoft OAuth settings are incomplete.")
+
+    state = str(uuid4())
+    operator_settings.set_microsoft_oauth_state(state)
+    redirect_uri = str(request.url_for("microsoft_oauth_callback"))
+    client = MicrosoftCalendarClient(
+        MicrosoftOAuthConfig(
+            account_label="Microsoft",
+            account_email="",
+            client_id=client_id,
+            client_secret=client_secret,
+            refresh_token="placeholder",
+            primary_calendar_id="primary",
+            primary_calendar_name="Primary",
+        )
+    )
+    return RedirectResponse(
+        client.authorization_url(redirect_uri=redirect_uri, state=state),
+        status_code=302,
+    )
+
+
+@router.get("/auth/microsoft/callback", name="microsoft_oauth_callback")
+def microsoft_oauth_callback(
+    request: Request,
+    state: str,
+    code: str,
+):
+    operator_settings = OperatorSettingsService()
+    expected_state = operator_settings.get_microsoft_oauth_state()
+    if not expected_state or state != expected_state:
+        raise HTTPException(status_code=400, detail="Microsoft OAuth state did not match.")
+    operator_settings.clear_microsoft_oauth_state()
+
+    oauth_settings = operator_settings.get_microsoft_oauth_settings()
+    client_id = str(oauth_settings["client_id"] or "").strip()
+    client_secret = str(oauth_settings["client_secret"] or "").strip()
+    if not client_id or not client_secret:
+        raise HTTPException(status_code=400, detail="Microsoft OAuth settings are incomplete.")
+
+    client = MicrosoftCalendarClient(
+        MicrosoftOAuthConfig(
+            account_label="Microsoft",
+            account_email="",
+            client_id=client_id,
+            client_secret=client_secret,
+            refresh_token="placeholder",
+            primary_calendar_id="primary",
+            primary_calendar_name="Primary",
+        )
+    )
+    redirect_uri = str(request.url_for("microsoft_oauth_callback"))
+    token_payload = client.exchange_code(code=code, redirect_uri=redirect_uri)
+    refresh_token = str(token_payload["refresh_token"] or "").strip()
+    if not refresh_token:
+        raise HTTPException(
+            status_code=400,
+            detail="Microsoft did not return a refresh token. Reconnect with consent again.",
+        )
+    access_token = str(token_payload["access_token"] or "").strip()
+    account_email = client.current_user_email(access_token=access_token)
+    calendar_catalog = client.list_calendars(access_token=access_token)
+    operator_settings.upsert_microsoft_account(
+        account_label=account_email,
+        account_email=account_email,
+        refresh_token=refresh_token,
+        calendars=calendar_catalog,
+    )
+
+    runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
+    microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
+    runtime_config = runtime_service.resolve()
+    return _templates.TemplateResponse(
+        request,
+        "microsoft_setup.html",
+        {
+            "request": request,
+            "microsoft_settings": microsoft_settings,
+            "runtime_config": runtime_config,
+            "microsoft_accounts": runtime_service.list_accounts(),
+            "calendar_catalog": runtime_service.list_calendars(),
+            "flash_message": "Microsoft account connected and calendars discovered.",
+            "error_message": None,
+            "connect_url": "/auth/microsoft/start",
         },
     )
 
@@ -1295,6 +1582,8 @@ def _provider_label(provider_type: str) -> str:
         return "Apple Calendar"
     if provider_type == "google_calendar":
         return "Google Calendar"
+    if provider_type == "microsoft_calendar":
+        return "Microsoft Calendar"
     return provider_type.replace("_", " ").title()
 
 

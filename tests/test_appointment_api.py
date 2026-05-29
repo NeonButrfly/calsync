@@ -185,6 +185,57 @@ class FakeGoogleClient:
         ]
 
 
+class FakeMicrosoftClient:
+    def create_event(self, **kwargs: object):
+        calendar_id = str(kwargs.get("calendar_id") or "primary")
+        return type(
+            "CreateResult",
+            (),
+            {
+                "provider_event_id": "microsoft-created",
+                "href": f"microsoft:{calendar_id}:microsoft-created",
+                "etag": '"microsoft-etag-created"',
+            },
+        )()
+
+    def update_event(self, **kwargs: object):
+        calendar_id = str(kwargs.get("calendar_id") or "primary")
+        provider_event_id = str(kwargs.get("provider_event_id") or "microsoft-created")
+        return type(
+            "UpdateResult",
+            (),
+            {
+                "provider_event_id": provider_event_id,
+                "href": f"microsoft:{calendar_id}:{provider_event_id}",
+                "etag": '"microsoft-etag-updated"',
+            },
+        )()
+
+    def cancel_event(self, **_: object) -> None:
+        return None
+
+    def list_events(self, **_: object):
+        return [
+            type(
+                "ListedEvent",
+                (),
+                {
+                    "provider_event_id": "microsoft-existing",
+                    "href": "microsoft:primary:microsoft-existing",
+                    "etag": '"microsoft-etag-existing"',
+                    "title": "Outlook School Visit",
+                    "starts_at": "2026-06-16T11:00:00-08:00",
+                    "ends_at": "2026-06-16T12:00:00-08:00",
+                    "all_day": False,
+                    "location": "Microsoft campus",
+                    "notes": "Imported from Outlook",
+                    "status": "confirmed",
+                    "attendees_text": "Kay, Counselor",
+                },
+            )()
+        ]
+
+
 def _configure_test_env(monkeypatch) -> None:
     db_path = Path(tempfile.gettempdir()) / f"calsync-test-{uuid4()}.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
@@ -252,6 +303,28 @@ def _configure_multiple_google_accounts() -> None:
                 "is_default": True,
             }
         ],
+    )
+
+
+def _configure_microsoft_settings() -> None:
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_microsoft_oauth_settings(
+        client_id="microsoft-client-id",
+        client_secret="microsoft-client-secret",
+    )
+    service.set_microsoft_account_settings(
+        account_label="Kay Microsoft",
+        account_email="kay@example.com",
+        refresh_token="microsoft-refresh-token",
+    )
+    service.set_microsoft_calendar_catalog(
+        [
+            {
+                "calendar_name": "Calendar",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ]
     )
 
 
@@ -418,6 +491,71 @@ def test_list_appointments_syncs_google_calendar_events(monkeypatch) -> None:
     assert body["items"]
     assert body["items"][0]["title"] == "Google School Visit"
     assert body["items"][0]["provider_event_id"] == "google-existing"
+
+
+def test_create_appointment_can_target_microsoft_calendar(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    _configure_microsoft_settings()
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_microsoft_client",
+        lambda self, calendar_id=None, account_email=None, calendar_name=None: FakeMicrosoftClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Outlook Dentist",
+            "date": "2026-06-05",
+            "start_time": "10:00",
+            "end_time": "11:00",
+            "timezone": "America/Anchorage",
+            "target_calendar_url": "microsoft:kay@example.com:primary",
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["provider_event_id"] == "microsoft-created"
+
+    detail_response = client.get(f"/api/appointments/{body['appointment_id']}")
+    assert detail_response.status_code == 200
+    assert detail_response.json()["provider_type"] == "microsoft_calendar"
+    assert detail_response.json()["calendar_name"] == "Calendar"
+
+
+def test_list_appointments_syncs_microsoft_calendar_events(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    _configure_microsoft_settings()
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_microsoft_client",
+        lambda self, calendar_id=None, account_email=None, calendar_name=None: FakeMicrosoftClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get(
+        "/api/appointments?date_from=2026-06-16&date_to=2026-06-16"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["items"]
+    assert body["items"][0]["title"] == "Outlook School Visit"
+    assert body["items"][0]["provider_event_id"] == "microsoft-existing"
 
 
 def test_availability_returns_open_slots_in_working_hours(monkeypatch) -> None:

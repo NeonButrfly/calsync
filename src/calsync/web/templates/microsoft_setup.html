@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CalSync Google Setup</title>
+    <title>CalSync Microsoft Setup</title>
     <link rel="stylesheet" href="/static/app.css" />
   </head>
   <body>
@@ -11,11 +11,11 @@
       <aside class="sidebar">
         <div class="brand">
           <p class="eyebrow">CalSync</p>
-          <h1>Google setup that feels like part of the product</h1>
+          <h1>Microsoft setup that feels like part of the product</h1>
           <p>
-            Save the shared Google OAuth app in CalSync, connect the Google
-            account through the browser, and keep writable calendar targets
-            visible in the same scheduling workspace.
+            Save the shared Microsoft OAuth app in CalSync, connect Outlook
+            through the browser, and keep writable calendar targets visible in
+            the same scheduling workspace.
           </p>
         </div>
 
@@ -23,8 +23,8 @@
           <a class="sidebar-nav__item" href="/">Schedule workspace</a>
           <a class="sidebar-nav__item" href="/connections">Connections</a>
           <a class="sidebar-nav__item" href="/calendar/setup">Apple setup</a>
-          <a class="sidebar-nav__item sidebar-nav__item--active" href="/google/setup">Google setup</a>
-          <a class="sidebar-nav__item" href="/microsoft/setup">Microsoft setup</a>
+          <a class="sidebar-nav__item" href="/google/setup">Google setup</a>
+          <a class="sidebar-nav__item sidebar-nav__item--active" href="/microsoft/setup">Microsoft setup</a>
           <a class="sidebar-nav__item" href="/alexa/setup">Alexa setup</a>
           <a class="sidebar-nav__item" href="/alexa/simulator">Alexa simulator</a>
           <a class="sidebar-nav__item" href="/privacy">Privacy policy</a>
@@ -36,9 +36,9 @@
           <strong>{{ runtime_config.source.replace("_", " ").title() }}</strong>
           <span>
             {% if runtime_config.ready %}
-            Google calendar setup is ready for writable scheduling.
+            Microsoft calendar setup is ready for writable scheduling.
             {% else %}
-            Google calendar setup is still incomplete.
+            Microsoft calendar setup is still incomplete.
             {% endif %}
           </span>
         </div>
@@ -47,12 +47,12 @@
       <main class="workspace">
         <section class="hero panel hero-panel">
           <div>
-            <p class="eyebrow">Google setup</p>
-            <h2>Connect Google without leaving the product model</h2>
+            <p class="eyebrow">Microsoft setup</p>
+            <h2>Connect Outlook without leaving the product model</h2>
             <p class="hero-copy">
-              Save the shared client once, then connect the Google account and
-              discover writable calendar targets for the same create, edit, and
-              cancel flows used elsewhere in CalSync.
+              Save the shared client once, then connect one or more Outlook or
+              Microsoft 365 accounts and discover writable calendar targets for
+              the same create, edit, and cancel flows used elsewhere in CalSync.
             </p>
           </div>
         </section>
@@ -71,25 +71,25 @@
               <div class="panel-head">
                 <div>
                   <p class="eyebrow">Shared OAuth app</p>
-                  <h3>Google setup</h3>
+                  <h3>Microsoft setup</h3>
                 </div>
               </div>
-              <form class="form-grid" method="post" action="/google/setup">
+              <form class="form-grid" method="post" action="/microsoft/setup">
                 <label>
-                  <span>Google client ID</span>
-                  <input name="google_client_id" type="text" value="{{ google_settings.client_id }}" placeholder="Paste the Google OAuth client ID" required />
+                  <span>Microsoft client ID</span>
+                  <input name="microsoft_client_id" type="text" value="{{ microsoft_settings.client_id }}" placeholder="Paste the Microsoft application (client) ID" required />
                 </label>
                 <label>
-                  <span>Google client secret</span>
+                  <span>Microsoft client secret</span>
                   <input
-                    name="google_client_secret"
+                    name="microsoft_client_secret"
                     type="password"
-                    placeholder="{% if google_settings.client_secret_saved %}Saved securely. Leave blank to keep it.{% else %}Paste the Google OAuth client secret{% endif %}"
+                    placeholder="{% if microsoft_settings.client_secret_saved %}Saved securely. Leave blank to keep it.{% else %}Paste the Microsoft client secret{% endif %}"
                   />
                 </label>
                 <div class="action-row">
-                  <button type="submit">Save Google OAuth setup</button>
-                  <a class="button-link button-link--secondary" href="{{ connect_url }}">{% if google_settings.refresh_token_saved %}Connect another Google account{% else %}Connect Google account{% endif %}</a>
+                  <button type="submit">Save Microsoft OAuth setup</button>
+                  <a class="button-link button-link--secondary" href="{{ connect_url }}">{% if microsoft_settings.refresh_token_saved %}Connect another Microsoft account{% else %}Connect Microsoft account{% endif %}</a>
                 </div>
               </form>
             </article>
@@ -100,44 +100,44 @@
               <div class="panel-head">
                 <div>
                   <p class="eyebrow">Connected accounts</p>
-                  <h3>Connected Google accounts</h3>
+                  <h3>Connected Microsoft accounts</h3>
                 </div>
               </div>
               <div class="detail-grid">
                 <article class="detail-card">
                   <p class="eyebrow">Client ID</p>
-                  <strong>{{ google_settings.client_id or "Not set" }}</strong>
-                  <span>Shared across the self-hosted Google connect flow.</span>
+                  <strong>{{ microsoft_settings.client_id or "Not set" }}</strong>
+                  <span>Shared across the self-hosted Outlook connect flow.</span>
                 </article>
                 <article class="detail-card">
                   <p class="eyebrow">Client secret</p>
-                  <strong>{% if google_settings.client_secret_saved %}Saved{% else %}Missing{% endif %}</strong>
+                  <strong>{% if microsoft_settings.client_secret_saved %}Saved{% else %}Missing{% endif %}</strong>
                   <span>Stored encrypted in the product vault.</span>
                 </article>
                 <article class="detail-card">
                   <p class="eyebrow">Account email</p>
                   <strong>{{ runtime_config.account_email or "Not connected" }}</strong>
-                  <span>The Google account currently linked to this deployment.</span>
+                  <span>The Microsoft account currently linked to this deployment.</span>
                 </article>
                 <article class="detail-card">
                   <p class="eyebrow">Refresh token</p>
-                  <strong>{% if google_settings.refresh_token_saved %}Saved{% else %}Missing{% endif %}</strong>
-                  <span>Used to refresh Google Calendar access without reauth every time.</span>
+                  <strong>{% if microsoft_settings.refresh_token_saved %}Saved{% else %}Missing{% endif %}</strong>
+                  <span>Used to refresh Microsoft Calendar access without reauth every time.</span>
                 </article>
               </div>
-              {% if google_accounts %}
+              {% if microsoft_accounts %}
               <div class="detail-stack">
-                {% for account in google_accounts %}
+                {% for account in microsoft_accounts %}
                 <article class="detail-card">
-                  <p class="eyebrow">Google account</p>
+                  <p class="eyebrow">Microsoft account</p>
                   <strong>{{ account.account_label }}</strong>
                   <span>{{ account.account_email }}</span>
                   <p class="appointment-detail"><strong>Writable targets:</strong> {{ account.calendars|length }}</p>
                   <div class="action-row">
-                    <form method="post" action="/google/setup/refresh?account_email={{ account.account_email|urlencode }}">
+                    <form method="post" action="/microsoft/setup/refresh?account_email={{ account.account_email|urlencode }}">
                       <button type="submit">Refresh calendars</button>
                     </form>
-                    <form method="post" action="/google/setup/disconnect?account_email={{ account.account_email|urlencode }}">
+                    <form method="post" action="/microsoft/setup/disconnect?account_email={{ account.account_email|urlencode }}">
                       <button class="danger-button" type="submit">Disconnect this account</button>
                     </form>
                   </div>
@@ -146,8 +146,8 @@
               </div>
               {% else %}
               <div class="empty-state">
-                <h4>No Google account connected yet</h4>
-                <p>Save the shared OAuth app, then connect one or more Google accounts in the browser.</p>
+                <h4>No Microsoft account connected yet</h4>
+                <p>Save the shared OAuth app, then connect one or more Outlook accounts in the browser.</p>
               </div>
               {% endif %}
             </article>
@@ -172,8 +172,8 @@
               </div>
               {% else %}
               <div class="empty-state">
-                <h4>No Google calendars discovered yet</h4>
-                <p>Save the OAuth app, then use Connect Google account to pull the calendar list into CalSync.</p>
+                <h4>No Microsoft calendars discovered yet</h4>
+                <p>Save the OAuth app, then use Connect Microsoft account to pull the calendar list into CalSync.</p>
               </div>
               {% endif %}
             </article>

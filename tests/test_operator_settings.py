@@ -374,3 +374,102 @@ def test_operator_settings_can_store_multiple_google_accounts() -> None:
             ],
         },
     ]
+
+
+def test_operator_settings_encrypts_microsoft_oauth_values_at_rest() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.set_microsoft_oauth_settings(
+        client_id="microsoft-client-id",
+        client_secret="microsoft-client-secret",
+    )
+    service.set_microsoft_account_settings(
+        account_label="Kay Microsoft",
+        account_email="kay@example.com",
+        refresh_token="microsoft-refresh-token",
+    )
+    service.set_microsoft_calendar_catalog(
+        [
+            {
+                "calendar_name": "Calendar",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ]
+    )
+
+    microsoft_state = service.describe_microsoft_oauth_settings()
+    assert microsoft_state["client_id"] == "microsoft-client-id"
+    assert microsoft_state["client_secret_saved"] is True
+    assert microsoft_state["account_email"] == "kay@example.com"
+    assert microsoft_state["refresh_token_saved"] is True
+    assert microsoft_state["source"] == "product_vault"
+
+    session_factory = _get_session_factory_for_url(settings.database_url)
+    with session_factory() as session:
+        stored_rows = {
+            row.key: row.value_encrypted
+            for row in session.query(OperatorSetting).all()
+        }
+
+    assert stored_rows["microsoft_client_id"] != "microsoft-client-id"
+    assert stored_rows["microsoft_client_secret"] != "microsoft-client-secret"
+    assert stored_rows["microsoft_refresh_token"] != "microsoft-refresh-token"
+
+
+def test_operator_settings_can_store_multiple_microsoft_accounts() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.upsert_microsoft_account(
+        account_label="Kay Microsoft",
+        account_email="kay@example.com",
+        refresh_token="kay-refresh-token",
+        calendars=[
+            {
+                "calendar_name": "Calendar",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ],
+    )
+    service.upsert_microsoft_account(
+        account_label="Work Microsoft",
+        account_email="work@example.com",
+        refresh_token="work-refresh-token",
+        calendars=[
+            {
+                "calendar_name": "Work",
+                "calendar_id": "work",
+                "is_default": True,
+            }
+        ],
+    )
+
+    assert service.get_microsoft_accounts() == [
+        {
+            "account_label": "Kay Microsoft",
+            "account_email": "kay@example.com",
+            "refresh_token": "kay-refresh-token",
+            "calendars": [
+                {
+                    "calendar_name": "Calendar",
+                    "calendar_id": "primary",
+                    "is_default": True,
+                }
+            ],
+        },
+        {
+            "account_label": "Work Microsoft",
+            "account_email": "work@example.com",
+            "refresh_token": "work-refresh-token",
+            "calendars": [
+                {
+                    "calendar_name": "Work",
+                    "calendar_id": "work",
+                    "is_default": True,
+                }
+            ],
+        },
+    ]

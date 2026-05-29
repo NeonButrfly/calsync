@@ -25,6 +25,7 @@
           <a class="sidebar-nav__item" href="/connections">Connections</a>
           <a class="sidebar-nav__item" href="/calendar/setup">Apple setup</a>
           <a class="sidebar-nav__item" href="/google/setup">Google setup</a>
+          <a class="sidebar-nav__item" href="/microsoft/setup">Microsoft setup</a>
           <a class="sidebar-nav__item" href="/alexa/setup">Alexa setup</a>
           <a class="sidebar-nav__item" href="/alexa/simulator">Alexa simulator</a>
           <a class="sidebar-nav__item" href="/privacy">Privacy policy</a>
@@ -57,6 +58,10 @@
               {% if readiness.origin.google_ready %}ready{% else %}not connected yet{% endif %}
             </li>
             <li>
+              Microsoft setup:
+              {% if readiness.origin.microsoft_ready %}ready{% else %}not connected yet{% endif %}
+            </li>
+            <li>
               ChatGPT token:
               {% if readiness.channel_tokens.chatgpt %}ready{% else %}missing{% endif %}
             </li>
@@ -76,6 +81,7 @@
           <div class="stack-actions">
             <a class="text-action" href="/connections">Open Connections</a>
             <a class="text-action" href="/google/setup">Open Google setup</a>
+            <a class="text-action" href="/microsoft/setup">Open Microsoft setup</a>
             <a class="text-action" href="/alexa/setup">Open Alexa setup</a>
             <a class="text-action" href="/alexa/simulator">Run Alexa simulator</a>
           </div>
@@ -85,7 +91,7 @@
           <p class="eyebrow">What works today</p>
           <ul class="feature-list">
             <li>Read existing Apple calendar events</li>
-            <li>Write to connected Apple and Google calendars</li>
+            <li>Write to connected Apple, Google, and Microsoft calendars</li>
             <li>Create appointments</li>
             <li>Edit existing appointments</li>
             <li>Cancel appointments</li>

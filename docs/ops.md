@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current CalSync service, family scheduling UX, live Apple calendar sync, writable Google setup, multi-calendar Apple targets, named Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, and Alexa setup flow tracked in issues `#3`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, and `#48`.
+This guide covers the current CalSync service, family scheduling UX, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, named Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, and Alexa setup flow tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, and `#49`.
 
 ## What This Service Does
 
@@ -8,10 +8,10 @@ This guide covers the current CalSync service, family scheduling UX, live Apple 
 - exposes a date-range appointment list API for Worker lookup flows
 - exposes a shared availability API for open-slot lookup
 - exposes a professional web scheduling workspace at `/` for create, edit, cancel, filtered browsing, and review
-- exposes a connections workspace at `/connections` so Apple and Google setup can be reviewed together
+- exposes a connections workspace at `/connections` so Apple, Google, and Microsoft setup can be reviewed together
 - stores normalized appointment records locally
-- syncs existing Apple calendar events and connected Google calendar events into the local scheduling brain for requested date windows
-- writes calendar mutations to one selected connected calendar target through CalDAV or Google Calendar
+- syncs existing Apple calendar events and connected Google or Microsoft calendar events into the local scheduling brain for requested date windows
+- writes calendar mutations to one selected connected calendar target through CalDAV, Google Calendar, or Microsoft Graph
 - keeps local audit entries for every mutation
 - supports Cloudflare edge token management for channel auth
 - exposes a remote authenticated MCP endpoint for ChatGPT-style tool access
@@ -38,6 +38,10 @@ Copy `.env.example` to `.env` and fill in:
   - `GET /google/setup`
   - `GET /auth/google/start`
   - `GET /auth/google/callback`
+- optional Microsoft setup now lives in-product through:
+  - `GET /microsoft/setup`
+  - `GET /auth/microsoft/start`
+  - `GET /auth/microsoft/callback`
 - `CLOUDFLARE_ACCOUNT_ID`
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_TOKEN_KV_NAMESPACE_ID`
@@ -112,6 +116,12 @@ Root experience:
 - `POST /google/setup`
 - `GET /auth/google/start`
 - `GET /auth/google/callback`
+- `GET /microsoft/setup`
+- `POST /microsoft/setup`
+- `POST /microsoft/setup/refresh`
+- `POST /microsoft/setup/disconnect`
+- `GET /auth/microsoft/start`
+- `GET /auth/microsoft/callback`
 - `GET /alexa/setup`
 - `POST /alexa/setup`
 - `GET /alexa/simulator`
@@ -124,20 +134,21 @@ Root experience:
 Behavior:
 
 - shows a clean create-appointment form
-- lets operators choose a target connected calendar for create and edit when multiple writable Apple or Google targets are available
+- lets operators choose a target connected calendar for create and edit when multiple writable Apple, Google, or Microsoft targets are available
 - browses appointments by day, week, or month
 - syncs the requested connected calendar date window before rendering the schedule
 - hides cancelled appointments from the default active schedule views while allowing a reference toggle when you intentionally want historical cancelled items
 - shows a full-stack readiness panel for Apple, channel tokens, edge reachability, and Alexa setup state
-- exposes a dedicated Connections page that summarizes Apple and Google setup in one place before the operator dives into provider-specific forms
+- exposes a dedicated Connections page that summarizes Apple, Google, and Microsoft setup in one place before the operator dives into provider-specific forms
 - exposes an in-product Apple calendar setup page with encrypted vault-backed storage instead of forcing host-only Apple env edits
 - exposes an in-product Google setup page with encrypted vault-backed OAuth storage plus browser-based account connect
+- exposes an in-product Microsoft setup page with encrypted vault-backed OAuth storage plus browser-based account connect
 - exposes an in-product Alexa setup page with a live package download instead of forcing repo-only setup
 - can read and update the edge Worker Alexa flags from the setup page when Cloudflare worker-management permission is configured
 - exposes an in-product Alexa simulator page that previews the real Worker voice logic before the Amazon-side turn-on is finished
 - exposes an open-time finder in the root workspace for fast gap discovery
 - shows a selected appointment detail panel with audit activity and provider metadata
-- edits and cancels the same Apple-backed or Google-backed appointment records used by the API
+- edits and cancels the same Apple-backed, Google-backed, or Microsoft-backed appointment records used by the API
 - is intended to be the first family-facing control surface instead of forcing operators to work from raw API calls
 
 ### Apple calendar setup page
@@ -187,6 +198,30 @@ Current management boundary:
 - writable Google targets appear in the same picker used for `POST /appointments` and `POST /appointments/{appointment_id}/edit`
 - Google mutations and date-range reads now run through the same shared appointment service instead of a separate product path
 - disconnecting one Google account keeps the deployment-wide OAuth client in place so the operator can reconnect without re-entering the client ID and secret
+
+### Microsoft setup page
+
+- `GET /microsoft/setup`
+- `POST /microsoft/setup`
+- `GET /auth/microsoft/start`
+- `GET /auth/microsoft/callback`
+
+This operator-facing flow now serves:
+
+- the shared Microsoft OAuth client ID and secret for this deployment
+- browser-based account connect on the live CalSync domain
+- encrypted refresh-token storage in the product vault
+- multiple connected Microsoft accounts under the same shared OAuth app
+- discovered Microsoft calendar targets that can feed the same target picker used by the workspace
+- a refresh action that resyncs one connected Microsoft account email and discovered calendars from the live Microsoft Graph API
+- a disconnect action that clears one linked Microsoft account and its calendar catalog while preserving the shared OAuth client
+
+Current management boundary:
+
+- the product stores the shared Microsoft client ID, client secret, connected account label/email, refresh token, and discovered Microsoft calendar catalogs encrypted with `ENCRYPTION_KEY`
+- writable Microsoft targets appear in the same picker used for `POST /appointments` and `POST /appointments/{appointment_id}/edit`
+- Microsoft mutations and date-range reads now run through the same shared appointment service instead of a separate product path
+- disconnecting one Microsoft account keeps the deployment-wide OAuth client in place so the operator can reconnect without re-entering the client ID and secret
 
 ### Alexa setup page
 
@@ -266,7 +301,7 @@ Optional body fields:
 
 Any writable appointment field may be sent.
 
-This now includes `target_calendar_url`, which lets the update flow move an appointment from one saved Apple calendar target to another or into a connected Google calendar target.
+This now includes `target_calendar_url`, which lets the update flow move an appointment from one saved Apple calendar target to another or into a connected Google or Microsoft calendar target.
 
 ### Cancel appointment
 
@@ -280,7 +315,7 @@ This removes the Apple calendar event and marks the local appointment as `cancel
 
 This powers the Worker-side “look up before editing or cancelling” flow.
 
-It now also syncs the requested provider date range into the local appointment store across the saved Apple calendar targets and connected Google calendars, so existing calendar events can be listed, edited, cancelled, and used by Alexa.
+It now also syncs the requested provider date range into the local appointment store across the saved Apple calendar targets and connected Google or Microsoft calendars, so existing calendar events can be listed, edited, cancelled, and used by Alexa.
 
 Default behavior hides cancelled appointments from active list views. To include them for reference, call:
 
