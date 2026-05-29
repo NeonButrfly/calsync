@@ -65,9 +65,9 @@
                   <span>{% if apple_runtime.ready %}Apple read/write is available to the scheduling brain.{% else %}Apple credentials or target details are still incomplete.{% endif %}</span>
                 </article>
                 <article class="detail-card">
-                  <p class="eyebrow">Account</p>
-                  <strong>{{ apple_runtime.account_label or "Not connected" }}</strong>
-                  <span>{{ apple_runtime.username or "No Apple account saved yet." }}</span>
+                  <p class="eyebrow">Connected accounts</p>
+                  <strong>{% if apple_accounts %}{{ apple_accounts|length }} connected accounts{% else %}Not connected{% endif %}</strong>
+                  <span>{% if apple_accounts %}{{ apple_accounts|map(attribute='username')|join(", ") }}{% else %}No Apple account saved yet.{% endif %}</span>
                 </article>
                 <article class="detail-card">
                   <p class="eyebrow">Default target</p>

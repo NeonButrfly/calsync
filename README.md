@@ -44,6 +44,7 @@ Issues `#3`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45
 - multiple saved Apple calendar targets, so create, edit, and sync flows can work across more than one household calendar
 - a product-facing readiness surface for Apple setup, channel tokens, edge reachability, and Alexa status
 - an in-product Apple calendar setup page plus encrypted product-vault storage for the Apple read/write connection
+- multiple connected Apple accounts under the same product-managed scheduling surface, with writable targets from each account available to the shared scheduling brain
 - an in-product Google setup page plus encrypted product-vault storage for the shared Google OAuth app and connected-account refresh token
 - browser-based Google OAuth connect on the live CalSync domain
 - in-product Google calendar refresh and disconnect controls so operators can resync calendar discovery or safely clear one connected Google account without losing the shared OAuth app
@@ -94,7 +95,7 @@ The root page now acts as the first family scheduling UX:
 - direct Apple and Google calendar read/write through the same backend used by the API and Worker
 - a first in-product readiness panel that explains whether Apple, tokens, edge, and Alexa are actually ready
 - a first in-product Apple calendar setup page that stores Apple credentials and calendar details securely in the product vault
-- a first in-product Apple calendar target manager that can add more writable household calendars and choose the default target
+- a first in-product Apple account management flow that can store more than one Apple account and add writable targets per account
 - a first in-product Google setup page that stores the shared OAuth app securely and supports browser-based Google connect
 - a first in-product Google account management flow that can connect more than one Google account, refresh discovered calendars per account, and disconnect one account without losing the saved OAuth client
 - a first in-product Connections page that pulls Apple and Google readiness into one calmer operator view
@@ -255,7 +256,7 @@ The API will not create calendar events until the Apple settings are populated.
 
 If you do not want Apple calendar credentials to live only in host env, the product now exposes `GET /calendar/setup`. That page stores the Apple username, app-specific password, primary calendar URL, calendar name, and account label securely in the product vault, encrypted at rest with `ENCRYPTION_KEY`.
 
-That same setup surface now also supports `POST /calendar/setup/calendars`, which lets operators add more Apple calendar targets and choose which one should be the default destination for new appointments.
+That same setup surface now also supports more than one Apple account plus `POST /calendar/setup/calendars`, which lets operators add more Apple calendar targets per account and choose which one should be the default destination for new appointments.
 
 If you want Google scheduling without host-only secret edits, the product now exposes `GET /google/setup`. That page stores the shared Google OAuth client ID and secret securely in the product vault, then uses `GET /auth/google/start` and `GET /auth/google/callback` for the browser-based connect flow. Once connected, CalSync saves the Google refresh token, discovers calendars, and surfaces those writable Google targets in the same target-calendar picker used by the workspace. The same page can now manage multiple connected Google accounts under that one shared OAuth app, refresh calendar discovery per account, and disconnect one account while leaving the shared OAuth app in place.
 

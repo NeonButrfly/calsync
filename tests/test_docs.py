@@ -39,7 +39,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /alexa/simulator" in readme_content
     assert "alexa setup page" in readme_content
     assert "apple calendar setup page" in readme_content
-    assert "apple calendar target manager" in readme_content
+    assert "apple account management flow" in readme_content
+    assert "multiple connected apple accounts under the same product-managed scheduling surface" in readme_content
     assert "browser-based google oauth connect on the live calsync domain" in readme_content
     assert "google calendar refresh and disconnect controls" in readme_content
     assert "multiple connected google accounts under one shared oauth app" in readme_content
@@ -99,6 +100,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /v1/availability" in ops_content
     assert "cloudflare worker access form" in ops_content
     assert "apple calendar setup page" in ops_content
+    assert "more than one connected apple account" in ops_content
     assert "google setup page" in ops_content
     assert "browser-based account connect on the live calsync domain" in ops_content
     assert "multiple connected google accounts under the same shared oauth app" in ops_content
@@ -151,6 +153,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /auth/google/start" in prompt_content
     assert "get /auth/google/callback" in prompt_content
     assert "save the apple account label" in prompt_content
+    assert "support more than one connected apple account under that setup surface" in prompt_content
     assert "in-product google oauth setup and writable targets requirement" in prompt_content
     assert "unified connections ux requirement" in prompt_content
     assert "get /connections" in prompt_content

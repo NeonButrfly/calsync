@@ -152,6 +152,7 @@ This operator-facing flow now serves:
 - Apple app-specific password
 - Apple primary calendar URL
 - Apple primary calendar name
+- more than one connected Apple account
 - additional tracked Apple calendar targets
 - one default Apple calendar target for new appointments
 
@@ -160,7 +161,7 @@ Current management boundary:
 - the product can use either deployment env Apple settings or product-vault Apple settings
 - product-vault Apple settings are encrypted with `ENCRYPTION_KEY`
 - the appointment service and readiness surface now fall back to those saved product settings when host env Apple values are absent
-- `POST /calendar/setup/calendars` can add another saved Apple target without replacing the existing default target
+- `POST /calendar/setup/calendars` can add another saved Apple target for a selected Apple account without replacing the existing default target
 - the calendar setup page remains the place to define the default target Apple calendar for the family-facing Apple path
 
 ### Google setup page

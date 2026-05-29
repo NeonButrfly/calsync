@@ -13,9 +13,9 @@
           <p class="eyebrow">CalSync</p>
           <h1>Calendar setup that feels like part of the product</h1>
           <p>
-            Save the Apple calendar credentials and target calendar details inside
-            CalSync so the read/write scheduling path does not depend on host-only
-            environment editing.
+            Save one or more Apple calendar accounts and their writable targets
+            inside CalSync so the read/write scheduling path does not depend on
+            host-only environment editing.
           </p>
         </div>
 
@@ -49,9 +49,9 @@
             <p class="eyebrow">Calendar setup</p>
             <h2>Keep the Apple calendar connection inside CalSync</h2>
             <p class="hero-copy">
-              These values are stored securely in the product vault and can power
-              the same read/write calendar path used by the workspace, the API,
-              ChatGPT, and Alexa.
+              These Apple account values are stored securely in the product vault
+              and can power the same read/write calendar path used by the
+              workspace, the API, ChatGPT, and Alexa.
             </p>
           </div>
         </section>
@@ -105,7 +105,7 @@
                   <input name="apple_primary_calendar_name" type="text" value="{{ apple_settings.primary_calendar_name }}" placeholder="Family" required />
                 </label>
                 <div class="action-row">
-                  <button type="submit">Save calendar setup</button>
+                  <button type="submit">Save Apple account</button>
                 </div>
               </form>
             </article>
@@ -115,8 +115,8 @@
             <article class="panel">
               <div class="panel-head">
                 <div>
-                  <p class="eyebrow">Current runtime</p>
-                  <h3>What the live app will use</h3>
+                  <p class="eyebrow">Connected accounts</p>
+                  <h3>Connected Apple accounts</h3>
                 </div>
               </div>
               <div class="detail-grid">
@@ -141,6 +141,18 @@
                   <span>App-specific password stays encrypted at rest in the product vault.</span>
                 </article>
               </div>
+              {% if apple_accounts %}
+              <div class="detail-stack">
+                {% for account in apple_accounts %}
+                <article class="detail-card">
+                  <p class="eyebrow">Apple account</p>
+                  <strong>{{ account.account_label }}</strong>
+                  <span>{{ account.username }}</span>
+                  <p class="appointment-detail"><strong>Writable targets:</strong> {{ account.calendars|length }}</p>
+                </article>
+                {% endfor %}
+              </div>
+              {% endif %}
             </article>
 
             <article class="panel">
@@ -155,11 +167,22 @@
                 <article class="detail-card">
                   <p class="eyebrow">{% if item.is_default %}Default target{% else %}Additional target{% endif %}</p>
                   <strong>{{ item.calendar_name }}</strong>
-                  <span>{{ item.calendar_url }}</span>
+                  <span>{{ item.account_label or item.username or runtime_config.account_label }}{% if item.username %} · {{ item.username }}{% endif %}</span>
+                  <p class="appointment-detail">{{ item.calendar_url }}</p>
                 </article>
                 {% endfor %}
               </div>
               <form class="form-grid" method="post" action="/calendar/setup/calendars">
+                {% if apple_accounts|length > 1 %}
+                <label>
+                  <span>Apple account</span>
+                  <select name="account_username" required>
+                    {% for account in apple_accounts %}
+                    <option value="{{ account.username }}">{{ account.account_label }} · {{ account.username }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                {% endif %}
                 <label>
                   <span>Calendar name</span>
                   <input name="calendar_name" type="text" placeholder="School" required />

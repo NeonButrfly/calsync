@@ -893,6 +893,69 @@ def test_calendar_setup_page_saves_apple_settings(monkeypatch) -> None:
     }
 
 
+def test_calendar_setup_page_can_add_another_apple_account(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    app = create_app()
+    client = TestClient(app)
+
+    client.post(
+        "/calendar/setup",
+        data={
+            "apple_account_label": "Family",
+            "apple_username": "family@example.com",
+            "apple_app_specific_password": "family-secret",
+            "apple_primary_calendar_url": "https://caldav.icloud.com/family/",
+            "apple_primary_calendar_name": "Family",
+        },
+    )
+    response = client.post(
+        "/calendar/setup",
+        data={
+            "apple_account_label": "Work",
+            "apple_username": "work@example.com",
+            "apple_app_specific_password": "work-secret",
+            "apple_primary_calendar_url": "https://caldav.icloud.com/work/",
+            "apple_primary_calendar_name": "Work",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Connected Apple accounts" in response.text
+    assert "family@example.com" in response.text
+    assert "work@example.com" in response.text
+
+    service = OperatorSettingsService(settings=get_settings())
+    accounts_by_username = {
+        account["username"]: account for account in service.get_apple_accounts()
+    }
+    assert accounts_by_username == {
+        "family@example.com": {
+            "account_label": "Family",
+            "username": "family@example.com",
+            "app_specific_password": "family-secret",
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://caldav.icloud.com/family/",
+                    "is_default": True,
+                }
+            ],
+        },
+        "work@example.com": {
+            "account_label": "Work",
+            "username": "work@example.com",
+            "app_specific_password": "work-secret",
+            "calendars": [
+                {
+                    "calendar_name": "Work",
+                    "calendar_url": "https://caldav.icloud.com/work/",
+                    "is_default": True,
+                }
+            ],
+        },
+    }
+
+
 def test_calendar_setup_page_can_add_another_calendar_target(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     app = create_app()
@@ -911,6 +974,7 @@ def test_calendar_setup_page_can_add_another_calendar_target(monkeypatch) -> Non
     response = client.post(
         "/calendar/setup/calendars",
         data={
+            "account_username": "household@example.com",
             "calendar_name": "School",
             "calendar_url": "https://caldav.icloud.com/school/",
             "is_default": "false",
@@ -963,6 +1027,65 @@ def test_calendar_setup_add_calendar_preserves_existing_runtime_target_when_cata
         {
             "calendar_name": "School",
             "calendar_url": "https://caldav.icloud.com/school/",
+            "is_default": False,
+        },
+    ]
+
+
+def test_calendar_setup_can_add_calendar_to_specific_apple_account(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    app = create_app()
+    client = TestClient(app)
+
+    client.post(
+        "/calendar/setup",
+        data={
+            "apple_account_label": "Family",
+            "apple_username": "family@example.com",
+            "apple_app_specific_password": "family-secret",
+            "apple_primary_calendar_url": "https://caldav.icloud.com/family/",
+            "apple_primary_calendar_name": "Family",
+        },
+    )
+    client.post(
+        "/calendar/setup",
+        data={
+            "apple_account_label": "Work",
+            "apple_username": "work@example.com",
+            "apple_app_specific_password": "work-secret",
+            "apple_primary_calendar_url": "https://caldav.icloud.com/work/",
+            "apple_primary_calendar_name": "Work",
+        },
+    )
+    response = client.post(
+        "/calendar/setup/calendars",
+        data={
+            "account_username": "work@example.com",
+            "calendar_name": "Travel",
+            "calendar_url": "https://caldav.icloud.com/travel/",
+            "is_default": "false",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Apple calendar target added." in response.text
+    assert "Travel" in response.text
+
+    service = OperatorSettingsService(settings=get_settings())
+    work_account = next(
+        account
+        for account in service.get_apple_accounts()
+        if account["username"] == "work@example.com"
+    )
+    assert work_account["calendars"] == [
+        {
+            "calendar_name": "Work",
+            "calendar_url": "https://caldav.icloud.com/work/",
+            "is_default": True,
+        },
+        {
+            "calendar_name": "Travel",
+            "calendar_url": "https://caldav.icloud.com/travel/",
             "is_default": False,
         },
     ]

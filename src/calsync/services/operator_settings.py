@@ -129,12 +129,27 @@ class OperatorSettingsService:
         self.set_value("apple_primary_calendar_name", normalized_calendar_name)
         if normalized_password:
             self.set_value("apple_app_specific_password", normalized_password)
-        catalog = self.get_apple_calendar_catalog()
+        existing_accounts = self.get_apple_accounts()
+        existing_account = next(
+            (
+                item
+                for item in existing_accounts
+                if str(item.get("username") or "").strip().lower()
+                == normalized_username.lower()
+            ),
+            None,
+        )
+        existing_calendars = list(existing_account.get("calendars", [])) if existing_account else []
         remaining = [
-            item for item in catalog if item["calendar_url"] != normalized_calendar_url
+            item
+            for item in existing_calendars
+            if str(item.get("calendar_url") or "") != normalized_calendar_url
         ]
-        self.set_apple_calendar_catalog(
-            [
+        self.upsert_apple_account(
+            account_label=normalized_account_label,
+            username=normalized_username,
+            app_specific_password=normalized_password,
+            calendars=[
                 {
                     "calendar_name": normalized_calendar_name,
                     "calendar_url": normalized_calendar_url,
@@ -142,16 +157,57 @@ class OperatorSettingsService:
                 },
                 *[
                     {
-                        "calendar_name": item["calendar_name"],
-                        "calendar_url": item["calendar_url"],
+                        "calendar_name": str(item["calendar_name"]),
+                        "calendar_url": str(item["calendar_url"]),
                         "is_default": False,
                     }
                     for item in remaining
                 ],
-            ]
+            ],
+            preserve_existing_password=preserve_existing_password,
         )
+        accounts = self.get_apple_accounts()
+        prioritized = [
+            item
+            for item in accounts
+            if str(item.get("username") or "").strip().lower()
+            == normalized_username.lower()
+        ] + [
+            item
+            for item in accounts
+            if str(item.get("username") or "").strip().lower()
+            != normalized_username.lower()
+        ]
+        if prioritized:
+            self.set_value("apple_accounts", json.dumps(prioritized))
+            first = prioritized[0]
+            first_primary = next(
+                (item for item in first["calendars"] if bool(item.get("is_default"))),
+                first["calendars"][0],
+            )
+            self.set_value("apple_account_label", str(first["account_label"]))
+            self.set_value("apple_username", str(first["username"]))
+            self.set_value("apple_app_specific_password", str(first["app_specific_password"]))
+            self.set_value("apple_primary_calendar_url", str(first_primary["calendar_url"]))
+            self.set_value("apple_primary_calendar_name", str(first_primary["calendar_name"]))
+            self.set_value("apple_calendar_catalog", json.dumps(first["calendars"]))
 
     def get_apple_calendar_settings(self) -> dict[str, str | None]:
+        accounts = self.get_apple_accounts()
+        if accounts:
+            first = accounts[0]
+            calendars = list(first.get("calendars", []))
+            primary = next(
+                (item for item in calendars if bool(item.get("is_default"))),
+                calendars[0] if calendars else {"calendar_url": None, "calendar_name": None},
+            )
+            return {
+                "account_label": str(first.get("account_label") or ""),
+                "username": str(first.get("username") or ""),
+                "app_specific_password": str(first.get("app_specific_password") or ""),
+                "primary_calendar_url": str(primary.get("calendar_url") or "") or None,
+                "primary_calendar_name": str(primary.get("calendar_name") or "") or None,
+            }
         return {
             "account_label": self.get_value("apple_account_label"),
             "username": self.get_value("apple_username"),
@@ -172,6 +228,190 @@ class OperatorSettingsService:
             if any(values.values())
             else "missing",
         }
+
+    def upsert_apple_account(
+        self,
+        *,
+        account_label: str,
+        username: str,
+        app_specific_password: str,
+        calendars: list[dict[str, object]],
+        preserve_existing_password: bool = False,
+    ) -> None:
+        normalized_account_label = account_label.strip()
+        normalized_username = username.strip()
+        normalized_password = app_specific_password.strip()
+        if not normalized_account_label:
+            raise ValueError("Apple account label is required.")
+        if not normalized_username:
+            raise ValueError("Apple username is required.")
+        normalized_calendars = self._normalize_apple_calendars(calendars)
+
+        accounts = self.get_apple_accounts()
+        existing = next(
+            (
+                item
+                for item in accounts
+                if str(item.get("username") or "").strip().lower()
+                == normalized_username.lower()
+            ),
+            None,
+        )
+        current_password = str(self.get_value("apple_app_specific_password") or "")
+        if not normalized_password and not (
+            preserve_existing_password
+            and (
+                (existing and existing.get("app_specific_password"))
+                or current_password
+            )
+        ):
+            raise ValueError("Apple app-specific password is required.")
+
+        next_accounts: list[dict[str, object]] = []
+        replaced = False
+        for item in accounts:
+            if str(item.get("username") or "").strip().lower() != normalized_username.lower():
+                next_accounts.append(item)
+                continue
+            next_accounts.append(
+                {
+                    "account_label": normalized_account_label,
+                    "username": normalized_username,
+                    "app_specific_password": normalized_password
+                    or str(item.get("app_specific_password") or "")
+                    or current_password,
+                    "calendars": normalized_calendars,
+                }
+            )
+            replaced = True
+        if not replaced:
+            next_accounts.append(
+                {
+                    "account_label": normalized_account_label,
+                    "username": normalized_username,
+                    "app_specific_password": normalized_password or current_password,
+                    "calendars": normalized_calendars,
+                }
+            )
+
+        self.set_value("apple_accounts", json.dumps(next_accounts))
+        first = next_accounts[0]
+        first_primary = next(
+            (item for item in first["calendars"] if bool(item.get("is_default"))),
+            first["calendars"][0],
+        )
+        self.set_value("apple_account_label", str(first["account_label"]))
+        self.set_value("apple_username", str(first["username"]))
+        self.set_value("apple_app_specific_password", str(first["app_specific_password"]))
+        self.set_value("apple_primary_calendar_url", str(first_primary["calendar_url"]))
+        self.set_value("apple_primary_calendar_name", str(first_primary["calendar_name"]))
+        self.set_value("apple_calendar_catalog", json.dumps(first["calendars"]))
+
+    def get_apple_accounts(self) -> list[dict[str, object]]:
+        raw = self.get_value("apple_accounts")
+        if raw:
+            payload = json.loads(raw)
+            if isinstance(payload, list):
+                accounts = self._coerce_apple_accounts(payload)
+                if accounts:
+                    return accounts
+
+        legacy = {
+            "account_label": self.get_value("apple_account_label"),
+            "username": self.get_value("apple_username"),
+            "app_specific_password": self.get_value("apple_app_specific_password"),
+            "primary_calendar_url": self.get_value("apple_primary_calendar_url"),
+            "primary_calendar_name": self.get_value("apple_primary_calendar_name"),
+        }
+        legacy_catalog = self._coerce_apple_calendars(
+            json.loads(self.get_value("apple_calendar_catalog") or "[]")
+        )
+        if legacy["username"] and legacy["app_specific_password"]:
+            if not legacy_catalog and legacy["primary_calendar_url"]:
+                legacy_catalog = [
+                    {
+                        "calendar_name": legacy["primary_calendar_name"] or legacy["primary_calendar_url"],
+                        "calendar_url": legacy["primary_calendar_url"],
+                        "is_default": True,
+                    }
+                ]
+            return [
+                {
+                    "account_label": legacy["account_label"] or legacy["username"],
+                    "username": legacy["username"],
+                    "app_specific_password": legacy["app_specific_password"],
+                    "calendars": legacy_catalog,
+                }
+            ]
+        return []
+
+    def add_apple_calendar_target(
+        self,
+        *,
+        account_username: str,
+        calendar_name: str,
+        calendar_url: str,
+        is_default: bool,
+    ) -> None:
+        normalized_username = account_username.strip()
+        if not normalized_username:
+            raise ValueError("Apple account username is required.")
+        accounts = self.get_apple_accounts()
+        existing = next(
+            (
+                item
+                for item in accounts
+                if str(item.get("username") or "").strip().lower()
+                == normalized_username.lower()
+            ),
+            None,
+        )
+        if existing is None:
+            raise ValueError("Apple account was not found.")
+        calendars = list(existing.get("calendars", []))
+        calendars.append(
+            {
+                "calendar_name": calendar_name,
+                "calendar_url": calendar_url,
+                "is_default": is_default,
+            }
+        )
+        self.upsert_apple_account(
+            account_label=str(existing["account_label"]),
+            username=normalized_username,
+            app_specific_password="",
+            calendars=calendars,
+            preserve_existing_password=True,
+        )
+
+    def remove_apple_account(self, username: str) -> None:
+        normalized_username = username.strip().lower()
+        accounts = [
+            item
+            for item in self.get_apple_accounts()
+            if str(item.get("username") or "").strip().lower() != normalized_username
+        ]
+        if accounts:
+            self.set_value("apple_accounts", json.dumps(accounts))
+            first = accounts[0]
+            first_primary = next(
+                (item for item in first["calendars"] if bool(item.get("is_default"))),
+                first["calendars"][0],
+            )
+            self.set_value("apple_account_label", str(first["account_label"]))
+            self.set_value("apple_username", str(first["username"]))
+            self.set_value("apple_app_specific_password", str(first["app_specific_password"]))
+            self.set_value("apple_primary_calendar_url", str(first_primary["calendar_url"]))
+            self.set_value("apple_primary_calendar_name", str(first_primary["calendar_name"]))
+            self.set_value("apple_calendar_catalog", json.dumps(first["calendars"]))
+            return
+        self.delete_value("apple_accounts")
+        self.delete_value("apple_account_label")
+        self.delete_value("apple_username")
+        self.delete_value("apple_app_specific_password")
+        self.delete_value("apple_primary_calendar_url")
+        self.delete_value("apple_primary_calendar_name")
+        self.delete_value("apple_calendar_catalog")
 
     def set_google_oauth_settings(
         self,
@@ -513,6 +753,90 @@ class OperatorSettingsService:
         self.delete_value("google_calendar_catalog")
 
     def set_apple_calendar_catalog(self, calendars: list[dict[str, object]]) -> None:
+        normalized = self._normalize_apple_calendars(calendars)
+        self.set_value("apple_calendar_catalog", json.dumps(normalized))
+        account = self.get_apple_calendar_settings()
+        if account["username"]:
+            self.upsert_apple_account(
+                account_label=str(account["account_label"] or account["username"] or ""),
+                username=str(account["username"] or ""),
+                app_specific_password=str(account["app_specific_password"] or ""),
+                calendars=normalized,
+                preserve_existing_password=True,
+            )
+
+    def get_apple_calendar_catalog(self) -> list[dict[str, object]]:
+        accounts = self.get_apple_accounts()
+        if accounts:
+            calendars: list[dict[str, object]] = []
+            for account in accounts:
+                for item in account.get("calendars", []):
+                    calendars.append(
+                        {
+                            "calendar_name": str(item.get("calendar_name") or ""),
+                            "calendar_url": str(item.get("calendar_url") or ""),
+                            "is_default": bool(item.get("is_default")),
+                        }
+                    )
+            return calendars
+        raw = self.get_value("apple_calendar_catalog")
+        if not raw:
+            return []
+        payload = json.loads(raw)
+        return self._coerce_apple_calendars(payload)
+
+    def _coerce_apple_accounts(self, payload: object) -> list[dict[str, object]]:
+        if not isinstance(payload, list):
+            return []
+        accounts: list[dict[str, object]] = []
+        seen_usernames: set[str] = set()
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            username = str(item.get("username") or "").strip()
+            password = str(item.get("app_specific_password") or "").strip()
+            if not username or not password:
+                continue
+            username_key = username.lower()
+            if username_key in seen_usernames:
+                continue
+            seen_usernames.add(username_key)
+            accounts.append(
+                {
+                    "account_label": str(item.get("account_label") or username),
+                    "username": username,
+                    "app_specific_password": password,
+                    "calendars": self._coerce_apple_calendars(item.get("calendars")),
+                }
+            )
+        return accounts
+
+    def _coerce_apple_calendars(self, payload: object) -> list[dict[str, object]]:
+        if not isinstance(payload, list):
+            return []
+        calendars: list[dict[str, object]] = []
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            calendar_name = str(item.get("calendar_name") or "").strip()
+            calendar_url = str(item.get("calendar_url") or "").strip()
+            if not calendar_name or not calendar_url:
+                continue
+            calendars.append(
+                {
+                    "calendar_name": calendar_name,
+                    "calendar_url": calendar_url,
+                    "is_default": bool(item.get("is_default")),
+                }
+            )
+        if calendars and not any(item["is_default"] for item in calendars):
+            calendars[0]["is_default"] = True
+        return calendars
+
+    def _normalize_apple_calendars(
+        self,
+        calendars: list[dict[str, object]],
+    ) -> list[dict[str, object]]:
         if not calendars:
             raise ValueError("At least one Apple calendar is required.")
 
@@ -543,33 +867,7 @@ class OperatorSettingsService:
         if default_index is None:
             default_index = 0
         normalized[default_index]["is_default"] = True
-        self.set_value("apple_calendar_catalog", json.dumps(normalized))
-
-    def get_apple_calendar_catalog(self) -> list[dict[str, object]]:
-        raw = self.get_value("apple_calendar_catalog")
-        if not raw:
-            return []
-        payload = json.loads(raw)
-        if not isinstance(payload, list):
-            return []
-        calendars: list[dict[str, object]] = []
-        for item in payload:
-            if not isinstance(item, dict):
-                continue
-            calendar_name = str(item.get("calendar_name") or "").strip()
-            calendar_url = str(item.get("calendar_url") or "").strip()
-            if not calendar_name or not calendar_url:
-                continue
-            calendars.append(
-                {
-                    "calendar_name": calendar_name,
-                    "calendar_url": calendar_url,
-                    "is_default": bool(item.get("is_default")),
-                }
-            )
-        if calendars and not any(item["is_default"] for item in calendars):
-            calendars[0]["is_default"] = True
-        return calendars
+        return normalized
 
     def describe_cloudflare_worker_credentials(self) -> dict[str, object]:
         values = self.get_cloudflare_worker_credentials()

@@ -95,8 +95,9 @@ def alexa_setup_page(request: Request):
 
 @router.get("/calendar/setup")
 def calendar_setup_page(request: Request):
-    apple_settings = OperatorSettingsService().describe_apple_calendar_settings()
-    runtime_service = AppleRuntimeConfigService()
+    operator_settings = OperatorSettingsService()
+    apple_settings = operator_settings.describe_apple_calendar_settings()
+    runtime_service = AppleRuntimeConfigService(operator_settings=operator_settings)
     runtime_config = runtime_service.resolve()
     return _templates.TemplateResponse(
         request,
@@ -105,6 +106,7 @@ def calendar_setup_page(request: Request):
             "request": request,
             "apple_settings": apple_settings,
             "runtime_config": runtime_config,
+            "apple_accounts": runtime_service.list_accounts(),
             "calendar_catalog": runtime_service.list_calendars(),
             "flash_message": None,
             "error_message": None,
@@ -128,6 +130,7 @@ def connections_page(request: Request):
             "request": request,
             "apple_settings": apple_settings,
             "apple_runtime": apple_runtime,
+            "apple_accounts": apple_runtime_service.list_accounts(),
             "apple_calendar_catalog": apple_runtime_service.list_calendars(),
             "google_settings": google_settings,
             "google_runtime": google_runtime,
@@ -175,6 +178,7 @@ def calendar_setup_update(
             "request": request,
             "apple_settings": apple_settings,
             "runtime_config": runtime_config,
+            "apple_accounts": runtime_service.list_accounts(),
             "calendar_catalog": runtime_service.list_calendars(),
             "flash_message": flash_message,
             "error_message": error_message,
@@ -186,6 +190,7 @@ def calendar_setup_update(
 @router.post("/calendar/setup/calendars")
 def calendar_setup_add_calendar(
     request: Request,
+    account_username: str = Form(""),
     calendar_name: str = Form(""),
     calendar_url: str = Form(""),
     is_default: str | None = Form(None),
@@ -193,17 +198,38 @@ def calendar_setup_add_calendar(
     operator_settings = OperatorSettingsService()
     runtime_service = AppleRuntimeConfigService(operator_settings=operator_settings)
     try:
-        catalog = operator_settings.get_apple_calendar_catalog()
-        if not catalog:
-            catalog = runtime_service.list_calendars()
-        catalog.append(
-            {
-                "calendar_name": calendar_name,
-                "calendar_url": calendar_url,
-                "is_default": is_default == "true",
-            }
+        normalized_username = account_username.strip()
+        accounts = runtime_service.list_accounts()
+        if not normalized_username and len(accounts) == 1:
+            normalized_username = str(accounts[0].get("username") or "")
+        if normalized_username and not operator_settings.get_apple_accounts():
+            runtime_config = runtime_service.resolve(username=normalized_username)
+            operator_settings.upsert_apple_account(
+                account_label=str(runtime_config["account_label"]),
+                username=str(runtime_config["username"]),
+                app_specific_password=str(runtime_config["app_specific_password"]),
+                calendars=[
+                    {
+                        "calendar_name": str(item["calendar_name"]),
+                        "calendar_url": str(item["calendar_url"]),
+                        "is_default": bool(item.get("is_default")),
+                    }
+                    for item in runtime_service.list_calendars()
+                    if str(item.get("username") or "") == normalized_username
+                ] or [
+                    {
+                        "calendar_name": str(runtime_config["primary_calendar_name"]),
+                        "calendar_url": str(runtime_config["primary_calendar_url"]),
+                        "is_default": True,
+                    }
+                ],
+            )
+        operator_settings.add_apple_calendar_target(
+            account_username=normalized_username,
+            calendar_name=calendar_name,
+            calendar_url=calendar_url,
+            is_default=is_default == "true",
         )
-        operator_settings.set_apple_calendar_catalog(catalog)
         flash_message = "Apple calendar target added."
         error_message = None
     except ValueError as exc:
@@ -219,6 +245,7 @@ def calendar_setup_add_calendar(
             "request": request,
             "apple_settings": apple_settings,
             "runtime_config": runtime_config,
+            "apple_accounts": runtime_service.list_accounts(),
             "calendar_catalog": runtime_service.list_calendars(),
             "flash_message": flash_message,
             "error_message": error_message,

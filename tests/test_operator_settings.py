@@ -169,6 +169,63 @@ def test_operator_settings_stores_apple_calendar_catalog() -> None:
     ]
 
 
+def test_operator_settings_can_store_multiple_apple_accounts() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.upsert_apple_account(
+        account_label="Family",
+        username="family@example.com",
+        app_specific_password="family-secret",
+        calendars=[
+            {
+                "calendar_name": "Family",
+                "calendar_url": "https://caldav.icloud.com/family/",
+                "is_default": True,
+            }
+        ],
+    )
+    service.upsert_apple_account(
+        account_label="Work",
+        username="work@example.com",
+        app_specific_password="work-secret",
+        calendars=[
+            {
+                "calendar_name": "Work",
+                "calendar_url": "https://caldav.icloud.com/work/",
+                "is_default": True,
+            }
+        ],
+    )
+
+    assert service.get_apple_accounts() == [
+        {
+            "account_label": "Family",
+            "username": "family@example.com",
+            "app_specific_password": "family-secret",
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://caldav.icloud.com/family/",
+                    "is_default": True,
+                }
+            ],
+        },
+        {
+            "account_label": "Work",
+            "username": "work@example.com",
+            "app_specific_password": "work-secret",
+            "calendars": [
+                {
+                    "calendar_name": "Work",
+                    "calendar_url": "https://caldav.icloud.com/work/",
+                    "is_default": True,
+                }
+            ],
+        },
+    ]
+
+
 def test_operator_settings_encrypts_google_oauth_values_at_rest() -> None:
     settings = _settings()
     service = OperatorSettingsService(settings=settings)

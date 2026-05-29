@@ -82,3 +82,52 @@ def test_readiness_service_uses_product_vault_apple_settings() -> None:
     assert readiness["origin"]["apple_ready"] is True
     assert readiness["origin"]["account_label"] == "Family"
     assert readiness["origin"]["calendar_name"] == "Family"
+
+
+def test_appointment_service_uses_matching_apple_account_for_selected_calendar(
+    monkeypatch,
+) -> None:
+    settings = _settings()
+    operator_settings = OperatorSettingsService(settings=settings)
+    operator_settings.upsert_apple_account(
+        account_label="Family",
+        username="family@example.com",
+        app_specific_password="family-secret",
+        calendars=[
+            {
+                "calendar_name": "Family",
+                "calendar_url": "https://caldav.icloud.com/family/",
+                "is_default": True,
+            }
+        ],
+    )
+    operator_settings.upsert_apple_account(
+        account_label="Work",
+        username="work@example.com",
+        app_specific_password="work-secret",
+        calendars=[
+            {
+                "calendar_name": "Work",
+                "calendar_url": "https://caldav.icloud.com/work/",
+                "is_default": True,
+            }
+        ],
+    )
+
+    class CapturingAppleClient:
+        def __init__(self, config) -> None:
+            self.config = config
+
+    monkeypatch.setattr(
+        "calsync.services.appointments.AppleCalDAVClient",
+        CapturingAppleClient,
+    )
+
+    service = AppointmentService(settings=settings)
+    client = service._build_apple_client(calendar_url="https://caldav.icloud.com/work/")
+
+    assert client.config.account_label == "Work"
+    assert client.config.apple_username == "work@example.com"
+    assert client.config.app_specific_password == "work-secret"
+    assert client.config.primary_calendar_url == "https://caldav.icloud.com/work/"
+    assert client.config.primary_calendar_name == "Work"

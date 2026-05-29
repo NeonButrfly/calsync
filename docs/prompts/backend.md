@@ -157,6 +157,7 @@ Expected behavior:
 
 - `GET /calendar/setup` should render an operator-facing Apple calendar setup page
 - `POST /calendar/setup` should save the Apple account label, Apple username, Apple app-specific password, primary calendar URL, and primary calendar name
+- the product should support more than one connected Apple account under that setup surface
 - those product-managed Apple settings should be stored encrypted at rest with `ENCRYPTION_KEY`
 - the appointment service and readiness surface should fall back to product-vault Apple settings when deployment env values are absent
 - the main workspace and Alexa setup flow should link back to the Apple calendar setup page
@@ -168,7 +169,7 @@ Expected behavior:
 
 Expected behavior:
 
-- `POST /calendar/setup/calendars` should let the operator add another Apple calendar target without losing the current default target
+- `POST /calendar/setup/calendars` should let the operator add another Apple calendar target for a selected Apple account without losing the current default target
 - create and edit flows should expose a target calendar picker when more than one Apple calendar is saved
 - `POST /api/appointments` should accept `target_calendar_url` so callers can choose a non-default Apple destination
 - `PATCH /api/appointments/{appointment_id}` should accept `target_calendar_url` so the appointment can move between saved Apple calendars

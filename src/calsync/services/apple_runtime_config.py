@@ -22,13 +22,19 @@ class AppleRuntimeConfigService:
         self,
         calendar_url: str | None = None,
         calendar_name: str | None = None,
+        username: str | None = None,
     ) -> dict[str, Any]:
-        credentials = self._resolve_credentials()
+        accounts = self.list_accounts()
         calendars = self.list_calendars()
         selected_calendar = self._select_calendar(
             calendars,
             calendar_url=calendar_url,
             calendar_name=calendar_name,
+        )
+        credentials = self._resolve_credentials(
+            accounts=accounts,
+            selected_calendar=selected_calendar,
+            username=username,
         )
         ready = bool(
             credentials["username"]
@@ -44,29 +50,51 @@ class AppleRuntimeConfigService:
             "source": credentials["source"],
             "ready": ready,
             "calendars": calendars,
+            "accounts": accounts,
         }
 
-    def list_calendars(self) -> list[dict[str, object]]:
-        catalog = self._vault_calendar_catalog()
-        if catalog:
-            return catalog
+    def list_accounts(self) -> list[dict[str, object]]:
+        vault_accounts = self._vault_accounts()
+        if vault_accounts:
+            return vault_accounts
 
-        env_calendar = self._env_calendar()
-        if env_calendar is not None:
-            return [env_calendar]
+        env_account = self._env_account()
+        if env_account is not None:
+            return [env_account]
 
-        legacy = self._legacy_vault_calendar()
+        legacy = self._legacy_vault_account()
         if legacy is not None:
             return [legacy]
 
         return []
+
+    def list_calendars(self) -> list[dict[str, object]]:
+        calendars: list[dict[str, object]] = []
+        for account in self.list_accounts():
+            for item in account.get("calendars", []):
+                calendars.append(
+                    {
+                        "account_label": str(account.get("account_label") or account.get("username") or ""),
+                        "username": str(account.get("username") or ""),
+                        "calendar_name": str(item.get("calendar_name") or ""),
+                        "calendar_url": str(item.get("calendar_url") or ""),
+                        "is_default": bool(item.get("is_default")),
+                    }
+                )
+        return calendars
 
     def _operator_settings(self) -> OperatorSettingsService:
         if self.operator_settings is None:
             self.operator_settings = OperatorSettingsService(settings=self.settings)
         return self.operator_settings
 
-    def _resolve_credentials(self) -> dict[str, str]:
+    def _resolve_credentials(
+        self,
+        *,
+        accounts: list[dict[str, object]],
+        selected_calendar: dict[str, str],
+        username: str | None,
+    ) -> dict[str, str]:
         if self.settings.apple_username and self.settings.apple_app_specific_password:
             return {
                 "account_label": self.settings.apple_account_label,
@@ -75,36 +103,71 @@ class AppleRuntimeConfigService:
                 "source": "deployment_env",
             }
 
-        stored = self._safe_vault_settings()
+        selected_account = self._select_account(
+            accounts,
+            selected_calendar=selected_calendar,
+            username=username,
+        )
         return {
-            "account_label": stored["account_label"] or self.settings.apple_account_label,
-            "username": stored["username"] or "",
-            "app_specific_password": stored["app_specific_password"] or "",
-            "source": "product_vault" if any(stored.values()) else "missing",
+            "account_label": selected_account["account_label"] or self.settings.apple_account_label,
+            "username": selected_account["username"] or "",
+            "app_specific_password": selected_account["app_specific_password"] or "",
+            "source": "product_vault" if any(selected_account.values()) else "missing",
         }
 
-    def _env_calendar(self) -> dict[str, object] | None:
-        if not self.settings.apple_primary_calendar_url:
+    def _env_account(self) -> dict[str, object] | None:
+        if not (
+            self.settings.apple_username
+            and self.settings.apple_app_specific_password
+        ):
             return None
+        calendars = self._legacy_calendar_catalog()
+        if not calendars:
+            if not self.settings.apple_primary_calendar_url:
+                return None
+            calendars = [
+                {
+                    "calendar_name": self.settings.apple_primary_calendar_name,
+                    "calendar_url": self.settings.apple_primary_calendar_url,
+                    "is_default": True,
+                }
+            ]
         return {
-            "calendar_name": self.settings.apple_primary_calendar_name,
-            "calendar_url": self.settings.apple_primary_calendar_url,
-            "is_default": True,
+            "account_label": self.settings.apple_account_label,
+            "username": self.settings.apple_username,
+            "app_specific_password": self.settings.apple_app_specific_password,
+            "calendars": calendars,
         }
 
-    def _legacy_vault_calendar(self) -> dict[str, object] | None:
+    def _legacy_vault_account(self) -> dict[str, object] | None:
         stored = self._safe_vault_settings()
         calendar_url = stored["primary_calendar_url"] or ""
-        if not calendar_url:
+        if not calendar_url or not stored["username"] or not stored["app_specific_password"]:
             return None
+        calendars = self._legacy_calendar_catalog()
+        if not calendars:
+            calendars = [
+                {
+                    "calendar_name": stored["primary_calendar_name"]
+                    or self.settings.apple_primary_calendar_name,
+                    "calendar_url": calendar_url,
+                    "is_default": True,
+                }
+            ]
         return {
-            "calendar_name": stored["primary_calendar_name"]
-            or self.settings.apple_primary_calendar_name,
-            "calendar_url": calendar_url,
-            "is_default": True,
+            "account_label": stored["account_label"] or stored["username"],
+            "username": stored["username"],
+            "app_specific_password": stored["app_specific_password"],
+            "calendars": calendars,
         }
 
-    def _vault_calendar_catalog(self) -> list[dict[str, object]]:
+    def _vault_accounts(self) -> list[dict[str, object]]:
+        try:
+            return self._operator_settings().get_apple_accounts()
+        except (ImportError, ModuleNotFoundError, SQLAlchemyError, ValueError):
+            return []
+
+    def _legacy_calendar_catalog(self) -> list[dict[str, object]]:
         try:
             return self._operator_settings().get_apple_calendar_catalog()
         except (ImportError, ModuleNotFoundError, SQLAlchemyError, ValueError):
@@ -121,6 +184,65 @@ class AppleRuntimeConfigService:
                 "primary_calendar_url": None,
                 "primary_calendar_name": None,
             }
+
+    @staticmethod
+    def _select_account(
+        accounts: list[dict[str, object]],
+        *,
+        selected_calendar: dict[str, str],
+        username: str | None,
+    ) -> dict[str, str]:
+        if username:
+            selected = next(
+                (
+                    item
+                    for item in accounts
+                    if str(item.get("username") or "").strip().lower()
+                    == username.strip().lower()
+                ),
+                None,
+            )
+            if selected is None:
+                raise ValueError("Apple account username was not found.")
+            return {
+                "account_label": str(selected.get("account_label") or username),
+                "username": str(selected.get("username") or ""),
+                "app_specific_password": str(selected.get("app_specific_password") or ""),
+            }
+
+        calendar_url = selected_calendar.get("calendar_url") or ""
+        if calendar_url:
+            matches = [
+                item
+                for item in accounts
+                if any(
+                    str(calendar.get("calendar_url") or "") == calendar_url
+                    for calendar in item.get("calendars", [])
+                )
+            ]
+            if len(matches) > 1:
+                raise ValueError("Apple calendar target URL is ambiguous across accounts.")
+            if matches:
+                selected = matches[0]
+                return {
+                    "account_label": str(selected.get("account_label") or selected.get("username") or ""),
+                    "username": str(selected.get("username") or ""),
+                    "app_specific_password": str(selected.get("app_specific_password") or ""),
+                }
+
+        if accounts:
+            first = accounts[0]
+            return {
+                "account_label": str(first.get("account_label") or first.get("username") or ""),
+                "username": str(first.get("username") or ""),
+                "app_specific_password": str(first.get("app_specific_password") or ""),
+            }
+
+        return {
+            "account_label": "",
+            "username": "",
+            "app_specific_password": "",
+        }
 
     @staticmethod
     def _select_calendar(
