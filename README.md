@@ -22,13 +22,13 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#32`, `#36`, `#38`, and `#39` are now backed by:
+Issues `#32`, `#36`, `#38`, `#39`, and `#40` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
 - Alembic migrations
 - Apple CalDAV write adapter for create, update, cancel, and list-backed lookup flows
-- a first real scheduling console at `/` for create, edit, cancel, and upcoming-list workflows
+- a polished scheduling workspace at `/` for create, edit, cancel, filtered browsing, and appointment detail review
 - Local audit entries and appointment-to-provider event mapping
 - A dedicated Cloudflare Worker in `workers/edge-calsync`
 - Live ChatGPT-first edge hostname: `https://edge-calsync.neonbutterfly.net`
@@ -41,6 +41,7 @@ Issues `#32`, `#36`, `#38`, and `#39` are now backed by:
 - `GET /api/info`
 - `GET /healthz`
 - `GET /api/appointments`
+- `GET /api/appointments/{appointment_id}`
 - `POST /api/appointments`
 - `PATCH /api/appointments/{appointment_id}`
 - `POST /api/appointments/{appointment_id}/cancel`
@@ -50,7 +51,8 @@ Issues `#32`, `#36`, `#38`, and `#39` are now backed by:
 The root page now acts as the first family scheduling UX:
 
 - polished create-appointment form
-- upcoming 30-day appointment list
+- day, week, and month schedule browsing
+- selected appointment detail with audit trail and provider metadata
 - edit flow for existing appointments
 - cancel flow for existing appointments
 - direct Apple calendar write-back through the same backend used by the API and Worker
@@ -58,6 +60,7 @@ The root page now acts as the first family scheduling UX:
 ### Worker routes
 
 - `GET /v1/appointments`
+- `GET /v1/appointments/{appointment_id}`
 - `POST /v1/appointments`
 - `PATCH /v1/appointments/{appointment_id}`
 - `POST /v1/appointments/{appointment_id}/cancel`
@@ -154,6 +157,7 @@ The API will not create calendar events until the Apple settings are populated.
 - Cloudflare edge Worker slice: issue `#36`
 - Alexa skill slice: issue `#38`
 - First family scheduling UX: issue `#39`
+- Scheduling workspace polish: issue `#40`
 - Legacy archive and clean reset: issue `#33`
 
 ## Legacy archive

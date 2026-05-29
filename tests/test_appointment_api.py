@@ -187,6 +187,39 @@ def test_create_appointment_uses_forwarded_channel_as_actor(monkeypatch) -> None
     assert audit_entry.actor == "worker:chatgpt"
 
 
+def test_get_appointment_returns_detail_and_audit_trail(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Speech Evaluation",
+            "date": "2026-06-04",
+            "start_time": "14:00",
+            "end_time": "15:00",
+            "timezone": "America/Anchorage",
+            "location": "School",
+        },
+    )
+    appointment_id = create_response.json()["appointment_id"]
+
+    response = client.get(f"/api/appointments/{appointment_id}")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["appointment_id"] == appointment_id
+    assert body["calendar_name"] == "Family"
+    assert body["provider_type"] == "icloud_caldav"
+    assert body["audit_entries"][0]["action"] == "create_appointment"
+
+
 def test_cancel_appointment_marks_status_cancelled(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     monkeypatch.setattr(
@@ -214,6 +247,54 @@ def test_cancel_appointment_marks_status_cancelled(monkeypatch) -> None:
 
     assert cancel_response.status_code == 200
     assert cancel_response.json()["status"] == "cancelled"
+
+
+def test_update_and_cancel_use_forwarded_channel_as_actor(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Dentist",
+            "date": "2026-06-01",
+            "start_time": "10:00",
+            "end_time": "11:00",
+            "timezone": "America/Anchorage",
+        },
+    )
+    appointment_id = create_response.json()["appointment_id"]
+
+    update_response = client.patch(
+        f"/api/appointments/{appointment_id}",
+        headers={"X-CalSync-Channel": "alexa"},
+        json={"location": "Downtown clinic"},
+    )
+    cancel_response = client.post(
+        f"/api/appointments/{appointment_id}/cancel",
+        headers={"X-CalSync-Channel": "shortcuts"},
+    )
+
+    assert update_response.status_code == 200
+    assert cancel_response.status_code == 200
+
+    session_factory = _get_session_factory_for_url(get_settings().database_url)
+    with session_factory() as session:
+        audit_entries = list(
+            session.scalars(select(AuditEntry).order_by(AuditEntry.created_at.asc()))
+        )
+
+    assert [entry.actor for entry in audit_entries] == [
+        "api",
+        "worker:alexa",
+        "worker:shortcuts",
+    ]
 
 
 def test_create_appointment_surfaces_provider_failure(monkeypatch) -> None:

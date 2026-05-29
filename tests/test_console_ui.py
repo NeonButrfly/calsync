@@ -70,9 +70,10 @@ def test_console_root_renders_scheduler_surface(monkeypatch) -> None:
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "Add to calendars through CalSync" in response.text
+    assert "See the household schedule clearly" in response.text
     assert "New appointment" in response.text
-    assert "What is on the calendar" in response.text
+    assert "Calendar view" in response.text
+    assert "Details that actually help" in response.text
 
 
 def test_console_create_flow_redirects_and_shows_created_appointment(monkeypatch) -> None:
@@ -102,6 +103,7 @@ def test_console_create_flow_redirects_and_shows_created_appointment(monkeypatch
     assert response.status_code == 200
     assert "Appointment created on your Apple calendar." in response.text
     assert "Dentist" in response.text
+    assert "Activity trail" in response.text
 
 
 def test_console_edit_flow_prefills_and_updates(monkeypatch) -> None:
@@ -130,6 +132,7 @@ def test_console_edit_flow_prefills_and_updates(monkeypatch) -> None:
     assert edit_page.status_code == 200
     assert "Update appointment" in edit_page.text
     assert "Dentist" in edit_page.text
+    assert "Today" in edit_page.text
 
     response = client.post(
         f"/appointments/{appointment_id}/edit",
@@ -223,3 +226,35 @@ def test_public_policy_pages_render(monkeypatch) -> None:
     assert terms_response.status_code == 200
     assert "Terms of Use" in terms_response.text
     assert "shared brain" in terms_response.text
+
+
+def test_console_supports_window_filters_and_selected_detail(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Summer camp intake",
+            "date": "2026-06-12",
+            "start_time": "08:30",
+            "end_time": "09:15",
+            "timezone": "America/Anchorage",
+            "notes": "Bring forms",
+        },
+    )
+    appointment_id = create_response.json()["appointment_id"]
+
+    response = client.get(f"/?view=month&appointment_id={appointment_id}")
+
+    assert response.status_code == 200
+    assert "Next 30 days" in response.text
+    assert "Summer camp intake" in response.text
+    assert "What CalSync has done with this appointment" in response.text
+    assert "Bring forms" in response.text

@@ -75,6 +75,24 @@ Expected UX behavior:
 - the UX should feel like a professional product surface, not a raw API debug page
 - the web console should reuse the same appointment service and audit-backed write path as the API and Worker layers
 
+## Scheduling Workspace Polish Requirement
+
+- GitHub issue: `#40`
+- interpreted requirement: turn the first scheduling console into a more professional scheduling workspace with clearer browsing, stronger appointment detail, and better product-level information architecture
+
+Expected UX behavior:
+
+- `GET /` should support day, week, and month schedule windows
+- the workspace should show a selected appointment detail surface instead of only a flat list
+- detail should explain where the appointment lives, when it changed, and what CalSync has done with it
+- low-level provider metadata may still exist, but it should stay tucked behind a disclosure instead of dominating the primary experience
+- the console should still use the same Apple write-back path for create, edit, and cancel
+
+Expected API/edge support:
+
+- `GET /api/appointments/{appointment_id}` should return the richer appointment detail payload
+- `GET /v1/appointments/{appointment_id}` should expose the same detail through the Worker for future channel use
+
 ## Cloudflare Deployment Requirement
 
 - GitHub issue: `#35`

@@ -8,18 +8,22 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()
 
     assert "#39" in readme_content
-    assert "first real scheduling console" in readme_content
-    assert "edit flow for existing appointments" in readme_content
+    assert "#40" in readme_content
+    assert "polished scheduling workspace" in readme_content
+    assert "selected appointment detail" in readme_content
     assert "http://127.0.0.1:3080/" in readme_content
 
     assert "#39" in ops_content
-    assert "web scheduling console" in ops_content
+    assert "#40" in ops_content
+    assert "web scheduling workspace" in ops_content
     assert "post /appointments" in ops_content
-    assert "professional web scheduling console" in ops_content
+    assert "professional web scheduling workspace" in ops_content
+    assert "get /api/appointments/{appointment_id}" in ops_content
 
     assert "#39" in prompt_content
-    assert "polished scheduling console" in prompt_content
-    assert "professional product surface" in prompt_content
+    assert "#40" in prompt_content
+    assert "selected appointment detail surface" in prompt_content
+    assert "get /v1/appointments/{appointment_id}" in prompt_content
 
 
 def test_docs_cover_first_alexa_skill_slice() -> None:

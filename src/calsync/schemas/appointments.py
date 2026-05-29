@@ -47,5 +47,23 @@ class AppointmentListItem(BaseModel):
     provider_event_id: str | None = None
 
 
+class AppointmentAuditItem(BaseModel):
+    action: str
+    actor: str
+    created_at: str
+    payload_json: dict[str, object] | None = None
+
+
+class AppointmentDetailResponse(AppointmentListItem):
+    account_label: str
+    calendar_name: str
+    provider_type: str
+    provider_href: str | None = None
+    provider_etag: str | None = None
+    created_at: str
+    updated_at: str
+    audit_entries: list[AppointmentAuditItem]
+
+
 class ListAppointmentsResponse(BaseModel):
     items: list[AppointmentListItem]

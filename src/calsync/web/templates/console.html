@@ -13,10 +13,17 @@
           <p class="eyebrow">CalSync</p>
           <h1>Family scheduling that feels clear and calm</h1>
           <p>
-            One simple place to add appointments to the shared Apple calendar,
-            review what is coming up, and keep the household schedule grounded.
+            A cleaner planning surface for the shared Apple calendar, with one
+            schedule view, clear event detail, and safe write-back through the
+            same CalSync backend used by ChatGPT and Alexa.
           </p>
         </div>
+
+        <nav class="sidebar-nav" aria-label="Workspace sections">
+          <a class="sidebar-nav__item sidebar-nav__item--active" href="/">Schedule workspace</a>
+          <a class="sidebar-nav__item" href="/privacy">Privacy policy</a>
+          <a class="sidebar-nav__item" href="/terms">Terms of use</a>
+        </nav>
 
         <div class="sidebar-card">
           <p class="eyebrow">Primary calendar</p>
@@ -30,7 +37,8 @@
             <li>Create appointments</li>
             <li>Edit existing appointments</li>
             <li>Cancel appointments</li>
-            <li>Feed Alexa and ChatGPT through the same backend</li>
+            <li>Browse day, week, and month windows</li>
+            <li>Share the same scheduling brain with ChatGPT and Alexa</li>
           </ul>
         </div>
       </aside>
@@ -38,17 +46,15 @@
       <main class="workspace">
         <section class="hero panel hero-panel">
           <div>
-            <p class="eyebrow">Apple-first scheduling console</p>
-            <h2>Add to calendars through CalSync</h2>
+            <p class="eyebrow">Apple-first scheduling workspace</p>
+            <h2>See the household schedule clearly</h2>
             <p class="hero-copy">
-              This console writes directly to the configured Apple calendar and
-              keeps the local scheduling record in sync with every create,
-              update, and cancel.
+              {{ window_summary }}
             </p>
           </div>
           <div class="hero-stats">
             <article>
-              <span>Upcoming in 30 days</span>
+              <span>{{ window_label }}</span>
               <strong>{{ appointment_count }}</strong>
             </article>
             <article>
@@ -56,8 +62,8 @@
               <strong>{{ active_count }}</strong>
             </article>
             <article>
-              <span>Cancelled</span>
-              <strong>{{ cancelled_count }}</strong>
+              <span>Next up</span>
+              <strong class="stat-copy">{{ next_up_label }}</strong>
             </article>
           </div>
         </section>
@@ -70,108 +76,219 @@
         <section class="flash flash--error">{{ error_message }}</section>
         {% endif %}
 
-        <section class="content-grid">
-          <article class="panel">
-            <div class="panel-head">
-              <div>
-                <p class="eyebrow">Create</p>
-                <h3>New appointment</h3>
-              </div>
-            </div>
-            <form class="form-grid" method="post" action="/appointments">
-              <label>
-                <span>Title</span>
-                <input name="title" type="text" value="{{ form_values.title }}" required />
-              </label>
-              <label>
-                <span>Date</span>
-                <input name="date_value" type="date" value="{{ form_values.date }}" required />
-              </label>
-              <div class="two-up">
-                <label>
-                  <span>Start</span>
-                  <input name="start_time" type="time" value="{{ form_values.start_time }}" required />
-                </label>
-                <label>
-                  <span>End</span>
-                  <input name="end_time" type="time" value="{{ form_values.end_time }}" required />
-                </label>
-              </div>
-              <label>
-                <span>Timezone</span>
-                <input name="timezone" type="text" value="{{ form_values.timezone }}" required />
-              </label>
-              <label>
-                <span>Location</span>
-                <input name="location" type="text" value="{{ form_values.location }}" />
-              </label>
-              <label>
-                <span>Who is involved</span>
-                <input name="attendees_text" type="text" value="{{ form_values.attendees_text }}" placeholder="Kayra, Mom, school nurse" />
-              </label>
-              <label>
-                <span>Notes</span>
-                <textarea name="notes" rows="4">{{ form_values.notes }}</textarea>
-              </label>
-              <label class="checkbox-row">
-                <input name="all_day" type="checkbox" value="true"{% if form_values.all_day %} checked{% endif %} />
-                <span>All-day appointment</span>
-              </label>
-              <button type="submit">Create appointment</button>
-            </form>
-          </article>
+        <section class="toolbar panel">
+          <div>
+            <p class="eyebrow">Browse</p>
+            <h3>Schedule windows</h3>
+          </div>
+          <div class="filter-row" role="tablist" aria-label="Schedule windows">
+            {% for option in window_options %}
+            <a
+              class="filter-pill{% if option.is_active %} filter-pill--active{% endif %}"
+              href="{{ option.href }}"
+            >
+              {{ option.label }}
+            </a>
+            {% endfor %}
+          </div>
+        </section>
 
-          <article class="panel">
-            <div class="panel-head">
-              <div>
-                <p class="eyebrow">Upcoming</p>
-                <h3>What is on the calendar</h3>
+        <section class="workspace-grid">
+          <div class="workspace-column">
+            <article class="panel schedule-panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Upcoming</p>
+                  <h3>Calendar view</h3>
+                </div>
               </div>
-            </div>
 
-            {% if appointments %}
-            <div class="appointment-list">
-              {% for appointment in appointments %}
-              <article class="appointment-card">
-                <div class="appointment-card__header">
+              {% if schedule_sections %}
+              <div class="schedule-sections">
+                {% for section in schedule_sections %}
+                <section class="schedule-section">
+                  <div class="schedule-section__head">
+                    <p class="eyebrow">{{ section.eyebrow }}</p>
+                    <h4>{{ section.date_label }}</h4>
+                  </div>
+                  <div class="schedule-stack">
+                    {% for item in section.entries %}
+                    <a
+                      class="schedule-card{% if item.is_selected %} schedule-card--selected{% endif %}"
+                      href="{{ item.detail_href }}"
+                    >
+                      <div class="schedule-card__row">
+                        <div>
+                          <strong>{{ item.title }}</strong>
+                          <p class="appointment-meta">{{ item.time_label }}</p>
+                        </div>
+                        <span class="status-pill status-pill--{{ item.status }}">{{ item.status }}</span>
+                      </div>
+                      {% if item.people_label %}
+                      <p class="appointment-detail"><strong>People:</strong> {{ item.people_label }}</p>
+                      {% endif %}
+                      {% if item.location_label %}
+                      <p class="appointment-detail"><strong>Location:</strong> {{ item.location_label }}</p>
+                      {% endif %}
+                    </a>
+                    {% endfor %}
+                  </div>
+                </section>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="empty-state">
+                <h4>No appointments in this window yet</h4>
+                <p>
+                  Create something new on the right and CalSync will write it
+                  into the shared Apple calendar.
+                </p>
+              </div>
+              {% endif %}
+            </article>
+          </div>
+
+          <div class="workspace-column workspace-column--stack">
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Selected appointment</p>
+                  <h3>Details that actually help</h3>
+                </div>
+              </div>
+
+              {% if selected_appointment %}
+              <div class="detail-stack">
+                <div class="detail-head">
                   <div>
-                    <h4>{{ appointment.title }}</h4>
+                    <h4>{{ selected_appointment.title }}</h4>
                     <p class="appointment-meta">
-                      {{ appointment.date }} · {{ appointment.start_time }} to {{ appointment.end_time }} · {{ appointment.timezone }}
+                      {{ selected_appointment.date_label }} · {{ selected_appointment.time_label }} · {{ selected_appointment.timezone }}
                     </p>
                   </div>
-                  <span class="status-pill status-pill--{{ appointment.status }}">{{ appointment.status }}</span>
+                  <span class="status-pill status-pill--{{ selected_appointment.status }}">{{ selected_appointment.status }}</span>
                 </div>
-                {% if appointment.location %}
-                <p class="appointment-detail"><strong>Location:</strong> {{ appointment.location }}</p>
+
+                <div class="detail-grid">
+                  <article class="detail-card">
+                    <p class="eyebrow">Where it lives</p>
+                    <strong>{{ selected_appointment.calendar_name }}</strong>
+                    <span>{{ selected_appointment.account_label }} · {{ selected_appointment.provider_type_label }}</span>
+                  </article>
+                  <article class="detail-card">
+                    <p class="eyebrow">Last change</p>
+                    <strong>{{ selected_appointment.updated_label }}</strong>
+                    <span>Created {{ selected_appointment.created_label }}</span>
+                  </article>
+                </div>
+
+                {% if selected_appointment.location %}
+                <p class="appointment-detail"><strong>Location:</strong> {{ selected_appointment.location }}</p>
                 {% endif %}
-                {% if appointment.attendees_text %}
-                <p class="appointment-detail"><strong>People:</strong> {{ appointment.attendees_text }}</p>
+                {% if selected_appointment.attendees_text %}
+                <p class="appointment-detail"><strong>People:</strong> {{ selected_appointment.attendees_text }}</p>
                 {% endif %}
-                {% if appointment.notes %}
-                <p class="appointment-detail"><strong>Notes:</strong> {{ appointment.notes }}</p>
+                {% if selected_appointment.notes %}
+                <p class="appointment-detail"><strong>Notes:</strong> {{ selected_appointment.notes }}</p>
                 {% endif %}
+
                 <div class="action-row">
-                  <a class="button-link button-link--secondary" href="/appointments/{{ appointment.appointment_id }}/edit">Edit</a>
-                  {% if appointment.status != "cancelled" %}
-                  <form method="post" action="/appointments/{{ appointment.appointment_id }}/cancel">
-                    <button class="danger-button" type="submit">Cancel</button>
+                  <a class="button-link" href="/appointments/{{ selected_appointment.appointment_id }}/edit">Edit appointment</a>
+                  {% if selected_appointment.status != "cancelled" %}
+                  <form method="post" action="/appointments/{{ selected_appointment.appointment_id }}/cancel">
+                    <button class="danger-button" type="submit">Cancel appointment</button>
                   </form>
                   {% endif %}
                 </div>
-              </article>
-              {% endfor %}
-            </div>
-            {% else %}
-            <div class="empty-state">
-              <h4>No upcoming appointments yet</h4>
-              <p>
-                Start with the form on the left and CalSync will write the first
-                appointment into the shared Apple calendar.
-              </p>
-            </div>
-            {% endif %}
-          </article>
+
+                <div class="timeline">
+                  <div class="timeline__head">
+                    <p class="eyebrow">Activity trail</p>
+                    <h4>What CalSync has done with this appointment</h4>
+                  </div>
+                  {% for item in selected_appointment.audit_entries %}
+                  <article class="timeline-item">
+                    <div class="timeline-item__meta">
+                      <strong>{{ item.action_label }}</strong>
+                      <span>{{ item.actor_label }} · {{ item.timestamp_label }}</span>
+                    </div>
+                    <p>{{ item.summary }}</p>
+                  </article>
+                  {% endfor %}
+                </div>
+
+                <details class="detail-disclosure">
+                  <summary>Show provider metadata</summary>
+                  <div class="detail-disclosure__body">
+                    <p><strong>Provider event ID:</strong> {{ selected_appointment.provider_event_id }}</p>
+                    {% if selected_appointment.provider_href %}
+                    <p><strong>Provider href:</strong> {{ selected_appointment.provider_href }}</p>
+                    {% endif %}
+                  </div>
+                </details>
+              </div>
+              {% else %}
+              <div class="empty-state">
+                <h4>Select an appointment</h4>
+                <p>
+                  As soon as there is something in the current schedule window,
+                  CalSync will surface the detail, activity trail, and safe
+                  actions here.
+                </p>
+              </div>
+              {% endif %}
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Create</p>
+                  <h3>New appointment</h3>
+                </div>
+              </div>
+              <form class="form-grid" method="post" action="/appointments">
+                <label>
+                  <span>Title</span>
+                  <input name="title" type="text" value="{{ form_values.title }}" required />
+                </label>
+                <label>
+                  <span>Date</span>
+                  <input name="date_value" type="date" value="{{ form_values.date }}" required />
+                </label>
+                <div class="two-up">
+                  <label>
+                    <span>Start</span>
+                    <input name="start_time" type="time" value="{{ form_values.start_time }}" required />
+                  </label>
+                  <label>
+                    <span>End</span>
+                    <input name="end_time" type="time" value="{{ form_values.end_time }}" required />
+                  </label>
+                </div>
+                <label>
+                  <span>Timezone</span>
+                  <input name="timezone" type="text" value="{{ form_values.timezone }}" required />
+                </label>
+                <label>
+                  <span>Location</span>
+                  <input name="location" type="text" value="{{ form_values.location }}" placeholder="Clinic, school, airport, video call" />
+                </label>
+                <label>
+                  <span>Who is involved</span>
+                  <input name="attendees_text" type="text" value="{{ form_values.attendees_text }}" placeholder="Kayra, Mom, school nurse" />
+                </label>
+                <label>
+                  <span>Notes</span>
+                  <textarea name="notes" rows="4">{{ form_values.notes }}</textarea>
+                </label>
+                <label class="checkbox-row">
+                  <input name="all_day" type="checkbox" value="true"{% if form_values.all_day %} checked{% endif %} />
+                  <span>All-day appointment</span>
+                </label>
+                <button type="submit">Create appointment</button>
+              </form>
+            </article>
+          </div>
         </section>
       </main>
     </div>

@@ -9,11 +9,25 @@
   <body>
     <div class="editor-shell">
       <main class="editor-card panel">
-        <p class="eyebrow">Edit</p>
-        <h1>Update appointment</h1>
-        <p class="hero-copy">
-          Keep the shared Apple calendar accurate without leaving CalSync.
-        </p>
+        <div class="editor-topbar">
+          <div>
+            <p class="eyebrow">Edit</p>
+            <h1>Update appointment</h1>
+            <p class="hero-copy">
+              Keep the shared Apple calendar accurate without leaving CalSync.
+            </p>
+          </div>
+          <div class="filter-row" role="tablist" aria-label="Schedule windows">
+            {% for option in window_options %}
+            <a
+              class="filter-pill{% if option.is_active %} filter-pill--active{% endif %}"
+              href="{{ option.href }}"
+            >
+              {{ option.label }}
+            </a>
+            {% endfor %}
+          </div>
+        </div>
 
         {% if error_message %}
         <section class="flash flash--error">{{ error_message }}</section>
@@ -60,7 +74,7 @@
           </label>
           <div class="action-row">
             <button type="submit">Save changes</button>
-            <a class="button-link button-link--secondary" href="/">Back to schedule</a>
+            <a class="button-link button-link--secondary" href="/?view=week&appointment_id={{ appointment.appointment_id }}">Back to schedule</a>
           </div>
         </form>
       </main>

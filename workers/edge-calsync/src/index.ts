@@ -73,6 +73,17 @@ async function routeRequest(
   }
 
   const updateMatch = pathname.match(/^\/v1\/appointments\/([^/]+)$/);
+  if (updateMatch && request.method === "GET") {
+    return proxyRequest(
+      request,
+      env,
+      channel,
+      requestId,
+      `/api/appointments/${updateMatch[1]}`,
+      "Appointment retrieved.",
+    );
+  }
+
   if (updateMatch && request.method === "PATCH") {
     return proxyRequest(
       request,

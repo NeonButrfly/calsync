@@ -23,7 +23,7 @@ def test_root_returns_service_identity() -> None:
 
     assert response.status_code == 200
     assert "CalSync Scheduler" in response.text
-    assert "Add to calendars through CalSync" in response.text
+    assert "See the household schedule clearly" in response.text
 
 
 def test_api_info_returns_service_identity() -> None:

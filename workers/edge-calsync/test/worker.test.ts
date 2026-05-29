@@ -146,4 +146,66 @@ describe("edge worker smoke", () => {
       message: "This channel is disabled.",
     });
   });
+
+  it("forwards appointment detail requests for valid chatgpt tokens", async () => {
+    await env.TOKEN_HASHES.put("chatgpt", await sha256Hex("detail-token"));
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input, init) => {
+        expect(String(input)).toBe(
+          "https://calsync.neonbutterfly.net/api/appointments/appt-123",
+        );
+        expect(init?.headers).toBeInstanceOf(Headers);
+        const headers = init?.headers as Headers;
+        expect(headers.get("X-CalSync-Channel")).toBe("chatgpt");
+
+        return new Response(
+          JSON.stringify({
+            appointment_id: "appt-123",
+            title: "Dentist",
+            status: "active",
+            date: "2026-06-01",
+            start_time: "10:00",
+            end_time: "11:00",
+            timezone: "America/Anchorage",
+            all_day: false,
+            account_label: "Family",
+            calendar_name: "Family",
+            provider_type: "icloud_caldav",
+            created_at: "2026-06-01T10:00:00-08:00",
+            updated_at: "2026-06-01T10:00:00-08:00",
+            audit_entries: [],
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+            },
+          },
+        );
+      });
+    const request = new Request(
+      "https://edge-calsync.neonbutterfly.net/v1/appointments/appt-123",
+      {
+        headers: {
+          Authorization: "Bearer detail-token",
+        },
+      },
+    );
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, env, ctx);
+
+    await waitOnExecutionContext(ctx);
+
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      message: "Appointment retrieved.",
+      data: {
+        title: "Dentist",
+        account_label: "Family",
+      },
+    });
+  });
 });

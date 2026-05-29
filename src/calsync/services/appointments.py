@@ -15,6 +15,8 @@ from calsync.models import (
     AuditEntry,
 )
 from calsync.schemas.appointments import (
+    AppointmentAuditItem,
+    AppointmentDetailResponse,
     AppointmentListItem,
     AppointmentResponse,
     CreateAppointmentRequest,
@@ -129,6 +131,7 @@ class AppointmentService:
         self,
         appointment_id: str,
         payload: UpdateAppointmentRequest,
+        actor: str = "api",
     ) -> AppointmentResponse:
         with self.session_factory() as session:
             appointment = self._get_appointment(session, appointment_id)
@@ -182,7 +185,7 @@ class AppointmentService:
                 AuditEntry(
                     appointment_id=appointment.id,
                     action="update_appointment",
-                    actor="api",
+                    actor=actor,
                     payload_json=payload.model_dump(exclude_none=True),
                 )
             )
@@ -194,7 +197,7 @@ class AppointmentService:
                 message="Appointment updated.",
             )
 
-    def cancel(self, appointment_id: str) -> AppointmentResponse:
+    def cancel(self, appointment_id: str, actor: str = "api") -> AppointmentResponse:
         with self.session_factory() as session:
             appointment = self._get_appointment(session, appointment_id)
             external_link = self._get_external_link(session, appointment_id)
@@ -208,7 +211,7 @@ class AppointmentService:
                 AuditEntry(
                     appointment_id=appointment.id,
                     action="cancel_appointment",
-                    actor="api",
+                    actor=actor,
                     payload_json={"appointment_id": appointment.id},
                 )
             )
@@ -225,6 +228,52 @@ class AppointmentService:
             appointment = self._get_appointment(session, appointment_id)
             external_link = self._get_external_link(session, appointment_id)
             return self._to_list_item(appointment, external_link)
+
+    def get_detail(self, appointment_id: str) -> AppointmentDetailResponse:
+        with self.session_factory() as session:
+            appointment = self._get_appointment(session, appointment_id)
+            external_link = self._get_external_link(session, appointment_id)
+            connection = session.get(AppleCalendarConnection, appointment.connection_id)
+            if connection is None:
+                raise ValueError("Appointment calendar connection not found.")
+            audits = session.execute(
+                select(AuditEntry)
+                .where(AuditEntry.appointment_id == appointment_id)
+                .order_by(AuditEntry.created_at.desc())
+            ).scalars().all()
+            timezone = ZoneInfo(appointment.timezone_name)
+            starts_at = appointment.starts_at.astimezone(timezone)
+            ends_at = appointment.ends_at.astimezone(timezone)
+            return AppointmentDetailResponse(
+                appointment_id=appointment.id,
+                title=appointment.title,
+                status=appointment.status,
+                date=starts_at.date().isoformat(),
+                start_time=starts_at.strftime("%H:%M"),
+                end_time=ends_at.strftime("%H:%M"),
+                timezone=appointment.timezone_name,
+                all_day=appointment.all_day,
+                location=appointment.location,
+                notes=appointment.notes,
+                attendees_text=appointment.attendees_text,
+                provider_event_id=external_link.provider_event_id,
+                account_label=connection.account_label,
+                calendar_name=connection.primary_calendar_name,
+                provider_type=external_link.provider_type,
+                provider_href=external_link.provider_href,
+                provider_etag=external_link.provider_etag,
+                created_at=appointment.created_at.astimezone(timezone).isoformat(),
+                updated_at=appointment.updated_at.astimezone(timezone).isoformat(),
+                audit_entries=[
+                    AppointmentAuditItem(
+                        action=audit.action,
+                        actor=audit.actor,
+                        created_at=audit.created_at.astimezone(timezone).isoformat(),
+                        payload_json=audit.payload_json,
+                    )
+                    for audit in audits
+                ],
+            )
 
     def _build_apple_client(self) -> AppleCalDAVClient:
         if not (

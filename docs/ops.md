@@ -1,12 +1,12 @@
 # Operations Guide
 
-This guide covers the current Apple-first CalSync service, first scheduling UX, edge Worker, and first Alexa adapter tracked in issues `#32`, `#36`, `#38`, and `#39`.
+This guide covers the current Apple-first CalSync service, family scheduling UX, edge Worker, and first Alexa adapter tracked in issues `#32`, `#36`, `#38`, `#39`, and `#40`.
 
 ## What This Service Does
 
-- exposes a small API for appointment create, edit, and cancel
+- exposes a small API for appointment detail, create, edit, and cancel
 - exposes a date-range appointment list API for Worker lookup flows
-- exposes a professional web scheduling console at `/` for create, edit, cancel, and review
+- exposes a professional web scheduling workspace at `/` for create, edit, cancel, filtered browsing, and review
 - stores normalized appointment records locally
 - writes calendar mutations to one configured iCloud calendar through CalDAV
 - keeps local audit entries for every mutation
@@ -100,7 +100,8 @@ Root experience:
 Behavior:
 
 - shows a clean create-appointment form
-- lists the next 30 days of appointments from the local store
+- browses appointments by day, week, or month
+- shows a selected appointment detail panel with audit activity and provider metadata
 - edits and cancels the same Apple-backed appointment records used by the API
 - is intended to be the first family-facing control surface instead of forcing operators to work from raw API calls
 
@@ -141,6 +142,12 @@ This removes the Apple calendar event and marks the local appointment as `cancel
 
 This powers the Worker-side “look up before editing or cancelling” flow.
 
+### Appointment detail
+
+`GET /api/appointments/{appointment_id}`
+
+This returns the selected appointment, provider metadata, and local audit trail that powers the richer workspace detail view.
+
 ## Edge Worker summary
 
 Live edge hostname:
@@ -150,6 +157,7 @@ Live edge hostname:
 Worker routes:
 
 - `GET /v1/appointments`
+- `GET /v1/appointments/{appointment_id}`
 - `POST /v1/appointments`
 - `PATCH /v1/appointments/{appointment_id}`
 - `POST /v1/appointments/{appointment_id}/cancel`
