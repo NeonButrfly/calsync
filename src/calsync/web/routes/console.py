@@ -15,6 +15,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from calsync.schemas.appointments import (
     AppointmentDetailResponse,
     AppointmentListItem,
+    AvailabilitySlot,
     CreateAppointmentRequest,
     UpdateAppointmentRequest,
 )
@@ -304,6 +305,8 @@ def alexa_simulator_run(
     location: str = Form(""),
     notes: str = Form(""),
     calendar_name: str = Form(""),
+    duration_minutes: str = Form(""),
+    end_date: str = Form(""),
     new_date: str = Form(""),
     new_start_time: str = Form(""),
     new_end_time: str = Form(""),
@@ -319,6 +322,8 @@ def alexa_simulator_run(
         "location": location,
         "notes": notes,
         "calendar_name": calendar_name,
+        "duration_minutes": duration_minutes,
+        "end_date": end_date,
         "new_date": new_date,
         "new_start_time": new_start_time,
         "new_end_time": new_end_time,
@@ -332,6 +337,8 @@ def alexa_simulator_run(
         "location": location,
         "notes": notes,
         "calendar_name": calendar_name,
+        "duration_minutes": duration_minutes,
+        "end_date": end_date,
         "new_date": new_date,
         "new_start_time": new_start_time,
         "new_end_time": new_end_time,
@@ -402,6 +409,9 @@ def scheduling_console(
     view: str = "week",
     appointment_id: str | None = None,
     show_cancelled: bool = False,
+    availability_date_from: str | None = None,
+    availability_date_to: str | None = None,
+    availability_duration_minutes: int = 60,
 ):
     service = AppointmentService()
     readiness = ReadinessService().build()
@@ -418,6 +428,24 @@ def scheduling_console(
         appointments = []
         selected_detail = None
         schedule_error = "Schedule data is unavailable right now."
+    availability_form_values = _default_availability_form_values()
+    if availability_date_from:
+        availability_form_values["date_from"] = availability_date_from
+    if availability_date_to:
+        availability_form_values["date_to"] = availability_date_to
+    availability_form_values["duration_minutes"] = availability_duration_minutes
+    availability_results: list[AvailabilitySlot] = []
+    availability_error: str | None = None
+    availability_searched = bool(availability_date_from or availability_date_to)
+    if availability_searched:
+        try:
+            availability_results = service.find_availability(
+                date_from=str(availability_form_values["date_from"]),
+                date_to=str(availability_form_values["date_to"]),
+                duration_minutes=availability_duration_minutes,
+            ).items
+        except (AppleCalDAVError, ValueError) as exc:
+            availability_error = str(exc)
     return _templates.TemplateResponse(
         request,
         "console.html",
@@ -429,6 +457,10 @@ def scheduling_console(
             flash_message=_flash_message(created, updated, cancelled),
             error_message=schedule_error,
             form_values=_empty_form_values(),
+            availability_form_values=availability_form_values,
+            availability_results=availability_results,
+            availability_error=availability_error,
+            availability_searched=availability_searched,
             selected_window=selected_window,
             show_cancelled=show_cancelled,
             readiness=readiness,
@@ -498,6 +530,10 @@ def create_appointment_from_console(
                     "target_calendar_url": target_calendar_url,
                     "all_day": all_day,
                 },
+                availability_form_values=_default_availability_form_values(),
+                availability_results=[],
+                availability_error=None,
+                availability_searched=False,
                 selected_window=selected_window,
                 show_cancelled=False,
                 readiness=ReadinessService().build(),
@@ -694,6 +730,10 @@ def _build_console_context(
     flash_message: str | None,
     error_message: str | None,
     form_values: dict[str, object],
+    availability_form_values: dict[str, object],
+    availability_results: list[AvailabilitySlot],
+    availability_error: str | None,
+    availability_searched: bool,
     selected_window: str,
     show_cancelled: bool,
     readiness: dict[str, object],
@@ -709,6 +749,10 @@ def _build_console_context(
             else None
         ),
         "form_values": form_values,
+        "availability_form_values": availability_form_values,
+        "availability_results": _serialize_availability_results(availability_results),
+        "availability_error": availability_error,
+        "availability_searched": availability_searched,
         "calendar_label": service.display_calendar_name,
         "account_label": service.display_account_label,
         "calendar_options": _calendar_options(
@@ -988,6 +1032,28 @@ def _empty_form_values() -> dict[str, object]:
     }
 
 
+def _default_availability_form_values() -> dict[str, object]:
+    start = _today_in_alaska()
+    return {
+        "date_from": start.isoformat(),
+        "date_to": (start + timedelta(days=6)).isoformat(),
+        "duration_minutes": 60,
+    }
+
+
+def _serialize_availability_results(
+    items: list[AvailabilitySlot],
+) -> list[dict[str, str]]:
+    return [
+        {
+            "date_label": _friendly_date_label(item.date, include_weekday=True),
+            "time_label": f"{_to_12_hour(item.start_time)} - {_to_12_hour(item.end_time)}",
+            "timezone": item.timezone,
+        }
+        for item in items
+    ]
+
+
 def _calendar_options(
     service: AppointmentService,
     *,
@@ -1020,6 +1086,8 @@ def _default_alexa_simulator_values() -> dict[str, str]:
         "location": "",
         "notes": "",
         "calendar_name": "",
+        "duration_minutes": "60",
+        "end_date": next_day.isoformat(),
         "new_date": next_day.isoformat(),
         "new_start_time": "13:00",
         "new_end_time": "14:00",

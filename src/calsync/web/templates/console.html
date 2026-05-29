@@ -344,6 +344,59 @@
                 <button type="submit">Create appointment</button>
               </form>
             </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Availability</p>
+                  <h3>Find open time</h3>
+                </div>
+              </div>
+              <form class="form-grid" method="get" action="/">
+                <input type="hidden" name="view" value="{{ selected_window }}" />
+                <label>
+                  <span>From</span>
+                  <input name="availability_date_from" type="date" value="{{ availability_form_values.date_from }}" required />
+                </label>
+                <label>
+                  <span>To</span>
+                  <input name="availability_date_to" type="date" value="{{ availability_form_values.date_to }}" required />
+                </label>
+                <label>
+                  <span>Duration minutes</span>
+                  <input name="availability_duration_minutes" type="number" min="15" step="15" value="{{ availability_form_values.duration_minutes }}" required />
+                </label>
+                <button type="submit">Find open time</button>
+              </form>
+
+              {% if availability_error %}
+              <section class="flash flash--error">{{ availability_error }}</section>
+              {% elif availability_searched %}
+                {% if availability_results %}
+                <div class="detail-stack">
+                  <div class="panel-head">
+                    <div>
+                      <p class="eyebrow">Results</p>
+                      <h3>Open windows</h3>
+                    </div>
+                  </div>
+                  <div class="schedule-stack">
+                    {% for item in availability_results %}
+                    <article class="detail-card">
+                      <strong>{{ item.date_label }}</strong>
+                      <span>{{ item.time_label }} · {{ item.timezone }}</span>
+                    </article>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                  <h4>No open windows found</h4>
+                  <p>CalSync did not find a matching free block in that range.</p>
+                </div>
+                {% endif %}
+              {% endif %}
+            </article>
           </div>
         </section>
       </main>

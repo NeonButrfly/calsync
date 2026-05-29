@@ -140,6 +140,28 @@ async function routeRequest(
     );
   }
 
+  if (pathname === "/v1/availability" && request.method === "GET") {
+    if (
+      !url.searchParams.get("date_from") ||
+      !url.searchParams.get("date_to") ||
+      !url.searchParams.get("duration_minutes")
+    ) {
+      return errorResponse(
+        400,
+        "date_from, date_to, and duration_minutes are required.",
+        requestId,
+      );
+    }
+    return proxyRequest(
+      request,
+      env,
+      channel,
+      requestId,
+      `/api/availability?${url.searchParams.toString()}`,
+      "Availability retrieved.",
+    );
+  }
+
   const updateMatch = pathname.match(/^\/v1\/appointments\/([^/]+)$/);
   if (updateMatch && request.method === "GET") {
     return proxyRequest(

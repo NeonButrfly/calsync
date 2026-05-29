@@ -241,4 +241,62 @@ describe("edge worker smoke", () => {
       },
     });
   });
+
+  it("forwards availability requests for valid chatgpt tokens", async () => {
+    await env.TOKEN_HASHES.put("chatgpt", await sha256Hex("availability-token"));
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input, init) => {
+        expect(String(input)).toBe(
+          "https://calsync.neonbutterfly.net/api/availability?date_from=2026-06-01&date_to=2026-06-03&duration_minutes=60&max_results=3",
+        );
+        const headers = init?.headers as Headers;
+        expect(headers.get("X-CalSync-Channel")).toBe("chatgpt");
+
+        return new Response(
+          JSON.stringify({
+            items: [
+              {
+                date: "2026-06-01",
+                start_time: "10:00",
+                end_time: "11:00",
+                timezone: "America/Anchorage",
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+            },
+          },
+        );
+      });
+    const request = new Request(
+      "https://edge-calsync.neonbutterfly.net/v1/availability?date_from=2026-06-01&date_to=2026-06-03&duration_minutes=60&max_results=3",
+      {
+        headers: {
+          Authorization: "Bearer availability-token",
+        },
+      },
+    );
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, env, ctx);
+
+    await waitOnExecutionContext(ctx);
+
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      message: "Availability retrieved.",
+      data: {
+        items: [
+          {
+            start_time: "10:00",
+          },
+        ],
+      },
+    });
+  });
 });

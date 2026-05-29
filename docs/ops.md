@@ -1,11 +1,12 @@
 # Operations Guide
 
-This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, multi-calendar Apple targets, named Alexa calendar targeting, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, and Alexa setup flow tracked in issues `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, and `#47`.
+This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, multi-calendar Apple targets, named Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, and Alexa setup flow tracked in issues `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, and `#48`.
 
 ## What This Service Does
 
 - exposes a small API for appointment detail, create, edit, and cancel
 - exposes a date-range appointment list API for Worker lookup flows
+- exposes a shared availability API for open-slot lookup
 - exposes a professional web scheduling workspace at `/` for create, edit, cancel, filtered browsing, and review
 - stores normalized appointment records locally
 - syncs existing Apple calendar events into the local scheduling brain for requested date windows
@@ -122,6 +123,7 @@ Behavior:
 - exposes an in-product Alexa setup page with a live package download instead of forcing repo-only setup
 - can read and update the edge Worker Alexa flags from the setup page when Cloudflare worker-management permission is configured
 - exposes an in-product Alexa simulator page that previews the real Worker voice logic before the Amazon-side turn-on is finished
+- exposes an open-time finder in the root workspace for fast gap discovery
 - shows a selected appointment detail panel with audit activity and provider metadata
 - edits and cancels the same Apple-backed appointment records used by the API
 - is intended to be the first family-facing control surface instead of forcing operators to work from raw API calls
@@ -246,6 +248,12 @@ Default behavior hides cancelled appointments from active list views. To include
 
 `GET /api/appointments?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&include_cancelled=true`
 
+### Availability lookup
+
+`GET /api/availability?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&duration_minutes=60`
+
+This returns the first matching open windows from the Apple-first schedule using the same synced appointment inventory as the workspace and Alexa.
+
 ### Appointment detail
 
 `GET /api/appointments/{appointment_id}`
@@ -263,6 +271,7 @@ Worker routes:
 - `GET /status`
 - `GET /v1/appointments`
 - `GET /v1/appointments/{appointment_id}`
+- `GET /v1/availability`
 - `POST /v1/appointments`
 - `PATCH /v1/appointments/{appointment_id}`
 - `POST /v1/appointments/{appointment_id}/cancel`
@@ -325,6 +334,7 @@ Supported first intents:
 - `CreateAppointmentIntent`
 - `ListAppointmentsIntent`
 - `NextAppointmentIntent`
+- `FindAvailabilityIntent`
 - `CancelAppointmentIntent`
 - `RescheduleAppointmentIntent`
 - `AMAZON.HelpIntent`
@@ -349,6 +359,7 @@ Current scope:
 - create an appointment on a named saved Apple calendar target
 - read appointments for a requested day
 - read the next upcoming appointment in the next 30 days
+- read back a few open availability windows for a requested date or date range
 - cancel a matching appointment by title and date
 - reschedule a matching appointment to a new day, time, or saved Apple calendar target
 - keep all actual calendar writes in the origin service

@@ -52,6 +52,7 @@
                   <option value="CreateAppointmentIntent"{% if form_values.intent_name == "CreateAppointmentIntent" %} selected{% endif %}>CreateAppointmentIntent</option>
                   <option value="ListAppointmentsIntent"{% if form_values.intent_name == "ListAppointmentsIntent" %} selected{% endif %}>ListAppointmentsIntent</option>
                   <option value="NextAppointmentIntent"{% if form_values.intent_name == "NextAppointmentIntent" %} selected{% endif %}>NextAppointmentIntent</option>
+                  <option value="FindAvailabilityIntent"{% if form_values.intent_name == "FindAvailabilityIntent" %} selected{% endif %}>FindAvailabilityIntent</option>
                   <option value="CancelAppointmentIntent"{% if form_values.intent_name == "CancelAppointmentIntent" %} selected{% endif %}>CancelAppointmentIntent</option>
                   <option value="RescheduleAppointmentIntent"{% if form_values.intent_name == "RescheduleAppointmentIntent" %} selected{% endif %}>RescheduleAppointmentIntent</option>
                 </select>
@@ -91,6 +92,16 @@
                   {% endfor %}
                 </select>
               </label>
+              <div class="two-up">
+                <label>
+                  <span>Availability end</span>
+                  <input name="end_date" type="date" value="{{ form_values.end_date }}" />
+                </label>
+                <label>
+                  <span>Duration minutes</span>
+                  <input name="duration_minutes" type="number" min="15" step="15" value="{{ form_values.duration_minutes }}" />
+                </label>
+              </div>
               <div class="two-up">
                 <label>
                   <span>New date</span>

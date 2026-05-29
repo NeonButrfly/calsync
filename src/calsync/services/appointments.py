@@ -19,6 +19,8 @@ from calsync.schemas.appointments import (
     AppointmentDetailResponse,
     AppointmentListItem,
     AppointmentResponse,
+    AvailabilityResponse,
+    AvailabilitySlot,
     CreateAppointmentRequest,
     ListAppointmentsResponse,
     UpdateAppointmentRequest,
@@ -262,6 +264,93 @@ class AppointmentService:
                 provider_event_id=external_link.provider_event_id,
                 message="Appointment updated.",
             )
+
+    def find_availability(
+        self,
+        *,
+        date_from: str,
+        date_to: str,
+        duration_minutes: int,
+        max_results: int = 5,
+    ) -> AvailabilityResponse:
+        if duration_minutes <= 0:
+            raise ValueError("duration_minutes must be greater than zero.")
+        if max_results <= 0:
+            raise ValueError("max_results must be greater than zero.")
+
+        start_day = date.fromisoformat(date_from)
+        end_day = date.fromisoformat(date_to)
+        if end_day < start_day:
+            raise ValueError("date_to must be on or after date_from.")
+
+        sync_start = datetime.combine(start_day, time.min, tzinfo=UTC)
+        sync_end = datetime.combine(end_day, time.max, tzinfo=UTC)
+        timezone = ZoneInfo(self.settings.default_timezone)
+        workday_start = time(hour=8, minute=0)
+        workday_end = time(hour=18, minute=0)
+        duration = timedelta(minutes=duration_minutes)
+
+        with self._get_session_factory()() as session:
+            try:
+                for calendar in self.available_calendars:
+                    self._sync_calendar_range(
+                        session,
+                        starts_at=sync_start,
+                        ends_at=sync_end,
+                        calendar_url=str(calendar["calendar_url"]),
+                    )
+                session.commit()
+            except (AppleCalDAVError, AttributeError):
+                session.rollback()
+
+            appointments = session.scalars(
+                select(Appointment)
+                .where(Appointment.status != "cancelled")
+                .where(Appointment.ends_at > sync_start)
+                .where(Appointment.starts_at < sync_end)
+                .order_by(Appointment.starts_at.asc())
+            ).all()
+
+        items: list[AvailabilitySlot] = []
+        current_day = start_day
+        while current_day <= end_day and len(items) < max_results:
+            day_start = datetime.combine(current_day, workday_start, tzinfo=timezone)
+            day_end = datetime.combine(current_day, workday_end, tzinfo=timezone)
+            busy_ranges = self._merge_busy_ranges(
+                appointments,
+                day_start=day_start,
+                day_end=day_end,
+                timezone=timezone,
+            )
+            cursor = day_start
+            for busy_start, busy_end in busy_ranges:
+                while cursor + duration <= busy_start and len(items) < max_results:
+                    slot_end = cursor + duration
+                    items.append(
+                        AvailabilitySlot(
+                            date=current_day.isoformat(),
+                            start_time=cursor.strftime("%H:%M"),
+                            end_time=slot_end.strftime("%H:%M"),
+                            timezone=timezone.key,
+                        )
+                    )
+                    cursor = slot_end
+                if cursor < busy_end:
+                    cursor = busy_end
+            while cursor + duration <= day_end and len(items) < max_results:
+                slot_end = cursor + duration
+                items.append(
+                    AvailabilitySlot(
+                        date=current_day.isoformat(),
+                        start_time=cursor.strftime("%H:%M"),
+                        end_time=slot_end.strftime("%H:%M"),
+                        timezone=timezone.key,
+                    )
+                )
+                cursor = slot_end
+            current_day += timedelta(days=1)
+
+        return AvailabilityResponse(items=items)
 
     def cancel(self, appointment_id: str, actor: str = "api") -> AppointmentResponse:
         with self._get_session_factory()() as session:
@@ -557,6 +646,38 @@ class AppointmentService:
             return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
         parsed = datetime.fromisoformat(value)
         return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+
+    def _merge_busy_ranges(
+        self,
+        appointments: list[Appointment],
+        *,
+        day_start: datetime,
+        day_end: datetime,
+        timezone: ZoneInfo,
+    ) -> list[tuple[datetime, datetime]]:
+        busy_ranges: list[tuple[datetime, datetime]] = []
+        for appointment in appointments:
+            if appointment.all_day:
+                busy_ranges.append((day_start, day_end))
+                continue
+            starts_at = appointment.starts_at.astimezone(timezone)
+            ends_at = appointment.ends_at.astimezone(timezone)
+            clipped_start = max(starts_at, day_start)
+            clipped_end = min(ends_at, day_end)
+            if clipped_end <= day_start or clipped_start >= day_end:
+                continue
+            if clipped_end <= clipped_start:
+                continue
+            busy_ranges.append((clipped_start, clipped_end))
+
+        busy_ranges.sort(key=lambda item: item[0])
+        merged: list[tuple[datetime, datetime]] = []
+        for start_value, end_value in busy_ranges:
+            if not merged or start_value > merged[-1][1]:
+                merged.append((start_value, end_value))
+                continue
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end_value))
+        return merged
 
     def _provider_timezone_name(self, value: datetime) -> str:
         tzinfo = value.tzinfo

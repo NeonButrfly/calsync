@@ -69,6 +69,30 @@
           ]
         },
         {
+          "name": "FindAvailabilityIntent",
+          "slots": [
+            {
+              "name": "date",
+              "type": "AMAZON.DATE"
+            },
+            {
+              "name": "end_date",
+              "type": "AMAZON.DATE"
+            },
+            {
+              "name": "duration_minutes",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "when do I have a free {duration_minutes} minute slot on {date}",
+            "find a {duration_minutes} minute opening on {date}",
+            "when am I free on {date}",
+            "find free time between {date} and {end_date}",
+            "when do I have an opening between {date} and {end_date}"
+          ]
+        },
+        {
           "name": "CancelAppointmentIntent",
           "slots": [
             {

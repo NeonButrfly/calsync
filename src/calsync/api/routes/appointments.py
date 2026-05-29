@@ -4,6 +4,7 @@ from calsync.schemas.appointments import (
     AppointmentDetailResponse,
     ListAppointmentsResponse,
     AppointmentResponse,
+    AvailabilityResponse,
     CreateAppointmentRequest,
     UpdateAppointmentRequest,
 )
@@ -11,6 +12,7 @@ from calsync.services.appointments import AppointmentService
 from calsync.services.apple_caldav import AppleCalDAVError
 
 router = APIRouter(prefix="/api/appointments", tags=["appointments"])
+availability_router = APIRouter(prefix="/api", tags=["availability"])
 
 
 @router.get("", response_model=ListAppointmentsResponse)
@@ -24,6 +26,24 @@ def list_appointments(
             date_from=date_from,
             date_to=date_to,
             include_cancelled=include_cancelled,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@availability_router.get("/availability", response_model=AvailabilityResponse)
+def list_availability(
+    date_from: str,
+    date_to: str,
+    duration_minutes: int,
+    max_results: int = 5,
+) -> AvailabilityResponse:
+    try:
+        return AppointmentService().find_availability(
+            date_from=date_from,
+            date_to=date_to,
+            duration_minutes=duration_minutes,
+            max_results=max_results,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

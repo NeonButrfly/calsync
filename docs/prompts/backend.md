@@ -17,7 +17,7 @@
 - this slice is Apple/iCloud-first, not a broad multi-provider conversational assistant
 - Google inbound event ingestion is future work
 - iCloud Reminders sync is future work
-- public booking links and broader availability logic are future work
+- public booking links are future work
 - the first conversational app should expose create, edit, cancel, and date-range list flows
 
 ## Phase Notes
@@ -31,6 +31,7 @@
 
 - FastAPI runtime with `GET /`, `GET /healthz`, appointment mutation routes, and date-range lookup
 - `GET /api/appointments` for date-range appointment lookup
+- `GET /api/availability` for open-slot lookup
 - `POST /api/appointments` for appointment creation
 - `PATCH /api/appointments/{appointment_id}` for appointment edits
 - `POST /api/appointments/{appointment_id}/cancel` for appointment cancellation
@@ -55,7 +56,7 @@
 
 ## Known Boundaries In Current Code
 
-- no appointment search or availability lookup yet
+- no appointment search yet
 - list is limited to explicit date windows, not free-form search
 - no Google ingestion yet
 - no iCloud Reminders sync yet
@@ -149,6 +150,19 @@ Expected behavior:
 - Alexa create flows should support a calendar-name slot for choosing a saved Apple target
 - Alexa reschedule flows should support a new calendar-name slot for moving an appointment to another saved Apple target
 - the in-product simulator should expose those calendar-name fields so voice routing can be tested without guessing raw payloads
+
+## Availability Requirement
+
+- GitHub issue: `#48`
+- interpreted requirement: the Apple-first product should suggest open windows from the shared schedule through the workspace, edge API, and Alexa instead of only listing appointments
+
+Expected behavior:
+
+- `GET /api/availability` should return open windows for a requested date range and duration
+- `GET /v1/availability` should expose the same behavior through the edge Worker
+- the root workspace should expose a simple availability finder
+- Alexa should support a `FindAvailabilityIntent`
+- the simulator should expose the same intent so the running product can preview availability speech
 
 ## Cloudflare Deployment Requirement
 

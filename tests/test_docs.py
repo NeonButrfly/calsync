@@ -15,6 +15,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#45" in readme_content
     assert "#46" in readme_content
     assert "#47" in readme_content
+    assert "#48" in readme_content
     assert "#31" in readme_content
     assert "#37" in readme_content
     assert "polished scheduling workspace" in readme_content
@@ -23,6 +24,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "hide cancelled appointments by default" in readme_content
     assert "readiness surface" in readme_content
     assert "get /api/readiness" in readme_content
+    assert "get /api/availability" in readme_content
     assert "get /alexa/setup" in readme_content
     assert "post /alexa/setup" in readme_content
     assert "get /calendar/setup" in readme_content
@@ -33,6 +35,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "apple calendar setup page" in readme_content
     assert "apple calendar target manager" in readme_content
     assert "target-calendar picker" in readme_content
+    assert "open-time finder" in readme_content
     assert "multiple saved apple calendar targets" in readme_content
     assert "edge-settings form" in readme_content
     assert "cloudflare access form" in readme_content
@@ -55,6 +58,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#45" in ops_content
     assert "#46" in ops_content
     assert "#47" in ops_content
+    assert "#48" in ops_content
     assert "#31" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
     assert "web scheduling workspace" in ops_content
@@ -62,6 +66,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "post /appointments" in ops_content
     assert "professional web scheduling workspace" in ops_content
     assert "get /api/appointments/{appointment_id}" in ops_content
+    assert "get /api/availability" in ops_content
     assert "include_cancelled=true" in ops_content
     assert "get /api/readiness" in ops_content
     assert "get /calendar/setup" in ops_content
@@ -73,6 +78,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /alexa/skill-package.zip" in ops_content
     assert "post /alexa/simulator" in ops_content
     assert "post /alexa/simulate" in ops_content
+    assert "get /v1/availability" in ops_content
     assert "cloudflare worker access form" in ops_content
     assert "apple calendar setup page" in ops_content
     assert "target apple calendar" in ops_content
@@ -97,11 +103,13 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#45" in prompt_content
     assert "#46" in prompt_content
     assert "#47" in prompt_content
+    assert "#48" in prompt_content
     assert "#31" in prompt_content
     assert "apple live calendar sync requirement" in prompt_content
     assert "in-product apple calendar setup requirement" in prompt_content
     assert "selected appointment detail surface" in prompt_content
     assert "get /v1/appointments/{appointment_id}" in prompt_content
+    assert "get /api/availability" in prompt_content
     assert "default active views should hide cancelled appointments" in prompt_content
     assert "full-stack readiness requirement" in prompt_content
     assert "api container must mount that same host `.runtime` directory" in prompt_content
@@ -118,6 +126,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "create and edit flows should expose a target calendar picker" in prompt_content
     assert "named apple calendar voice target requirement" in prompt_content
     assert "target_calendar_name" in prompt_content
+    assert "availability requirement" in prompt_content
+    assert "findavailabilityintent" in prompt_content
     assert "save cloudflare worker-management credentials inside the product" in prompt_content
     assert "stored encrypted at rest with `encryption_key`" in prompt_content
     assert "enable_alexa" in prompt_content
@@ -158,6 +168,7 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "/terms" in readme_content
     assert "cancelappointmentintent" in readme_content
     assert "rescheduleappointmentintent" in readme_content
+    assert "findavailabilityintent" in readme_content
     assert "next upcoming appointment" in readme_content
     assert "named saved apple calendar target" in readme_content
 
@@ -166,6 +177,7 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "cancelappointmentintent" in ops_content
     assert "rescheduleappointmentintent" in ops_content
     assert "nextappointmentintent" in ops_content
+    assert "findavailabilityintent" in ops_content
     assert "request-signature flow" in ops_content
     assert "skill-package" in ops_content
     assert "alexa simulator page" in ops_content
@@ -185,10 +197,12 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "reschedule a matching appointment" in prompt_content
     assert "read the next upcoming appointment" in prompt_content
     assert "new calendar-name slot" in prompt_content
+    assert "findavailabilityintent" in prompt_content
 
     assert "createappointmentintent" in interaction_model_content
     assert "listappointmentsintent" in interaction_model_content
     assert "nextappointmentintent" in interaction_model_content
+    assert "findavailabilityintent" in interaction_model_content
     assert "cancelappointmentintent" in interaction_model_content
     assert "rescheduleappointmentintent" in interaction_model_content
     assert "calendar_name" in interaction_model_content
@@ -215,4 +229,5 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     )
     assert "create or import the custom skill package" in alexa_readme_content
     assert "next upcoming appointment" in alexa_readme_content
+    assert "find open time" in alexa_readme_content
     assert "named calendar routing" in alexa_readme_content

@@ -67,6 +67,17 @@ interface AlexaAppointmentDetail {
   status: string;
 }
 
+interface AlexaAvailabilityResponse {
+  items?: Array<{
+    date: string;
+    start_time: string;
+    end_time: string;
+    timezone: string;
+  }>;
+  message?: string;
+  detail?: string;
+}
+
 interface AlexaSpeechOptions {
   speech: string;
   cardText?: string;
@@ -193,6 +204,8 @@ async function dispatchAlexaPayload(
       return handleListIntent(payload, env, requestId);
     case "NextAppointmentIntent":
       return handleNextAppointmentIntent(payload, env, requestId);
+    case "FindAvailabilityIntent":
+      return handleFindAvailabilityIntent(payload, env, requestId);
     case "CancelAppointmentIntent":
       return handleCancelIntent(payload, env, requestId);
     case "RescheduleAppointmentIntent":
@@ -274,6 +287,57 @@ async function handleCreateIntent(
   } catch {
     return alexaResponse({
       speech: "CalSync could not reach the calendar right now.",
+      shouldEndSession: true,
+    });
+  }
+}
+
+async function handleFindAvailabilityIntent(
+  payload: AlexaEnvelope,
+  env: WorkerEnv,
+  requestId: string,
+): Promise<Response> {
+  const date = slotValue(payload, "date") ?? requestDate(payload, env);
+  const endDate = slotValue(payload, "end_date") ?? date;
+  const durationMinutes = slotValue(payload, "duration_minutes") ?? "60";
+
+  try {
+    const originResponse = await callOriginJson(env, {
+      method: "GET",
+      path:
+        `/api/availability?date_from=${encodeURIComponent(date)}` +
+        `&date_to=${encodeURIComponent(endDate)}` +
+        `&duration_minutes=${encodeURIComponent(durationMinutes)}` +
+        "&max_results=3",
+      channel: "alexa",
+      requestId,
+    });
+    const originBody = (await originResponse.json()) as AlexaAvailabilityResponse;
+    if (!originResponse.ok) {
+      return alexaResponse({
+        speech:
+          originBody.message ??
+          originBody.detail ??
+          "I could not look up availability right now.",
+        shouldEndSession: true,
+      });
+    }
+
+    const items = originBody.items ?? [];
+    if (items.length === 0) {
+      return alexaResponse({
+        speech: `I could not find a ${durationMinutes} minute opening between ${humanDate(date)} and ${humanDate(endDate)}.`,
+        shouldEndSession: true,
+      });
+    }
+
+    return alexaResponse({
+      speech: availabilitySpeech(items.slice(0, 3)),
+      shouldEndSession: true,
+    });
+  } catch {
+    return alexaResponse({
+      speech: "CalSync could not look up availability right now.",
       shouldEndSession: true,
     });
   }
@@ -749,6 +813,29 @@ function humanCalendarPhrase(calendarName: string | null): string {
     return "";
   }
   return ` to the ${calendarName} calendar`;
+}
+
+function availabilitySpeech(
+  items: Array<{
+    date: string;
+    start_time: string;
+    end_time: string;
+    timezone: string;
+  }>,
+): string {
+  const grouped = new Map<string, string[]>();
+  for (const item of items) {
+    const times = grouped.get(item.date) ?? [];
+    times.push(humanTime(item.start_time));
+    grouped.set(item.date, times);
+  }
+  const parts = Array.from(grouped.entries()).map(([day, times]) => {
+    if (times.length === 1) {
+      return `${humanDate(day)} at ${times[0]}`;
+    }
+    return `${humanDate(day)} at ${times.join(" and ")}`;
+  });
+  return `I found openings on ${parts.join(" and ")}.`;
 }
 
 function requestDate(payload: AlexaEnvelope, env: WorkerEnv): string {

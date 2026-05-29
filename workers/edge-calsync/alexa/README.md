@@ -25,7 +25,7 @@ This folder now contains the first real Alexa developer-console package for issu
    - `ALEXA_ALLOWED_SKILL_IDS=<real skill id>`
    - `ENABLE_ALEXA=true`
 6. Redeploy the Worker.
-7. Test the launch, next-up, list, create, cancel, and reschedule flows in the developer console.
+7. Test the launch, next-up, list, availability, create, cancel, and reschedule flows in the developer console.
 8. If more than one Apple calendar target is saved in CalSync, test named calendar routing as part of the create and reschedule flows.
 
 ## Current scope
@@ -34,6 +34,7 @@ This folder now contains the first real Alexa developer-console package for issu
 - create appointment
 - create appointment on a named saved Apple calendar target
 - next upcoming appointment
+- find open time for a requested date or date range
 - list appointments for a requested day
 - cancel a matching appointment
 - reschedule a matching appointment, including moving it to another saved Apple calendar target

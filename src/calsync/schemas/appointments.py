@@ -36,6 +36,17 @@ class AppointmentResponse(BaseModel):
     message: str
 
 
+class AvailabilitySlot(BaseModel):
+    date: str
+    start_time: str
+    end_time: str
+    timezone: str
+
+
+class AvailabilityResponse(BaseModel):
+    items: list[AvailabilitySlot]
+
+
 class AppointmentListItem(BaseModel):
     appointment_id: str
     title: str

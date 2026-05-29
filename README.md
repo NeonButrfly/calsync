@@ -22,7 +22,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, and `#47` are now backed by:
+Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, and `#48` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -44,6 +44,7 @@ Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, and
 - an in-product Apple calendar setup page plus encrypted product-vault storage for the Apple read/write connection
 - an in-product Alexa setup page plus downloadable skill package
 - an encrypted product vault for Cloudflare Worker-management credentials, so the Alexa setup flow can store operator access safely inside CalSync
+- a first availability finder across the workspace, edge API, and Alexa so CalSync can suggest open appointment windows instead of only listing busy ones
 
 ### Endpoints
 
@@ -60,6 +61,7 @@ Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, and
 - `GET /api/readiness`
 - `GET /api/appointments`
 - `GET /api/appointments/{appointment_id}`
+- `GET /api/availability`
 - `POST /api/appointments`
 - `PATCH /api/appointments/{appointment_id}`
 - `POST /api/appointments/{appointment_id}/cancel`
@@ -76,6 +78,7 @@ The root page now acts as the first family scheduling UX:
 - selected appointment detail with audit trail and provider metadata
 - edit flow for existing appointments
 - cancel flow for existing appointments
+- an open-time finder for 30 and 60 minute style schedule gaps
 - direct Apple calendar read/write through the same backend used by the API and Worker
 - a first in-product readiness panel that explains whether Apple, tokens, edge, and Alexa are actually ready
 - a first in-product Apple calendar setup page that stores Apple credentials and calendar details securely in the product vault
@@ -90,6 +93,7 @@ The root page now acts as the first family scheduling UX:
 - `GET /status`
 - `GET /v1/appointments`
 - `GET /v1/appointments/{appointment_id}`
+- `GET /v1/availability`
 - `POST /v1/appointments`
 - `PATCH /v1/appointments/{appointment_id}`
 - `POST /v1/appointments/{appointment_id}/cancel`
@@ -133,6 +137,7 @@ The first Alexa integration now lives beside the Worker:
 - first intents:
   - `CreateAppointmentIntent`
   - `ListAppointmentsIntent`
+  - `FindAvailabilityIntent`
   - `CancelAppointmentIntent`
   - `RescheduleAppointmentIntent`
   - `AMAZON.HelpIntent`
@@ -146,6 +151,7 @@ Current voice capabilities:
 - create a new appointment on a named saved Apple calendar target
 - read appointments for a requested day
 - read the next upcoming appointment in the next 30 days
+- read back open appointment windows for a requested date or date range
 - cancel a matching appointment by title and date
 - reschedule a matching appointment to a new day, time, or saved Apple calendar target
 - act on Apple events that already existed in the family calendar once the origin has synced the requested date window
@@ -246,6 +252,7 @@ If you prefer not to keep a Worker-management API token in the host `.env`, the 
 - In-product Apple calendar setup vault: issue `#46`
 - Multi-calendar Apple writable targets and sync: issue `#31`
 - Named Apple calendar targeting for Alexa and simulator: issue `#47`
+- Availability search across workspace, edge, and Alexa: issue `#48`
 - Runtime token store mount fix: issue `#44`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

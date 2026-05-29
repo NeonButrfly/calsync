@@ -211,6 +211,66 @@ def test_list_appointments_returns_matching_date_window(monkeypatch) -> None:
     assert body["items"][0]["title"] == "Dentist"
 
 
+def test_availability_returns_open_slots_in_working_hours(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    for title, start_time, end_time in (
+        ("Morning dentist", "09:00", "10:00"),
+        ("Lunch consult", "13:00", "14:00"),
+    ):
+        create_response = client.post(
+            "/api/appointments",
+            json={
+                "title": title,
+                "date": "2026-06-01",
+                "start_time": start_time,
+                "end_time": end_time,
+                "timezone": "America/Anchorage",
+                "all_day": False,
+            },
+        )
+        assert create_response.status_code == 201
+
+    response = client.get(
+        "/api/availability?date_from=2026-06-01&date_to=2026-06-01&duration_minutes=60&max_results=4"
+    )
+
+    assert response.status_code == 200
+    assert response.json()["items"] == [
+        {
+            "date": "2026-06-01",
+            "start_time": "08:00",
+            "end_time": "09:00",
+            "timezone": "America/Anchorage",
+        },
+        {
+            "date": "2026-06-01",
+            "start_time": "10:00",
+            "end_time": "11:00",
+            "timezone": "America/Anchorage",
+        },
+        {
+            "date": "2026-06-01",
+            "start_time": "11:00",
+            "end_time": "12:00",
+            "timezone": "America/Anchorage",
+        },
+        {
+            "date": "2026-06-01",
+            "start_time": "12:00",
+            "end_time": "13:00",
+            "timezone": "America/Anchorage",
+        },
+    ]
+
+
 def test_list_appointments_uses_appointment_local_date_window(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     monkeypatch.setattr(

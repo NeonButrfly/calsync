@@ -99,6 +99,7 @@ def test_console_root_renders_scheduler_surface(monkeypatch) -> None:
     assert "Details that actually help" in response.text
     assert "System readiness" in response.text
     assert "Calendar setup" in response.text
+    assert "Find open time" in response.text
 
 
 def test_console_create_flow_redirects_and_shows_created_appointment(monkeypatch) -> None:
@@ -765,3 +766,87 @@ def test_console_root_shows_existing_synced_apple_events(monkeypatch) -> None:
     assert response.status_code == 200
     assert "Existing School Visit" in response.text
     assert "School office" in response.text
+
+
+def test_console_root_shows_availability_results(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    for title, start_time, end_time in (
+        ("Morning dentist", "09:00", "10:00"),
+        ("Lunch consult", "13:00", "14:00"),
+    ):
+        create_response = client.post(
+            "/api/appointments",
+            json={
+                "title": title,
+                "date": "2026-06-01",
+                "start_time": start_time,
+                "end_time": end_time,
+                "timezone": "America/Anchorage",
+            },
+        )
+        assert create_response.status_code == 201
+
+    response = client.get(
+        "/?view=week&availability_date_from=2026-06-01&availability_date_to=2026-06-01&availability_duration_minutes=60"
+    )
+
+    assert response.status_code == 200
+    assert "Open windows" in response.text
+    assert "Monday, Jun 1" in response.text
+    assert "8:00 AM - 9:00 AM" in response.text
+    assert "10:00 AM - 11:00 AM" in response.text
+
+
+def test_alexa_simulator_supports_find_availability_intent(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+
+    class FakeAlexaSimulatorService:
+        def simulate(self, *, request_type: str, intent_name: str | None, slots: dict[str, str]):
+            assert request_type == "IntentRequest"
+            assert intent_name == "FindAvailabilityIntent"
+            assert slots["date"] == "2026-06-01"
+            assert slots["duration_minutes"] == "60"
+            return {
+                "ok": True,
+                "speech": "I found openings on Monday, June 1, 2026 at 10:00 AM and 11:00 AM.",
+                "card_type": "Simple",
+                "should_end_session": True,
+                "raw_response": {
+                    "version": "1.0",
+                    "response": {
+                        "outputSpeech": {
+                            "type": "PlainText",
+                            "text": "I found openings on Monday, June 1, 2026 at 10:00 AM and 11:00 AM.",
+                        }
+                    },
+                },
+            }
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.AlexaSimulatorService",
+        FakeAlexaSimulatorService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/alexa/simulator",
+        data={
+            "request_type": "IntentRequest",
+            "intent_name": "FindAvailabilityIntent",
+            "date": "2026-06-01",
+            "duration_minutes": "60",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "I found openings on Monday, June 1, 2026 at 10:00 AM and 11:00 AM." in response.text
+    assert '"outputSpeech"' in response.text

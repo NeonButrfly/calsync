@@ -320,6 +320,78 @@ describe("alexa worker adapter", () => {
     });
   });
 
+  it("reports availability openings through the shared origin path", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input, init) => {
+        expect(String(input)).toBe(
+          "https://calsync.neonbutterfly.net/api/availability?date_from=2026-06-02&date_to=2026-06-02&duration_minutes=60&max_results=3",
+        );
+        const headers = init?.headers as Headers;
+        expect(headers.get("X-CalSync-Channel")).toBe("alexa");
+
+        return new Response(
+          JSON.stringify({
+            items: [
+              {
+                date: "2026-06-02",
+                start_time: "10:00",
+                end_time: "11:00",
+                timezone: "America/Anchorage",
+              },
+              {
+                date: "2026-06-02",
+                start_time: "11:00",
+                end_time: "12:00",
+                timezone: "America/Anchorage",
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+            },
+          },
+        );
+      });
+    const request = buildAlexaRequest({
+      session: {
+        application: {
+          applicationId: "amzn1.ask.skill.test",
+        },
+      },
+      request: {
+        type: "IntentRequest",
+        timestamp: new Date().toISOString(),
+        intent: {
+          name: "FindAvailabilityIntent",
+          slots: {
+            date: { value: "2026-06-02" },
+            duration_minutes: { value: "60" },
+          },
+        },
+      },
+    });
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, alexaEnv(), ctx);
+
+    await waitOnExecutionContext(ctx);
+
+    expect(alexaVerifierMock).toHaveBeenCalledOnce();
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      response: {
+        outputSpeech: {
+          text: expect.stringContaining(
+            "I found openings on Tuesday, June 2, 2026 at 10:00 AM and 11:00 AM",
+          ),
+        },
+      },
+    });
+  });
+
   it("cancels a matching appointment through the shared origin path", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
