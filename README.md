@@ -76,10 +76,19 @@ The first Alexa integration now lives beside the Worker:
 - first intents:
   - `CreateAppointmentIntent`
   - `ListAppointmentsIntent`
+  - `CancelAppointmentIntent`
+  - `RescheduleAppointmentIntent`
   - `AMAZON.HelpIntent`
   - `AMAZON.CancelIntent`
   - `AMAZON.StopIntent`
   - `AMAZON.FallbackIntent`
+
+Current voice capabilities:
+
+- create a new appointment
+- read appointments for a requested day
+- cancel a matching appointment by title and date
+- reschedule a matching appointment to a new day or time
 
 Current auth shape:
 

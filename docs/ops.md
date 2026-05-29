@@ -183,6 +183,8 @@ Supported first intents:
 
 - `CreateAppointmentIntent`
 - `ListAppointmentsIntent`
+- `CancelAppointmentIntent`
+- `RescheduleAppointmentIntent`
 - `AMAZON.HelpIntent`
 - `AMAZON.CancelIntent`
 - `AMAZON.StopIntent`
@@ -198,6 +200,8 @@ Current scope:
 
 - create an appointment through the shared scheduling brain
 - read appointments for a requested day
+- cancel a matching appointment by title and date
+- reschedule a matching appointment to a new day or time
 - keep all actual calendar writes in the origin service
 
 Operator setup:

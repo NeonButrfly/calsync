@@ -25,16 +25,18 @@ This folder now contains the first real Alexa developer-console package for issu
    - `ALEXA_ALLOWED_SKILL_IDS=<real skill id>`
    - `ENABLE_ALEXA=true`
 6. Redeploy the Worker.
-7. Test the launch, list, and create flows in the developer console.
+7. Test the launch, list, create, cancel, and reschedule flows in the developer console.
 
 ## Current scope
 
 - launch/help
 - create appointment
 - list appointments for a requested day
+- cancel a matching appointment
+- reschedule a matching appointment
 
 ## Current limits
 
 - no public store publishing workflow yet
 - no multi-user household identity model yet
-- no update or cancel voice intent yet
+- no fully natural follow-up dialog for ambiguous matches yet

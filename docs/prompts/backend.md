@@ -134,11 +134,13 @@ Current reality:
 
 Expected voice behavior:
 
-- Alexa should use the same appointment create and list flows as other channels
+- Alexa should use the same appointment create, list, cancel, and reschedule flows as other channels
 - the first voice slice should support:
   - launch and help
   - create appointment
   - list appointments for a requested day
+  - cancel a matching appointment
+  - reschedule a matching appointment
 - all actual calendar mutation must still happen in the origin service
 
 Expected auth shape:

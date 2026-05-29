@@ -37,10 +37,26 @@ interface AlexaSlot {
 
 interface AlexaListResponse {
   items?: Array<{
+    appointment_id: string;
     title: string;
     date: string;
     start_time: string;
+    end_time: string;
+    timezone: string;
+    status?: string;
   }>;
+  message?: string;
+  detail?: string;
+}
+
+interface AlexaAppointmentDetail {
+  appointment_id: string;
+  title: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  timezone: string;
+  status: string;
 }
 
 interface AlexaSpeechOptions {
@@ -131,6 +147,10 @@ export async function handleAlexaRequest(
       return handleCreateIntent(payload, env, requestId);
     case "ListAppointmentsIntent":
       return handleListIntent(payload, env, requestId);
+    case "CancelAppointmentIntent":
+      return handleCancelIntent(payload, env, requestId);
+    case "RescheduleAppointmentIntent":
+      return handleRescheduleIntent(payload, env, requestId);
     default:
       return alexaResponse({
         speech: "I do not support that request yet.",
@@ -272,6 +292,272 @@ async function handleListIntent(
   }
 }
 
+async function handleCancelIntent(
+  payload: AlexaEnvelope,
+  env: WorkerEnv,
+  requestId: string,
+): Promise<Response> {
+  const date = slotValue(payload, "date");
+  const title = slotValue(payload, "title");
+  const startTime = slotValue(payload, "start_time");
+
+  if (!date || !title) {
+    return alexaResponse({
+      speech: "To cancel an appointment, tell me the title and date.",
+      reprompt: "For example, say cancel dentist on Monday.",
+      shouldEndSession: false,
+    });
+  }
+
+  const match = await findMatchingAppointment(
+    env,
+    requestId,
+    date,
+    title,
+    startTime,
+  );
+  if ("response" in match) {
+    return match.response;
+  }
+
+  try {
+    const originResponse = await callOriginJson(env, {
+      method: "POST",
+      path: `/api/appointments/${match.appointment.appointment_id}/cancel`,
+      channel: "alexa",
+      requestId,
+    });
+    const originBody = (await originResponse.json()) as {
+      message?: string;
+      detail?: string;
+    };
+    if (!originResponse.ok) {
+      return alexaResponse({
+        speech:
+          originBody.message ??
+          originBody.detail ??
+          "I could not cancel that appointment right now.",
+        shouldEndSession: true,
+      });
+    }
+
+    return alexaResponse({
+      speech: `I cancelled ${match.appointment.title} on ${humanDate(match.appointment.date)}.`,
+      shouldEndSession: true,
+    });
+  } catch {
+    return alexaResponse({
+      speech: "CalSync could not cancel that appointment right now.",
+      shouldEndSession: true,
+    });
+  }
+}
+
+async function handleRescheduleIntent(
+  payload: AlexaEnvelope,
+  env: WorkerEnv,
+  requestId: string,
+): Promise<Response> {
+  const date = slotValue(payload, "date");
+  const title = slotValue(payload, "title");
+  const startTime = slotValue(payload, "start_time");
+  const newDate = slotValue(payload, "new_date") ?? date;
+  const newStartTime = slotValue(payload, "new_start_time");
+  const newEndTime = slotValue(payload, "new_end_time");
+
+  if (!date || !title || !newStartTime) {
+    return alexaResponse({
+      speech:
+        "To move an appointment, tell me the current title and date, plus the new time.",
+      reprompt:
+        "For example, say move dentist on Monday to Tuesday at 1 P M.",
+      shouldEndSession: false,
+    });
+  }
+
+  const match = await findMatchingAppointment(
+    env,
+    requestId,
+    date,
+    title,
+    startTime,
+  );
+  if ("response" in match) {
+    return match.response;
+  }
+
+  const detail = await fetchAppointmentDetail(
+    env,
+    requestId,
+    match.appointment.appointment_id,
+  );
+  if ("response" in detail) {
+    return detail.response;
+  }
+
+  const nextEndTime =
+    newEndTime ?? shiftEndTime(detail.detail.start_time, detail.detail.end_time, newStartTime);
+  if (!nextEndTime) {
+    return alexaResponse({
+      speech: "I could not work out the new end time for that appointment.",
+      shouldEndSession: true,
+    });
+  }
+
+  try {
+    const originResponse = await callOriginJson(env, {
+      method: "PATCH",
+      path: `/api/appointments/${match.appointment.appointment_id}`,
+      channel: "alexa",
+      requestId,
+      body: {
+        date: newDate,
+        start_time: newStartTime,
+        end_time: nextEndTime,
+        timezone: detail.detail.timezone,
+      },
+    });
+    const originBody = (await originResponse.json()) as {
+      message?: string;
+      detail?: string;
+    };
+    if (!originResponse.ok) {
+      return alexaResponse({
+        speech:
+          originBody.message ??
+          originBody.detail ??
+          "I could not move that appointment right now.",
+        shouldEndSession: true,
+      });
+    }
+
+    return alexaResponse({
+      speech: `I moved ${match.appointment.title} to ${humanDate(newDate)} at ${humanTime(newStartTime)}.`,
+      shouldEndSession: true,
+    });
+  } catch {
+    return alexaResponse({
+      speech: "CalSync could not move that appointment right now.",
+      shouldEndSession: true,
+    });
+  }
+}
+
+async function findMatchingAppointment(
+  env: WorkerEnv,
+  requestId: string,
+  date: string,
+  title: string,
+  startTime: string | null,
+): Promise<
+  | { appointment: AlexaListResponse["items"][number] }
+  | { response: Response }
+> {
+  try {
+    const originResponse = await callOriginJson(env, {
+      method: "GET",
+      path: `/api/appointments?date_from=${encodeURIComponent(date)}&date_to=${encodeURIComponent(date)}`,
+      channel: "alexa",
+      requestId,
+    });
+    const originBody = (await originResponse.json()) as AlexaListResponse;
+    if (!originResponse.ok) {
+      return {
+        response: alexaResponse({
+          speech:
+            originBody.message ??
+            originBody.detail ??
+            "I could not look up that date right now.",
+          shouldEndSession: true,
+        }),
+      };
+    }
+
+    const normalizedTitle = normalizeTitle(title);
+    const activeItems = (originBody.items ?? []).filter(
+      (item) => (item.status ?? "active") !== "cancelled",
+    );
+    const exactMatches = activeItems.filter(
+      (item) => normalizeTitle(item.title) === normalizedTitle,
+    );
+    const fuzzyMatches =
+      exactMatches.length > 0
+        ? exactMatches
+        : activeItems.filter((item) =>
+            normalizeTitle(item.title).includes(normalizedTitle),
+          );
+    const timeFiltered =
+      startTime != null
+        ? fuzzyMatches.filter((item) => item.start_time === startTime)
+        : fuzzyMatches;
+
+    if (timeFiltered.length === 0) {
+      return {
+        response: alexaResponse({
+          speech: `I could not find ${title} on ${humanDate(date)}.`,
+          shouldEndSession: true,
+        }),
+      };
+    }
+
+    if (timeFiltered.length > 1) {
+      return {
+        response: alexaResponse({
+          speech: `I found more than one ${title} on ${humanDate(date)}. Please include the start time so I know which one you mean.`,
+          shouldEndSession: false,
+        }),
+      };
+    }
+
+    return { appointment: timeFiltered[0] };
+  } catch {
+    return {
+      response: alexaResponse({
+        speech: "CalSync could not read the calendar right now.",
+        shouldEndSession: true,
+      }),
+    };
+  }
+}
+
+async function fetchAppointmentDetail(
+  env: WorkerEnv,
+  requestId: string,
+  appointmentId: string,
+): Promise<{ detail: AlexaAppointmentDetail } | { response: Response }> {
+  try {
+    const originResponse = await callOriginJson(env, {
+      method: "GET",
+      path: `/api/appointments/${appointmentId}`,
+      channel: "alexa",
+      requestId,
+    });
+    const originBody = (await originResponse.json()) as AlexaAppointmentDetail & {
+      message?: string;
+      detail?: string;
+    };
+    if (!originResponse.ok) {
+      return {
+        response: alexaResponse({
+          speech:
+            originBody.message ??
+            originBody.detail ??
+            "I could not read that appointment right now.",
+          shouldEndSession: true,
+        }),
+      };
+    }
+    return { detail: originBody };
+  } catch {
+    return {
+      response: alexaResponse({
+        speech: "CalSync could not read that appointment right now.",
+        shouldEndSession: true,
+      }),
+    };
+  }
+}
+
 function extractSkillId(payload: AlexaEnvelope): string | null {
   return (
     payload.context?.System?.application?.applicationId ??
@@ -285,6 +571,10 @@ function slotValue(payload: AlexaEnvelope, slotName: string): string | null {
   return value || null;
 }
 
+function normalizeTitle(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
 function addHour(time: string | null): string | null {
   if (!time || !/^\d{2}:\d{2}$/.test(time)) {
     return null;
@@ -296,6 +586,38 @@ function addHour(time: string | null): string | null {
   const normalizedHours = Math.floor((totalMinutes % (24 * 60)) / 60);
   const normalizedMinutes = totalMinutes % 60;
   return `${String(normalizedHours).padStart(2, "0")}:${String(normalizedMinutes).padStart(2, "0")}`;
+}
+
+function shiftEndTime(
+  originalStart: string,
+  originalEnd: string,
+  newStart: string,
+): string | null {
+  if (
+    !/^\d{2}:\d{2}$/.test(originalStart) ||
+    !/^\d{2}:\d{2}$/.test(originalEnd) ||
+    !/^\d{2}:\d{2}$/.test(newStart)
+  ) {
+    return null;
+  }
+  const duration = timeToMinutes(originalEnd) - timeToMinutes(originalStart);
+  if (duration <= 0) {
+    return null;
+  }
+  const newEndMinutes = timeToMinutes(newStart) + duration;
+  return minutesToTime(newEndMinutes);
+}
+
+function timeToMinutes(time: string): number {
+  const [hoursText, minutesText] = time.split(":");
+  return Number(hoursText) * 60 + Number(minutesText);
+}
+
+function minutesToTime(totalMinutes: number): string {
+  const normalized = ((totalMinutes % (24 * 60)) + 24 * 60) % (24 * 60);
+  const hours = Math.floor(normalized / 60);
+  const minutes = normalized % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
 function humanDate(date: string): string {

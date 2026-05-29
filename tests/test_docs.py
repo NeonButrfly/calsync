@@ -52,9 +52,13 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "alexa_allowed_skill_ids" in readme_content
     assert "/privacy" in readme_content
     assert "/terms" in readme_content
+    assert "cancelappointmentintent" in readme_content
+    assert "rescheduleappointmentintent" in readme_content
 
     assert "#38" in ops_content
     assert "createappointmentintent" in ops_content
+    assert "cancelappointmentintent" in ops_content
+    assert "rescheduleappointmentintent" in ops_content
     assert "request-signature flow" in ops_content
     assert "skill-package" in ops_content
 
@@ -63,9 +67,13 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "shared-household alexa adapter" in prompt_content
     assert "request-signature flow" in prompt_content
     assert "get /privacy" in prompt_content
+    assert "cancel a matching appointment" in prompt_content
+    assert "reschedule a matching appointment" in prompt_content
 
     assert "createappointmentintent" in interaction_model_content
     assert "listappointmentsintent" in interaction_model_content
+    assert "cancelappointmentintent" in interaction_model_content
+    assert "rescheduleappointmentintent" in interaction_model_content
     assert (
         skill_manifest["manifest"]["apis"]["custom"]["endpoint"]["uri"]
         == "https://edge-calsync.neonbutterfly.net/alexa"
