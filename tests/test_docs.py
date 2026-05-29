@@ -18,6 +18,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#48" in readme_content
     assert "#49" in readme_content
     assert "#50" in readme_content
+    assert "#51" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -57,6 +58,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "microsoft calendar refresh and disconnect controls" in readme_content
     assert "multiple connected microsoft accounts under one shared oauth app" in readme_content
     assert "writable microsoft calendar targets" in readme_content
+    assert "writable calendar smoke tests" in readme_content
     assert "connections workspace at `/connections`" in readme_content
     assert "target-calendar picker" in readme_content
     assert "open-time finder" in readme_content
@@ -86,6 +88,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#48" in ops_content
     assert "#49" in ops_content
     assert "#50" in ops_content
+    assert "#51" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -129,6 +132,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "writable google targets appear in the same picker" in ops_content
     assert "refresh action that resyncs one connected google account email and discovered calendars" in ops_content
     assert "disconnect action that clears one linked google account" in ops_content
+    assert "run an in-product write smoke test" in ops_content
     assert "microsoft setup page" in ops_content
     assert "browser-based account connect on the live calsync domain" in ops_content
     assert "multiple connected microsoft accounts under the same shared oauth app" in ops_content
@@ -160,6 +164,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#48" in prompt_content
     assert "#49" in prompt_content
     assert "#50" in prompt_content
+    assert "#51" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -209,6 +214,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "provider-aware alexa calendar target requirement" in prompt_content
     assert "family on google" in prompt_content
     assert "calendar on microsoft" in prompt_content
+    assert "in-product writable calendar smoke test requirement" in prompt_content
+    assert "run write test" in prompt_content
     assert "target_calendar_name" in prompt_content
     assert "availability requirement" in prompt_content
     assert "findavailabilityintent" in prompt_content

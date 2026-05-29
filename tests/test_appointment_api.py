@@ -9,6 +9,7 @@ from calsync.config import get_settings
 from calsync.db import _get_engine_for_url, _get_session_factory_for_url
 from calsync.main import create_app
 from calsync.models import AuditEntry, Base
+from calsync.schemas.appointments import AppointmentResponse
 from calsync.services.apple_caldav import AppleCalDAVError
 from calsync.services.appointments import AppointmentService
 from calsync.services.operator_settings import OperatorSettingsService
@@ -1245,6 +1246,129 @@ def test_create_appointment_rejects_ambiguous_calendar_name_across_providers(
     assert "Family · Apple Calendar · Family" in detail
     assert "Family · Google Calendar · Kay Google" in detail
     assert "Family · Microsoft Calendar · Kay Microsoft" in detail
+
+
+def test_run_write_smoke_test_performs_create_update_cancel(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = AppointmentService(settings=get_settings())
+    calls: list[tuple[str, str]] = []
+
+    monkeypatch.setattr(
+        service,
+        "_describe_target_calendar",
+        lambda target_calendar_url: {
+            "calendar_name": "Family",
+            "provider_label": "Google Calendar",
+            "account_label": "Kay Google",
+        },
+    )
+
+    def fake_create(payload, actor: str = "api"):
+        calls.append(("create", actor))
+        return AppointmentResponse(
+            appointment_id="appt-1",
+            status="active",
+            provider_event_id="provider-created",
+            message="Appointment created.",
+        )
+
+    def fake_update(appointment_id: str, payload, actor: str = "api"):
+        calls.append(("update", actor))
+        assert appointment_id == "appt-1"
+        return AppointmentResponse(
+            appointment_id=appointment_id,
+            status="active",
+            provider_event_id="provider-created",
+            message="Appointment updated.",
+        )
+
+    def fake_cancel(appointment_id: str, actor: str = "api"):
+        calls.append(("cancel", actor))
+        assert appointment_id == "appt-1"
+        return AppointmentResponse(
+            appointment_id=appointment_id,
+            status="cancelled",
+            provider_event_id="provider-created",
+            message="Appointment cancelled.",
+        )
+
+    monkeypatch.setattr(service, "create", fake_create)
+    monkeypatch.setattr(service, "update", fake_update)
+    monkeypatch.setattr(service, "cancel", fake_cancel)
+
+    result = service.run_write_smoke_test(
+        target_calendar_url="google:kay@example.com:primary",
+        actor="console",
+    )
+
+    assert result == {
+        "calendar_name": "Family",
+        "provider_label": "Google Calendar",
+        "account_label": "Kay Google",
+    }
+    assert calls == [
+        ("create", "console:write_smoke_test"),
+        ("update", "console:write_smoke_test"),
+        ("cancel", "console:write_smoke_test"),
+    ]
+
+
+def test_run_write_smoke_test_attempts_cleanup_on_failure(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = AppointmentService(settings=get_settings())
+    calls: list[tuple[str, str]] = []
+
+    monkeypatch.setattr(
+        service,
+        "_describe_target_calendar",
+        lambda target_calendar_url: {
+            "calendar_name": "Family",
+            "provider_label": "Apple Calendar",
+            "account_label": "Family",
+        },
+    )
+
+    def fake_create(payload, actor: str = "api"):
+        calls.append(("create", actor))
+        return AppointmentResponse(
+            appointment_id="appt-2",
+            status="active",
+            provider_event_id="provider-created",
+            message="Appointment created.",
+        )
+
+    def fake_update(appointment_id: str, payload, actor: str = "api"):
+        calls.append(("update", actor))
+        raise ValueError("Update failed")
+
+    def fake_cancel(appointment_id: str, actor: str = "api"):
+        calls.append(("cancel", actor))
+        return AppointmentResponse(
+            appointment_id=appointment_id,
+            status="cancelled",
+            provider_event_id="provider-created",
+            message="Appointment cancelled.",
+        )
+
+    monkeypatch.setattr(service, "create", fake_create)
+    monkeypatch.setattr(service, "update", fake_update)
+    monkeypatch.setattr(service, "cancel", fake_cancel)
+
+    try:
+        service.run_write_smoke_test(
+            target_calendar_url="https://caldav.icloud.com/family/",
+            actor="console",
+        )
+    except ValueError as exc:
+        assert str(exc) == "Update failed"
+    else:
+        assert False, "Expected write smoke test to propagate the failure."
+
+    assert calls == [
+        ("create", "console:write_smoke_test"),
+        ("update", "console:write_smoke_test"),
+        ("cancel", "console:write_smoke_test_cleanup"),
+    ]
 
 
 def test_create_appointment_surfaces_provider_failure(monkeypatch) -> None:

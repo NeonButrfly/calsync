@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, and `#50` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, and `#51` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -57,6 +57,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - in-product Microsoft calendar refresh and disconnect controls so operators can resync one connected Microsoft account or safely clear it without losing the shared OAuth app
 - multiple connected Microsoft accounts under one shared OAuth app, with calendars from each account available to the same create, edit, cancel, and schedule lookup flows
 - writable Microsoft calendar targets that share the same create, edit, cancel, and schedule lookup paths
+- in-product writable calendar smoke tests, so Apple, Google, and Microsoft targets can verify create, update, and cancel from inside CalSync
 - an in-product Alexa setup page plus downloadable skill package
 - an encrypted product vault for Cloudflare Worker-management credentials, so the Alexa setup flow can store operator access safely inside CalSync
 - a first availability finder across the workspace, edge API, and Alexa so CalSync can suggest open appointment windows instead of only listing busy ones
@@ -113,6 +114,7 @@ The root page now acts as the first family scheduling UX:
 - a first in-product Google account management flow that can connect more than one Google account, refresh discovered calendars per account, and disconnect one account without losing the saved OAuth client
 - a first in-product Microsoft setup page that stores the shared OAuth app securely and supports browser-based Microsoft connect
 - a first in-product Microsoft account management flow that can connect more than one Microsoft account, refresh discovered calendars per account, and disconnect one account without losing the saved OAuth client
+- a first in-product write-test action on Apple, Google, and Microsoft target cards so operators can prove a writable calendar path works end to end
 - a first in-product Connections page that pulls Apple, Google, and Microsoft readiness into one calmer operator view
 - a first in-product Alexa setup page that links the live endpoint, policy URLs, and skill package download
 - a first in-product Cloudflare access form that stores Worker-management credentials securely in the product vault
@@ -294,6 +296,7 @@ If you prefer not to keep a Worker-management API token in the host `.env`, the 
 - Availability search across workspace, edge, and Alexa: issue `#48`
 - Runtime token store mount fix: issue `#44`
 - Provider-aware Alexa calendar targeting across Apple, Google, and Microsoft: issue `#50`
+- In-product writable calendar smoke tests: issue `#51`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`
 - Apple live calendar sync into the shared workspace and Alexa: issue `#41`

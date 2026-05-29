@@ -167,6 +167,12 @@
                   <strong>{{ item.calendar_name }}</strong>
                   <span>{{ item.account_label }} · {{ item.account_email }}</span>
                   <p class="appointment-detail">{{ item.calendar_id }}</p>
+                  <div class="action-row">
+                    <form method="post" action="/google/setup/test">
+                      <input name="target_calendar_url" type="hidden" value="{{ item.target_value }}" />
+                      <button type="submit">Run write test</button>
+                    </form>
+                  </div>
                 </article>
                 {% endfor %}
               </div>

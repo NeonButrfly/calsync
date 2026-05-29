@@ -224,6 +224,18 @@ Expected behavior:
 - ambiguous bare names should fail clearly with actionable options instead of silently falling through between providers
 - voice-facing docs and setup guidance should describe provider-aware targeting across Apple, Google, and Microsoft
 
+## In-Product Writable Calendar Smoke Test Requirement
+
+- GitHub issue: `#51`
+- interpreted requirement: the product should let operators prove a writable Apple, Google, or Microsoft calendar target actually supports create, update, and cancel from inside CalSync
+
+Expected behavior:
+
+- Apple, Google, and Microsoft writable target cards should expose a `Run write test` action
+- the shared scheduling brain should run a safe create -> update -> cancel verification cycle against the selected target
+- if a step fails after create, CalSync should attempt cleanup and surface the real error
+- the product should show a clear success message naming the calendar and provider that passed
+
 ## Availability Requirement
 
 - GitHub issue: `#48`

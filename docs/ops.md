@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current CalSync service, family scheduling UX, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, and Alexa setup flow tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, and `#50`.
+This guide covers the current CalSync service, family scheduling UX, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, Alexa setup flow, and in-product writable target verification tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, and `#51`.
 
 ## What This Service Does
 
@@ -12,6 +12,7 @@ This guide covers the current CalSync service, family scheduling UX, live Apple 
 - stores normalized appointment records locally
 - syncs existing Apple calendar events and connected Google or Microsoft calendar events into the local scheduling brain for requested date windows
 - writes calendar mutations to one selected connected calendar target through CalDAV, Google Calendar, or Microsoft Graph
+- can run a safe create, update, and cancel smoke test against one selected writable calendar target from inside the product
 - keeps local audit entries for every mutation
 - supports Cloudflare edge token management for channel auth
 - exposes a remote authenticated MCP endpoint for ChatGPT-style tool access
@@ -174,6 +175,7 @@ Current management boundary:
 - the appointment service and readiness surface now fall back to those saved product settings when host env Apple values are absent
 - `POST /calendar/setup/calendars` can add another saved Apple target for a selected Apple account without replacing the existing default target
 - the calendar setup page remains the place to define the default target Apple calendar for the family-facing Apple path
+- each saved Apple target can also run an in-product write smoke test to prove that target really supports create, update, and cancel
 
 ### Google setup page
 
@@ -198,6 +200,7 @@ Current management boundary:
 - writable Google targets appear in the same picker used for `POST /appointments` and `POST /appointments/{appointment_id}/edit`
 - Google mutations and date-range reads now run through the same shared appointment service instead of a separate product path
 - disconnecting one Google account keeps the deployment-wide OAuth client in place so the operator can reconnect without re-entering the client ID and secret
+- each discovered Google target can run an in-product write smoke test to prove the connected account and calendar are truly writable
 
 ### Microsoft setup page
 
@@ -222,6 +225,7 @@ Current management boundary:
 - writable Microsoft targets appear in the same picker used for `POST /appointments` and `POST /appointments/{appointment_id}/edit`
 - Microsoft mutations and date-range reads now run through the same shared appointment service instead of a separate product path
 - disconnecting one Microsoft account keeps the deployment-wide OAuth client in place so the operator can reconnect without re-entering the client ID and secret
+- each discovered Microsoft target can run an in-product write smoke test to prove the connected account and calendar are truly writable
 
 ### Alexa setup page
 

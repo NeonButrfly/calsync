@@ -1017,6 +1017,137 @@ def test_alexa_setup_page_saves_cloudflare_credentials(monkeypatch) -> None:
     }
 
 
+def test_calendar_setup_page_can_run_write_test(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_apple_calendar_catalog(
+        [
+            {
+                "calendar_name": "Family",
+                "calendar_url": "https://caldav.icloud.com/family/",
+                "is_default": True,
+            }
+        ]
+    )
+
+    def fake_run_write_smoke_test(self, *, target_calendar_url: str, actor: str = "console"):
+        assert target_calendar_url == "https://caldav.icloud.com/family/"
+        assert actor == "console"
+        return {
+            "calendar_name": "Family",
+            "provider_label": "Apple Calendar",
+            "account_label": "Family",
+        }
+
+    monkeypatch.setattr(
+        AppointmentService,
+        "run_write_smoke_test",
+        fake_run_write_smoke_test,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/calendar/setup/test",
+        data={"target_calendar_url": "https://caldav.icloud.com/family/"},
+    )
+
+    assert response.status_code == 200
+    assert "Write test passed for Family on Apple Calendar (Family)." in response.text
+
+
+def test_google_setup_page_can_run_write_test(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.upsert_google_account(
+        account_label="Kay Google",
+        account_email="kay@example.com",
+        refresh_token="google-refresh-token",
+        calendars=[
+            {
+                "calendar_name": "Primary",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ],
+    )
+
+    def fake_run_write_smoke_test(self, *, target_calendar_url: str, actor: str = "console"):
+        assert target_calendar_url == "google:kay@example.com:primary"
+        assert actor == "console"
+        return {
+            "calendar_name": "Primary",
+            "provider_label": "Google Calendar",
+            "account_label": "Kay Google",
+        }
+
+    monkeypatch.setattr(
+        AppointmentService,
+        "run_write_smoke_test",
+        fake_run_write_smoke_test,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/google/setup/test",
+        data={"target_calendar_url": "google:kay@example.com:primary"},
+    )
+
+    assert response.status_code == 200
+    assert "Write test passed for Primary on Google Calendar (Kay Google)." in response.text
+
+
+def test_microsoft_setup_page_can_run_write_test(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_microsoft_oauth_settings(
+        client_id="microsoft-client-id",
+        client_secret="microsoft-client-secret",
+    )
+    service.upsert_microsoft_account(
+        account_label="Kay Microsoft",
+        account_email="kay@example.com",
+        refresh_token="microsoft-refresh-token",
+        calendars=[
+            {
+                "calendar_name": "Calendar",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ],
+    )
+
+    def fake_run_write_smoke_test(self, *, target_calendar_url: str, actor: str = "console"):
+        assert target_calendar_url == "microsoft:kay@example.com:primary"
+        assert actor == "console"
+        return {
+            "calendar_name": "Calendar",
+            "provider_label": "Microsoft Calendar",
+            "account_label": "Kay Microsoft",
+        }
+
+    monkeypatch.setattr(
+        AppointmentService,
+        "run_write_smoke_test",
+        fake_run_write_smoke_test,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/microsoft/setup/test",
+        data={"target_calendar_url": "microsoft:kay@example.com:primary"},
+    )
+
+    assert response.status_code == 200
+    assert "Write test passed for Calendar on Microsoft Calendar (Kay Microsoft)." in response.text
+
+
 def test_calendar_setup_page_renders_operator_fields(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     app = create_app()

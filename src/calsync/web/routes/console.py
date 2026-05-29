@@ -267,6 +267,52 @@ def calendar_setup_add_calendar(
     )
 
 
+@router.post("/calendar/setup/test")
+def calendar_setup_run_write_test(
+    request: Request,
+    target_calendar_url: str = Form(""),
+):
+    service = AppointmentService()
+    operator_settings = OperatorSettingsService()
+    try:
+        result = service.run_write_smoke_test(
+            target_calendar_url=target_calendar_url,
+            actor="console",
+        )
+        flash_message = (
+            f"Write test passed for {result['calendar_name']} on "
+            f"{result['provider_label']}"
+            + (f" ({result['account_label']})" if result["account_label"] else "")
+            + "."
+        )
+        error_message = None
+    except (
+        AppleCalDAVError,
+        GoogleCalendarError,
+        MicrosoftCalendarError,
+        ValueError,
+    ) as exc:
+        flash_message = None
+        error_message = str(exc)
+
+    runtime_service = AppleRuntimeConfigService(operator_settings=operator_settings)
+    runtime_config = runtime_service.resolve()
+    return _templates.TemplateResponse(
+        request,
+        "calendar_setup.html",
+        {
+            "request": request,
+            "apple_settings": operator_settings.describe_apple_calendar_settings(),
+            "runtime_config": runtime_config,
+            "apple_accounts": runtime_service.list_accounts(),
+            "calendar_catalog": runtime_service.list_calendars(),
+            "flash_message": flash_message,
+            "error_message": error_message,
+        },
+        status_code=200 if error_message is None else 400,
+    )
+
+
 @router.get("/google/setup")
 def google_setup_page(request: Request):
     operator_settings = OperatorSettingsService()
@@ -471,6 +517,51 @@ def google_setup_disconnect(request: Request):
             "error_message": None,
             "connect_url": "/auth/google/start",
         },
+    )
+
+
+@router.post("/google/setup/test")
+def google_setup_run_write_test(
+    request: Request,
+    target_calendar_url: str = Form(""),
+):
+    operator_settings = OperatorSettingsService()
+    runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
+    try:
+        result = AppointmentService().run_write_smoke_test(
+            target_calendar_url=target_calendar_url,
+            actor="console",
+        )
+        flash_message = (
+            f"Write test passed for {result['calendar_name']} on "
+            f"{result['provider_label']}"
+            + (f" ({result['account_label']})" if result["account_label"] else "")
+            + "."
+        )
+        error_message = None
+    except (
+        AppleCalDAVError,
+        GoogleCalendarError,
+        MicrosoftCalendarError,
+        ValueError,
+    ) as exc:
+        flash_message = None
+        error_message = str(exc)
+
+    return _templates.TemplateResponse(
+        request,
+        "google_setup.html",
+        {
+            "request": request,
+            "google_settings": operator_settings.describe_google_oauth_settings(),
+            "runtime_config": runtime_service.resolve(),
+            "google_accounts": runtime_service.list_accounts(),
+            "calendar_catalog": runtime_service.list_calendars(),
+            "flash_message": flash_message,
+            "error_message": error_message,
+            "connect_url": "/auth/google/start",
+        },
+        status_code=200 if error_message is None else 400,
     )
 
 
@@ -717,6 +808,51 @@ def microsoft_setup_disconnect(request: Request):
             "error_message": None,
             "connect_url": "/auth/microsoft/start",
         },
+    )
+
+
+@router.post("/microsoft/setup/test")
+def microsoft_setup_run_write_test(
+    request: Request,
+    target_calendar_url: str = Form(""),
+):
+    operator_settings = OperatorSettingsService()
+    runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
+    try:
+        result = AppointmentService().run_write_smoke_test(
+            target_calendar_url=target_calendar_url,
+            actor="console",
+        )
+        flash_message = (
+            f"Write test passed for {result['calendar_name']} on "
+            f"{result['provider_label']}"
+            + (f" ({result['account_label']})" if result["account_label"] else "")
+            + "."
+        )
+        error_message = None
+    except (
+        AppleCalDAVError,
+        GoogleCalendarError,
+        MicrosoftCalendarError,
+        ValueError,
+    ) as exc:
+        flash_message = None
+        error_message = str(exc)
+
+    return _templates.TemplateResponse(
+        request,
+        "microsoft_setup.html",
+        {
+            "request": request,
+            "microsoft_settings": operator_settings.describe_microsoft_oauth_settings(),
+            "runtime_config": runtime_service.resolve(),
+            "microsoft_accounts": runtime_service.list_accounts(),
+            "calendar_catalog": runtime_service.list_calendars(),
+            "flash_message": flash_message,
+            "error_message": error_message,
+            "connect_url": "/auth/microsoft/start",
+        },
+        status_code=200 if error_message is None else 400,
     )
 
 

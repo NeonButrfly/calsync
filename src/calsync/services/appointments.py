@@ -408,6 +408,61 @@ class AppointmentService:
                 message="Appointment cancelled.",
             )
 
+    def run_write_smoke_test(
+        self,
+        *,
+        target_calendar_url: str,
+        actor: str = "console",
+    ) -> dict[str, str]:
+        target = self._describe_target_calendar(target_calendar_url)
+        test_date = (
+            datetime.now(ZoneInfo(self.settings.default_timezone)).date()
+            + timedelta(days=2)
+        ).isoformat()
+        title_seed = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+        base_title = f"CalSync write test {title_seed}"
+        created: AppointmentResponse | None = None
+        try:
+            created = self.create(
+                CreateAppointmentRequest(
+                    title=base_title,
+                    date=test_date,
+                    start_time="06:00",
+                    end_time="06:15",
+                    timezone=self.settings.default_timezone,
+                    notes="Temporary operator smoke test created by CalSync.",
+                    target_calendar_url=target_calendar_url,
+                ),
+                actor=f"{actor}:write_smoke_test",
+            )
+            self.update(
+                created.appointment_id,
+                UpdateAppointmentRequest(
+                    title=f"{base_title} verified",
+                    notes="Temporary operator smoke test updated by CalSync.",
+                ),
+                actor=f"{actor}:write_smoke_test",
+            )
+            self.cancel(
+                created.appointment_id,
+                actor=f"{actor}:write_smoke_test",
+            )
+        except Exception:
+            if created is not None:
+                try:
+                    self.cancel(
+                        created.appointment_id,
+                        actor=f"{actor}:write_smoke_test_cleanup",
+                    )
+                except Exception:
+                    pass
+            raise
+        return {
+            "calendar_name": target["calendar_name"],
+            "provider_label": target["provider_label"],
+            "account_label": target["account_label"],
+        }
+
     def get(self, appointment_id: str) -> AppointmentListItem:
         with self._get_session_factory()() as session:
             appointment = self._get_appointment(session, appointment_id)
@@ -1305,6 +1360,23 @@ class AppointmentService:
                 }
             )
         return catalog
+
+    def _describe_target_calendar(self, target_calendar_url: str) -> dict[str, str]:
+        selected = next(
+            (
+                item
+                for item in self.available_calendars
+                if str(item["calendar_url"]) == str(target_calendar_url)
+            ),
+            None,
+        )
+        if selected is None:
+            raise ValueError("Writable calendar target was not found.")
+        return {
+            "calendar_name": str(selected["calendar_name"]),
+            "provider_label": self._provider_ui_label(str(selected["provider_type"])),
+            "account_label": str(selected.get("account_label") or ""),
+        }
 
     def _calendar_target_voice_value(
         self,
