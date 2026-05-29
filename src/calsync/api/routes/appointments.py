@@ -10,6 +10,7 @@ from calsync.schemas.appointments import (
 )
 from calsync.services.appointments import AppointmentService
 from calsync.services.apple_caldav import AppleCalDAVError
+from calsync.services.google_calendar import GoogleCalendarError
 
 router = APIRouter(prefix="/api/appointments", tags=["appointments"])
 availability_router = APIRouter(prefix="/api", tags=["availability"])
@@ -65,7 +66,7 @@ def create_appointment(
     try:
         actor = f"worker:{x_calsync_channel}" if x_calsync_channel else "api"
         return AppointmentService().create(payload, actor=actor)
-    except AppleCalDAVError as exc:
+    except (AppleCalDAVError, GoogleCalendarError) as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -80,7 +81,7 @@ def update_appointment(
     try:
         actor = f"worker:{x_calsync_channel}" if x_calsync_channel else "api"
         return AppointmentService().update(appointment_id, payload, actor=actor)
-    except AppleCalDAVError as exc:
+    except (AppleCalDAVError, GoogleCalendarError) as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -94,7 +95,7 @@ def cancel_appointment(
     try:
         actor = f"worker:{x_calsync_channel}" if x_calsync_channel else "api"
         return AppointmentService().cancel(appointment_id, actor=actor)
-    except AppleCalDAVError as exc:
+    except (AppleCalDAVError, GoogleCalendarError) as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

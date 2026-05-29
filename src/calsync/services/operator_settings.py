@@ -56,6 +56,14 @@ class OperatorSettingsService:
                 record.value_encrypted.encode("utf-8")
             ).decode("utf-8")
 
+    def delete_value(self, key: str) -> None:
+        with self.session_factory() as session:
+            self._ensure_table(session)
+            record = session.get(OperatorSetting, key)
+            if record is not None:
+                session.delete(record)
+                session.commit()
+
     def set_cloudflare_worker_credentials(
         self,
         *,
@@ -164,6 +172,151 @@ class OperatorSettingsService:
             if any(values.values())
             else "missing",
         }
+
+    def set_google_oauth_settings(
+        self,
+        *,
+        client_id: str,
+        client_secret: str,
+        preserve_existing_secret: bool = False,
+    ) -> None:
+        normalized_client_id = client_id.strip()
+        normalized_client_secret = client_secret.strip()
+        if not normalized_client_id:
+            raise ValueError("Google client ID is required.")
+
+        existing = self.get_google_oauth_settings()
+        if not normalized_client_secret and not (
+            preserve_existing_secret and existing["client_secret"]
+        ):
+            raise ValueError("Google client secret is required.")
+
+        self.set_value("google_client_id", normalized_client_id)
+        if normalized_client_secret:
+            self.set_value("google_client_secret", normalized_client_secret)
+
+    def get_google_oauth_settings(self) -> dict[str, str | None]:
+        return {
+            "client_id": self.get_value("google_client_id"),
+            "client_secret": self.get_value("google_client_secret"),
+        }
+
+    def set_google_account_settings(
+        self,
+        *,
+        account_label: str,
+        account_email: str,
+        refresh_token: str,
+        preserve_existing_refresh_token: bool = False,
+    ) -> None:
+        normalized_account_label = account_label.strip()
+        normalized_account_email = account_email.strip()
+        normalized_refresh_token = refresh_token.strip()
+        if not normalized_account_label:
+            raise ValueError("Google account label is required.")
+        if not normalized_account_email:
+            raise ValueError("Google account email is required.")
+
+        existing = self.get_google_account_settings()
+        if not normalized_refresh_token and not (
+            preserve_existing_refresh_token and existing["refresh_token"]
+        ):
+            raise ValueError("Google refresh token is required.")
+
+        self.set_value("google_account_label", normalized_account_label)
+        self.set_value("google_account_email", normalized_account_email)
+        if normalized_refresh_token:
+            self.set_value("google_refresh_token", normalized_refresh_token)
+
+    def get_google_account_settings(self) -> dict[str, str | None]:
+        return {
+            "account_label": self.get_value("google_account_label"),
+            "account_email": self.get_value("google_account_email"),
+            "refresh_token": self.get_value("google_refresh_token"),
+        }
+
+    def set_google_calendar_catalog(self, calendars: list[dict[str, object]]) -> None:
+        if not calendars:
+            raise ValueError("At least one Google calendar is required.")
+
+        normalized: list[dict[str, object]] = []
+        seen_ids: set[str] = set()
+        default_index = None
+        for index, item in enumerate(calendars):
+            calendar_name = str(item.get("calendar_name") or "").strip()
+            calendar_id = str(item.get("calendar_id") or "").strip()
+            is_default = bool(item.get("is_default"))
+            if not calendar_name:
+                raise ValueError("Google calendar name is required.")
+            if not calendar_id:
+                raise ValueError("Google calendar ID is required.")
+            if calendar_id in seen_ids:
+                raise ValueError("Google calendar IDs must be unique.")
+            seen_ids.add(calendar_id)
+            if is_default and default_index is None:
+                default_index = index
+            normalized.append(
+                {
+                    "calendar_name": calendar_name,
+                    "calendar_id": calendar_id,
+                    "is_default": False,
+                }
+            )
+
+        if default_index is None:
+            default_index = 0
+        normalized[default_index]["is_default"] = True
+        self.set_value("google_calendar_catalog", json.dumps(normalized))
+
+    def get_google_calendar_catalog(self) -> list[dict[str, object]]:
+        raw = self.get_value("google_calendar_catalog")
+        if not raw:
+            return []
+        payload = json.loads(raw)
+        if not isinstance(payload, list):
+            return []
+        calendars: list[dict[str, object]] = []
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            calendar_name = str(item.get("calendar_name") or "").strip()
+            calendar_id = str(item.get("calendar_id") or "").strip()
+            if not calendar_name or not calendar_id:
+                continue
+            calendars.append(
+                {
+                    "calendar_name": calendar_name,
+                    "calendar_id": calendar_id,
+                    "is_default": bool(item.get("is_default")),
+                }
+            )
+        if calendars and not any(item["is_default"] for item in calendars):
+            calendars[0]["is_default"] = True
+        return calendars
+
+    def describe_google_oauth_settings(self) -> dict[str, object]:
+        oauth = self.get_google_oauth_settings()
+        account = self.get_google_account_settings()
+        catalog = self.get_google_calendar_catalog()
+        has_any = any(oauth.values()) or any(account.values()) or bool(catalog)
+        return {
+            "client_id": oauth["client_id"] or "",
+            "client_secret_saved": bool(oauth["client_secret"]),
+            "account_label": account["account_label"] or "",
+            "account_email": account["account_email"] or "",
+            "refresh_token_saved": bool(account["refresh_token"]),
+            "calendar_count": len(catalog),
+            "source": "product_vault" if has_any else "missing",
+        }
+
+    def set_google_oauth_state(self, state: str) -> None:
+        self.set_value("google_oauth_state", state)
+
+    def get_google_oauth_state(self) -> str | None:
+        return self.get_value("google_oauth_state")
+
+    def clear_google_oauth_state(self) -> None:
+        self.delete_value("google_oauth_state")
 
     def set_apple_calendar_catalog(self, calendars: list[dict[str, object]]) -> None:
         if not calendars:

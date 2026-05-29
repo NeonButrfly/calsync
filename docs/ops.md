@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, multi-calendar Apple targets, named Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, and Alexa setup flow tracked in issues `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, and `#48`.
+This guide covers the current CalSync service, family scheduling UX, live Apple calendar sync, writable Google setup, multi-calendar Apple targets, named Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, and Alexa setup flow tracked in issues `#3`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, and `#48`.
 
 ## What This Service Does
 
@@ -9,8 +9,8 @@ This guide covers the current Apple-first CalSync service, family scheduling UX,
 - exposes a shared availability API for open-slot lookup
 - exposes a professional web scheduling workspace at `/` for create, edit, cancel, filtered browsing, and review
 - stores normalized appointment records locally
-- syncs existing Apple calendar events into the local scheduling brain for requested date windows
-- writes calendar mutations to one selected saved iCloud calendar target through CalDAV
+- syncs existing Apple calendar events and connected Google calendar events into the local scheduling brain for requested date windows
+- writes calendar mutations to one selected connected calendar target through CalDAV or Google Calendar
 - keeps local audit entries for every mutation
 - supports Cloudflare edge token management for channel auth
 - exposes a remote authenticated MCP endpoint for ChatGPT-style tool access
@@ -33,6 +33,10 @@ Copy `.env.example` to `.env` and fill in:
 - `APPLE_PRIMARY_CALENDAR_URL`
 - `APPLE_PRIMARY_CALENDAR_NAME`
 - `DEFAULT_TIMEZONE`
+- optional Google setup now lives in-product through:
+  - `GET /google/setup`
+  - `GET /auth/google/start`
+  - `GET /auth/google/callback`
 - `CLOUDFLARE_ACCOUNT_ID`
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_TOKEN_KV_NAMESPACE_ID`
@@ -102,6 +106,10 @@ Root experience:
 - `GET /calendar/setup`
 - `POST /calendar/setup`
 - `POST /calendar/setup/calendars`
+- `GET /google/setup`
+- `POST /google/setup`
+- `GET /auth/google/start`
+- `GET /auth/google/callback`
 - `GET /alexa/setup`
 - `POST /alexa/setup`
 - `GET /alexa/simulator`
@@ -114,18 +122,19 @@ Root experience:
 Behavior:
 
 - shows a clean create-appointment form
-- lets operators choose a target Apple calendar for create and edit when multiple writable targets are saved
+- lets operators choose a target connected calendar for create and edit when multiple writable Apple or Google targets are available
 - browses appointments by day, week, or month
-- syncs the requested Apple calendar date window before rendering the schedule
+- syncs the requested connected calendar date window before rendering the schedule
 - hides cancelled appointments from the default active schedule views while allowing a reference toggle when you intentionally want historical cancelled items
 - shows a full-stack readiness panel for Apple, channel tokens, edge reachability, and Alexa setup state
 - exposes an in-product Apple calendar setup page with encrypted vault-backed storage instead of forcing host-only Apple env edits
+- exposes an in-product Google setup page with encrypted vault-backed OAuth storage plus browser-based account connect
 - exposes an in-product Alexa setup page with a live package download instead of forcing repo-only setup
 - can read and update the edge Worker Alexa flags from the setup page when Cloudflare worker-management permission is configured
 - exposes an in-product Alexa simulator page that previews the real Worker voice logic before the Amazon-side turn-on is finished
 - exposes an open-time finder in the root workspace for fast gap discovery
 - shows a selected appointment detail panel with audit activity and provider metadata
-- edits and cancels the same Apple-backed appointment records used by the API
+- edits and cancels the same Apple-backed or Google-backed appointment records used by the API
 - is intended to be the first family-facing control surface instead of forcing operators to work from raw API calls
 
 ### Apple calendar setup page
@@ -149,6 +158,27 @@ Current management boundary:
 - product-vault Apple settings are encrypted with `ENCRYPTION_KEY`
 - the appointment service and readiness surface now fall back to those saved product settings when host env Apple values are absent
 - `POST /calendar/setup/calendars` can add another saved Apple target without replacing the existing default target
+- the calendar setup page remains the place to define the default target Apple calendar for the family-facing Apple path
+
+### Google setup page
+
+- `GET /google/setup`
+- `POST /google/setup`
+- `GET /auth/google/start`
+- `GET /auth/google/callback`
+
+This operator-facing flow now serves:
+
+- the shared Google OAuth client ID and secret for this deployment
+- browser-based account connect on the live CalSync domain
+- encrypted refresh-token storage in the product vault
+- discovered Google calendar targets that can feed the same target picker used by the workspace
+
+Current management boundary:
+
+- the product stores the shared Google client ID, client secret, connected account label/email, refresh token, and discovered Google calendar catalog encrypted with `ENCRYPTION_KEY`
+- writable Google targets appear in the same picker used for `POST /appointments` and `POST /appointments/{appointment_id}/edit`
+- Google mutations and date-range reads now run through the same shared appointment service instead of a separate product path
 
 ### Alexa setup page
 
@@ -228,7 +258,7 @@ Optional body fields:
 
 Any writable appointment field may be sent.
 
-This now includes `target_calendar_url`, which lets the update flow move an appointment from one saved Apple calendar target to another.
+This now includes `target_calendar_url`, which lets the update flow move an appointment from one saved Apple calendar target to another or into a connected Google calendar target.
 
 ### Cancel appointment
 
@@ -242,7 +272,7 @@ This removes the Apple calendar event and marks the local appointment as `cancel
 
 This powers the Worker-side “look up before editing or cancelling” flow.
 
-It now also syncs the requested Apple date range into the local appointment store across the saved Apple calendar targets, so existing family-calendar events can be listed, edited, cancelled, and used by Alexa.
+It now also syncs the requested provider date range into the local appointment store across the saved Apple calendar targets and connected Google calendars, so existing calendar events can be listed, edited, cancelled, and used by Alexa.
 
 Default behavior hides cancelled appointments from active list views. To include them for reference, call:
 
@@ -252,7 +282,7 @@ Default behavior hides cancelled appointments from active list views. To include
 
 `GET /api/availability?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&duration_minutes=60`
 
-This returns the first matching open windows from the Apple-first schedule using the same synced appointment inventory as the workspace and Alexa.
+This returns the first matching open windows from the connected-calendar schedule using the same synced appointment inventory as the workspace and Alexa.
 
 ### Appointment detail
 

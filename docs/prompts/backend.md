@@ -63,6 +63,26 @@
 - no structured medical metadata API fields yet
 - no ChatGPT Apps SDK wrapper yet; the Worker is the live edge, but the dedicated ChatGPT app layer is still future work
 
+## In-Product Google OAuth Setup And Writable Targets Requirement
+
+- GitHub issue: `#3`
+- interpreted requirement: the product should support browser-based Google account connection and writable Google scheduling without forcing the operator to hand-edit host secrets or use a separate admin tool
+
+Expected behavior:
+
+- `GET /google/setup` should render an operator-facing Google setup page
+- `POST /google/setup` should save the shared Google OAuth client ID and client secret
+- those Google OAuth settings should be stored encrypted at rest with `ENCRYPTION_KEY`
+- `GET /auth/google/start` should begin a browser-based Google OAuth flow on the live CalSync domain
+- `GET /auth/google/callback` should exchange the code, save the Google refresh token, and discover the available calendars
+- discovered Google calendars should appear as writable targets in the same create and edit flows used by the workspace
+- the shared appointment service should be able to create, update, cancel, and date-range sync Google events through those targets
+
+Behavioral boundary:
+
+- this slice adds a shared Google write path inside the product, not a full Google-native standalone experience
+- Apple remains the first family-facing target, but the scheduling brain should now treat connected Google calendars as first-class writable options
+
 ## First Scheduling UX Requirement
 
 - GitHub issue: `#39`

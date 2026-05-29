@@ -167,3 +167,45 @@ def test_operator_settings_stores_apple_calendar_catalog() -> None:
             "is_default": False,
         },
     ]
+
+
+def test_operator_settings_encrypts_google_oauth_values_at_rest() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.set_google_account_settings(
+        account_label="Kay Google",
+        account_email="kay@example.com",
+        refresh_token="google-refresh-token",
+    )
+    service.set_google_calendar_catalog(
+        [
+            {
+                "calendar_name": "Primary",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ]
+    )
+
+    google_state = service.describe_google_oauth_settings()
+    assert google_state["client_id"] == "google-client-id"
+    assert google_state["client_secret_saved"] is True
+    assert google_state["account_email"] == "kay@example.com"
+    assert google_state["refresh_token_saved"] is True
+    assert google_state["source"] == "product_vault"
+
+    session_factory = _get_session_factory_for_url(settings.database_url)
+    with session_factory() as session:
+        stored_rows = {
+            row.key: row.value_encrypted
+            for row in session.query(OperatorSetting).all()
+        }
+
+    assert stored_rows["google_client_id"] != "google-client-id"
+    assert stored_rows["google_client_secret"] != "google-client-secret"
+    assert stored_rows["google_refresh_token"] != "google-refresh-token"

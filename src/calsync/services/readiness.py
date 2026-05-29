@@ -7,6 +7,7 @@ import httpx
 from calsync.config import Settings, get_settings
 from calsync.services.apple_runtime_config import AppleRuntimeConfigService
 from calsync.services.channel_tokens import ChannelTokenManager
+from calsync.services.google_runtime_config import GoogleRuntimeConfigService
 
 
 _CHANNELS = ["chatgpt", "shortcuts", "alexa", "webhooks"]
@@ -19,15 +20,28 @@ class ReadinessService:
             runtime_path=self.settings.channel_token_runtime_path
         )
         self.apple_runtime_config = AppleRuntimeConfigService(settings=self.settings)
+        self.google_runtime_config = GoogleRuntimeConfigService(settings=self.settings)
 
     def build(self) -> dict[str, Any]:
         channel_tokens = self.token_manager.channel_presence(_CHANNELS)
         edge = self._fetch_edge_status()
         apple = self.apple_runtime_config.resolve()
+        google = self.google_runtime_config.resolve()
+        primary_account_label = (
+            apple["account_label"]
+            if apple["ready"]
+            else google["account_label"]
+        )
+        primary_calendar_name = (
+            apple["primary_calendar_name"]
+            if apple["ready"]
+            else google["primary_calendar_name"]
+        )
         origin = {
             "apple_ready": bool(apple["ready"]),
-            "account_label": apple["account_label"],
-            "calendar_name": apple["primary_calendar_name"],
+            "google_ready": bool(google["ready"]),
+            "account_label": primary_account_label,
+            "calendar_name": primary_calendar_name,
             "default_timezone": self.settings.default_timezone,
         }
         return {

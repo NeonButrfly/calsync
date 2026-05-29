@@ -11,6 +11,7 @@ from calsync.main import create_app
 from calsync.models import AuditEntry, Base
 from calsync.services.apple_caldav import AppleCalDAVError
 from calsync.services.appointments import AppointmentService
+from calsync.services.operator_settings import OperatorSettingsService
 
 
 class FakeAppleClient:
@@ -133,6 +134,57 @@ class FailingAppleClient:
         raise AppleCalDAVError("Apple/iCloud authentication failed.")
 
 
+class FakeGoogleClient:
+    def create_event(self, **kwargs: object):
+        calendar_id = str(kwargs.get("calendar_id") or "primary")
+        return type(
+            "CreateResult",
+            (),
+            {
+                "provider_event_id": "google-created",
+                "href": f"google:{calendar_id}:google-created",
+                "etag": '"google-etag-created"',
+            },
+        )()
+
+    def update_event(self, **kwargs: object):
+        calendar_id = str(kwargs.get("calendar_id") or "primary")
+        provider_event_id = str(kwargs.get("provider_event_id") or "google-created")
+        return type(
+            "UpdateResult",
+            (),
+            {
+                "provider_event_id": provider_event_id,
+                "href": f"google:{calendar_id}:{provider_event_id}",
+                "etag": '"google-etag-updated"',
+            },
+        )()
+
+    def cancel_event(self, **_: object) -> None:
+        return None
+
+    def list_events(self, **_: object):
+        return [
+            type(
+                "ListedEvent",
+                (),
+                {
+                    "provider_event_id": "google-existing",
+                    "href": "google:primary:google-existing",
+                    "etag": '"google-etag-existing"',
+                    "title": "Google School Visit",
+                    "starts_at": "2026-06-15T11:00:00-08:00",
+                    "ends_at": "2026-06-15T12:00:00-08:00",
+                    "all_day": False,
+                    "location": "Google campus",
+                    "notes": "Imported from Google",
+                    "status": "confirmed",
+                    "attendees_text": "Kay, Teacher",
+                },
+            )()
+        ]
+
+
 def _configure_test_env(monkeypatch) -> None:
     db_path = Path(tempfile.gettempdir()) / f"calsync-test-{uuid4()}.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
@@ -147,6 +199,28 @@ def _configure_test_env(monkeypatch) -> None:
     _get_engine_for_url.cache_clear()
     _get_session_factory_for_url.cache_clear()
     Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+
+
+def _configure_google_settings() -> None:
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.set_google_account_settings(
+        account_label="Kay Google",
+        account_email="kay@example.com",
+        refresh_token="google-refresh-token",
+    )
+    service.set_google_calendar_catalog(
+        [
+            {
+                "calendar_name": "Primary",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ]
+    )
 
 
 def test_create_appointment_returns_local_id(monkeypatch) -> None:
@@ -209,6 +283,71 @@ def test_list_appointments_returns_matching_date_window(monkeypatch) -> None:
     body = response.json()
     assert body["items"]
     assert body["items"][0]["title"] == "Dentist"
+
+
+def test_create_appointment_can_target_google_calendar(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    _configure_google_settings()
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_google_client",
+        lambda self: FakeGoogleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Google Dentist",
+            "date": "2026-06-05",
+            "start_time": "10:00",
+            "end_time": "11:00",
+            "timezone": "America/Anchorage",
+            "target_calendar_url": "google:primary",
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["provider_event_id"] == "google-created"
+
+    detail_response = client.get(f"/api/appointments/{body['appointment_id']}")
+    assert detail_response.status_code == 200
+    assert detail_response.json()["provider_type"] == "google_calendar"
+    assert detail_response.json()["calendar_name"] == "Primary"
+
+
+def test_list_appointments_syncs_google_calendar_events(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    _configure_google_settings()
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_google_client",
+        lambda self: FakeGoogleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get(
+        "/api/appointments?date_from=2026-06-15&date_to=2026-06-15"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["items"]
+    assert body["items"][0]["title"] == "Google School Visit"
+    assert body["items"][0]["provider_event_id"] == "google-existing"
 
 
 def test_availability_returns_open_slots_in_working_hours(monkeypatch) -> None:

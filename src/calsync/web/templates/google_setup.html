@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CalSync Google Setup</title>
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">CalSync</p>
+          <h1>Google setup that feels like part of the product</h1>
+          <p>
+            Save the shared Google OAuth app in CalSync, connect the Google
+            account through the browser, and keep writable calendar targets
+            visible in the same scheduling workspace.
+          </p>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Workspace sections">
+          <a class="sidebar-nav__item" href="/">Schedule workspace</a>
+          <a class="sidebar-nav__item" href="/calendar/setup">Apple setup</a>
+          <a class="sidebar-nav__item sidebar-nav__item--active" href="/google/setup">Google setup</a>
+          <a class="sidebar-nav__item" href="/alexa/setup">Alexa setup</a>
+          <a class="sidebar-nav__item" href="/alexa/simulator">Alexa simulator</a>
+          <a class="sidebar-nav__item" href="/privacy">Privacy policy</a>
+          <a class="sidebar-nav__item" href="/terms">Terms of use</a>
+        </nav>
+
+        <div class="sidebar-card">
+          <p class="eyebrow">Current source</p>
+          <strong>{{ runtime_config.source.replace("_", " ").title() }}</strong>
+          <span>
+            {% if runtime_config.ready %}
+            Google calendar setup is ready for writable scheduling.
+            {% else %}
+            Google calendar setup is still incomplete.
+            {% endif %}
+          </span>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <section class="hero panel hero-panel">
+          <div>
+            <p class="eyebrow">Google setup</p>
+            <h2>Connect Google without leaving the product model</h2>
+            <p class="hero-copy">
+              Save the shared client once, then connect the Google account and
+              discover writable calendar targets for the same create, edit, and
+              cancel flows used elsewhere in CalSync.
+            </p>
+          </div>
+        </section>
+
+        {% if flash_message %}
+        <section class="flash flash--success">{{ flash_message }}</section>
+        {% endif %}
+
+        {% if error_message %}
+        <section class="flash flash--error">{{ error_message }}</section>
+        {% endif %}
+
+        <section class="workspace-grid">
+          <div class="workspace-column">
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Shared OAuth app</p>
+                  <h3>Google setup</h3>
+                </div>
+              </div>
+              <form class="form-grid" method="post" action="/google/setup">
+                <label>
+                  <span>Google client ID</span>
+                  <input name="google_client_id" type="text" value="{{ google_settings.client_id }}" placeholder="Paste the Google OAuth client ID" required />
+                </label>
+                <label>
+                  <span>Google client secret</span>
+                  <input
+                    name="google_client_secret"
+                    type="password"
+                    placeholder="{% if google_settings.client_secret_saved %}Saved securely. Leave blank to keep it.{% else %}Paste the Google OAuth client secret{% endif %}"
+                  />
+                </label>
+                <div class="action-row">
+                  <button type="submit">Save Google OAuth setup</button>
+                  <a class="button-link button-link--secondary" href="{{ connect_url }}">Connect Google account</a>
+                </div>
+              </form>
+            </article>
+          </div>
+
+          <div class="workspace-column workspace-column--stack">
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Connected account</p>
+                  <h3>What the live app will use</h3>
+                </div>
+              </div>
+              <div class="detail-grid">
+                <article class="detail-card">
+                  <p class="eyebrow">Client ID</p>
+                  <strong>{{ google_settings.client_id or "Not set" }}</strong>
+                  <span>Shared across the self-hosted Google connect flow.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Client secret</p>
+                  <strong>{% if google_settings.client_secret_saved %}Saved{% else %}Missing{% endif %}</strong>
+                  <span>Stored encrypted in the product vault.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Account email</p>
+                  <strong>{{ runtime_config.account_email or "Not connected" }}</strong>
+                  <span>The Google account currently linked to this deployment.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Refresh token</p>
+                  <strong>{% if google_settings.refresh_token_saved %}Saved{% else %}Missing{% endif %}</strong>
+                  <span>Used to refresh Google Calendar access without reauth every time.</span>
+                </article>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Tracked calendars</p>
+                  <h3>Writable targets</h3>
+                </div>
+              </div>
+              {% if calendar_catalog %}
+              <div class="detail-grid">
+                {% for item in calendar_catalog %}
+                <article class="detail-card">
+                  <p class="eyebrow">{% if item.is_default %}Default target{% else %}Additional target{% endif %}</p>
+                  <strong>{{ item.calendar_name }}</strong>
+                  <span>{{ item.calendar_id }}</span>
+                </article>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="empty-state">
+                <h4>No Google calendars discovered yet</h4>
+                <p>Save the OAuth app, then use Connect Google account to pull the calendar list into CalSync.</p>
+              </div>
+              {% endif %}
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

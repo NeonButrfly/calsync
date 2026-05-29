@@ -1,15 +1,16 @@
 # CalSync
 
-CalSync is being rebooted as an Apple-first conversational scheduling system.
+CalSync is being rebooted as a conversational scheduling system with Apple-first roots and a growing Google write path.
 
 The previous full CalSync application was preserved on the `legacy/pre-chatgpt-brain-reset` branch so we can still reference its provider work, write-back patterns, and earlier UI ideas without carrying that whole surface forward on `main`.
 
 ## Current focus
 
-- ChatGPT app for Apple Calendar
+- ChatGPT app for household calendars
 - small owned service as the scheduling brain
-- iCloud as the family-facing calendar target
-- future expansion toward Google intake, iCloud Reminders sync, and richer family/medical appointment logic
+- iCloud as the first family-facing calendar target
+- in-product Google OAuth connect plus writable Google targets
+- future expansion toward iCloud Reminders sync and richer family/medical appointment logic
 
 ## Working docs
 
@@ -22,7 +23,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, and `#48` are now backed by:
+Issues `#3`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, and `#48` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -42,6 +43,9 @@ Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#4
 - multiple saved Apple calendar targets, so create, edit, and sync flows can work across more than one household calendar
 - a product-facing readiness surface for Apple setup, channel tokens, edge reachability, and Alexa status
 - an in-product Apple calendar setup page plus encrypted product-vault storage for the Apple read/write connection
+- an in-product Google setup page plus encrypted product-vault storage for the shared Google OAuth app and connected-account refresh token
+- browser-based Google OAuth connect on the live CalSync domain
+- writable Google calendar targets that share the same create, edit, cancel, and schedule lookup paths
 - an in-product Alexa setup page plus downloadable skill package
 - an encrypted product vault for Cloudflare Worker-management credentials, so the Alexa setup flow can store operator access safely inside CalSync
 - a first availability finder across the workspace, edge API, and Alexa so CalSync can suggest open appointment windows instead of only listing busy ones
@@ -52,6 +56,10 @@ Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#4
 - `GET /calendar/setup`
 - `POST /calendar/setup`
 - `POST /calendar/setup/calendars`
+- `GET /google/setup`
+- `POST /google/setup`
+- `GET /auth/google/start`
+- `GET /auth/google/callback`
 - `GET /alexa/setup`
 - `POST /alexa/setup`
 - `GET /alexa/simulator`
@@ -71,18 +79,19 @@ Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#4
 The root page now acts as the first family scheduling UX:
 
 - polished create-appointment form
-- target-calendar picker for create and edit flows when more than one Apple calendar is saved
+- target-calendar picker for create and edit flows across saved Apple and connected Google calendars
 - day, week, and month schedule browsing
-- real Apple calendar events synced into the local scheduling brain for the requested window
+- real Apple and connected Google calendar events synced into the local scheduling brain for the requested window
 - active schedule views hide cancelled appointments by default while still allowing a reference view when you explicitly show them
 - selected appointment detail with audit trail and provider metadata
 - edit flow for existing appointments
 - cancel flow for existing appointments
 - an open-time finder for 30 and 60 minute style schedule gaps
-- direct Apple calendar read/write through the same backend used by the API and Worker
+- direct Apple and Google calendar read/write through the same backend used by the API and Worker
 - a first in-product readiness panel that explains whether Apple, tokens, edge, and Alexa are actually ready
 - a first in-product Apple calendar setup page that stores Apple credentials and calendar details securely in the product vault
 - a first in-product Apple calendar target manager that can add more writable household calendars and choose the default target
+- a first in-product Google setup page that stores the shared OAuth app securely and supports browser-based Google connect
 - a first in-product Alexa setup page that links the live endpoint, policy URLs, and skill package download
 - a first in-product Cloudflare access form that stores Worker-management credentials securely in the product vault
 - a first in-product Alexa edge-settings form that can read and update Worker Alexa flags when Cloudflare worker-management permission is configured
@@ -155,6 +164,7 @@ Current voice capabilities:
 - cancel a matching appointment by title and date
 - reschedule a matching appointment to a new day, time, or saved Apple calendar target
 - act on Apple events that already existed in the family calendar once the origin has synced the requested date window
+- share the same open-time lookup and writable scheduling brain that now supports connected Google targets too
 
 Current auth shape:
 
@@ -222,15 +232,16 @@ Current channels:
 4. Optionally override the display timezone used for synced provider events:
    - `DEFAULT_TIMEZONE`
 5. Choose a real `ENCRYPTION_KEY` so product-vault secrets are encrypted safely at rest.
-6. If you want Pi-driven Cloudflare KV sync from the app runtime, also fill in:
+6. If you want Google scheduling through the in-product browser connect flow, save the shared Google OAuth app on `GET /google/setup`.
+7. If you want Pi-driven Cloudflare KV sync from the app runtime, also fill in:
    - `CLOUDFLARE_ACCOUNT_ID`
    - `CLOUDFLARE_API_TOKEN`
    - `CLOUDFLARE_TOKEN_KV_NAMESPACE_ID`
    - `EDGE_BASE_URL`
-7. Start the stack with Docker Compose.
-8. Verify `http://127.0.0.1:3080/healthz`.
-9. Open `http://127.0.0.1:3080/` for the scheduling console.
-10. If you are preparing the Alexa slice, also set:
+8. Start the stack with Docker Compose.
+9. Verify `http://127.0.0.1:3080/healthz`.
+10. Open `http://127.0.0.1:3080/` for the scheduling console.
+11. If you are preparing the Alexa slice, also set:
   - `ALEXA_ALLOWED_SKILL_IDS`
   - `ALEXA_DEFAULT_TIMEZONE`
 
@@ -239,6 +250,8 @@ The API will not create calendar events until the Apple settings are populated.
 If you do not want Apple calendar credentials to live only in host env, the product now exposes `GET /calendar/setup`. That page stores the Apple username, app-specific password, primary calendar URL, calendar name, and account label securely in the product vault, encrypted at rest with `ENCRYPTION_KEY`.
 
 That same setup surface now also supports `POST /calendar/setup/calendars`, which lets operators add more Apple calendar targets and choose which one should be the default destination for new appointments.
+
+If you want Google scheduling without host-only secret edits, the product now exposes `GET /google/setup`. That page stores the shared Google OAuth client ID and secret securely in the product vault, then uses `GET /auth/google/start` and `GET /auth/google/callback` for the browser-based connect flow. Once connected, CalSync saves the Google refresh token, discovers calendars, and surfaces those writable Google targets in the same target-calendar picker used by the workspace.
 
 If you prefer not to keep a Worker-management API token in the host `.env`, the Alexa setup page can now save the Cloudflare account ID and API token inside CalSync. The product vault encrypts those values at rest with `ENCRYPTION_KEY`, then uses them for live `ENABLE_ALEXA` and `ALEXA_ALLOWED_SKILL_IDS` management.
 
@@ -250,6 +263,7 @@ If you prefer not to keep a Worker-management API token in the host `.env`, the 
 - Alexa skill slice: issue `#38`
 - In-product Alexa setup flow: issue `#45`
 - In-product Apple calendar setup vault: issue `#46`
+- In-product Google OAuth setup and writable targets: issue `#3`
 - Multi-calendar Apple writable targets and sync: issue `#31`
 - Named Apple calendar targeting for Alexa and simulator: issue `#47`
 - Availability search across workspace, edge, and Alexa: issue `#48`

@@ -1,5 +1,6 @@
 import tempfile
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -98,7 +99,8 @@ def test_console_root_renders_scheduler_surface(monkeypatch) -> None:
     assert "Calendar view" in response.text
     assert "Details that actually help" in response.text
     assert "System readiness" in response.text
-    assert "Calendar setup" in response.text
+    assert "Apple setup" in response.text
+    assert "Google setup" in response.text
     assert "Find open time" in response.text
 
 
@@ -127,7 +129,7 @@ def test_console_create_flow_redirects_and_shows_created_appointment(monkeypatch
     )
 
     assert response.status_code == 200
-    assert "Appointment created on your Apple calendar." in response.text
+    assert "Appointment created on the connected calendar." in response.text
     assert "Dentist" in response.text
     assert "Activity trail" in response.text
 
@@ -176,7 +178,7 @@ def test_console_edit_flow_prefills_and_updates(monkeypatch) -> None:
     )
 
     assert response.status_code == 200
-    assert "Appointment updated on your Apple calendar." in response.text
+    assert "Appointment updated on the connected calendar." in response.text
     assert "Dentist Follow-up" in response.text
 
 
@@ -208,7 +210,7 @@ def test_console_cancel_flow_marks_appointment_cancelled(monkeypatch) -> None:
     )
 
     assert response.status_code == 200
-    assert "Appointment cancelled on your Apple calendar." in response.text
+    assert "Appointment cancelled on the connected calendar." in response.text
     assert "Follow-up" not in response.text
 
 
@@ -268,6 +270,106 @@ def test_console_surfaces_provider_failure(monkeypatch) -> None:
 
     assert response.status_code == 400
     assert "Apple/iCloud authentication failed." in response.text
+
+
+def test_google_setup_page_renders_oauth_connect_surface(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/google/setup")
+
+    assert response.status_code == 200
+    assert "Google setup" in response.text
+    assert "Save Google OAuth setup" in response.text
+    assert "Connect Google account" in response.text
+
+
+def test_google_oauth_start_redirects_with_saved_state(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/auth/google/start", follow_redirects=False)
+
+    assert response.status_code == 302
+    redirect_target = response.headers["location"]
+    parsed = urlparse(redirect_target)
+    query = parse_qs(parsed.query)
+    assert parsed.netloc == "accounts.google.com"
+    assert query["client_id"] == ["google-client-id"]
+    assert query["scope"] == [
+        "openid email profile https://www.googleapis.com/auth/calendar"
+    ]
+    saved_state = service.get_google_oauth_state()
+    assert saved_state
+    assert query["state"] == [saved_state]
+
+
+def test_google_oauth_callback_saves_account_and_clears_state(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.set_google_oauth_state("state-123")
+
+    class FakeGoogleCalendarClient:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def exchange_code(self, *, code: str, redirect_uri: str):
+            assert code == "real-code"
+            assert redirect_uri.endswith("/auth/google/callback")
+            return {
+                "refresh_token": "google-refresh-token",
+                "access_token": "google-access-token",
+            }
+
+        def current_user_email(self, *, access_token: str | None = None) -> str:
+            assert access_token == "google-access-token"
+            return "kay@example.com"
+
+        def list_calendars(self, *, access_token: str | None = None):
+            assert access_token == "google-access-token"
+            return [
+                {
+                    "calendar_name": "Primary",
+                    "calendar_id": "primary",
+                    "is_default": True,
+                }
+            ]
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.GoogleCalendarClient",
+        FakeGoogleCalendarClient,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/auth/google/callback?state=state-123&code=real-code")
+
+    assert response.status_code == 200
+    assert "Google account connected and calendars discovered." in response.text
+    assert service.get_google_oauth_state() is None
+    assert service.get_google_account_settings() == {
+        "account_label": "kay@example.com",
+        "account_email": "kay@example.com",
+        "refresh_token": "google-refresh-token",
+    }
+    assert service.get_google_calendar_catalog() == [
+        {
+            "calendar_name": "Primary",
+            "calendar_id": "primary",
+            "is_default": True,
+        }
+    ]
 
 
 def test_public_policy_pages_render(monkeypatch) -> None:
@@ -635,7 +737,7 @@ def test_console_edit_flow_can_move_appointment_to_another_saved_calendar(monkey
     )
 
     assert response.status_code == 200
-    assert "Appointment updated on your Apple calendar." in response.text
+    assert "Appointment updated on the connected calendar." in response.text
     assert "School" in response.text
 
 

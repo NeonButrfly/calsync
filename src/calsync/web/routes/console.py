@@ -4,6 +4,7 @@ from datetime import UTC, date, datetime, timedelta
 from importlib.resources import files
 from io import BytesIO
 from pathlib import Path
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 from zipfile import ZipFile
 
@@ -24,6 +25,12 @@ from calsync.services.alexa_simulator import AlexaSimulatorService
 from calsync.services.appointments import AppointmentService
 from calsync.services.apple_runtime_config import AppleRuntimeConfigService
 from calsync.services.cloudflare_worker_config import CloudflareWorkerConfigService
+from calsync.services.google_calendar import (
+    GoogleCalendarClient,
+    GoogleCalendarError,
+    GoogleOAuthConfig,
+)
+from calsync.services.google_runtime_config import GoogleRuntimeConfigService
 from calsync.services.operator_settings import OperatorSettingsService
 from calsync.services.readiness import ReadinessService
 
@@ -191,6 +198,159 @@ def calendar_setup_add_calendar(
             "error_message": error_message,
         },
         status_code=200 if error_message is None else 400,
+    )
+
+
+@router.get("/google/setup")
+def google_setup_page(request: Request):
+    operator_settings = OperatorSettingsService()
+    google_settings = operator_settings.describe_google_oauth_settings()
+    runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
+    runtime_config = runtime_service.resolve()
+    return _templates.TemplateResponse(
+        request,
+        "google_setup.html",
+        {
+            "request": request,
+            "google_settings": google_settings,
+            "runtime_config": runtime_config,
+            "calendar_catalog": runtime_service.list_calendars(),
+            "flash_message": None,
+            "error_message": None,
+            "connect_url": "/auth/google/start",
+        },
+    )
+
+
+@router.post("/google/setup")
+def google_setup_update(
+    request: Request,
+    google_client_id: str = Form(""),
+    google_client_secret: str = Form(""),
+):
+    operator_settings = OperatorSettingsService()
+    try:
+        operator_settings.set_google_oauth_settings(
+            client_id=google_client_id,
+            client_secret=google_client_secret,
+            preserve_existing_secret=True,
+        )
+        flash_message = "Google OAuth settings saved securely."
+        error_message = None
+    except ValueError as exc:
+        flash_message = None
+        error_message = str(exc)
+
+    google_settings = operator_settings.describe_google_oauth_settings()
+    runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
+    runtime_config = runtime_service.resolve()
+    return _templates.TemplateResponse(
+        request,
+        "google_setup.html",
+        {
+            "request": request,
+            "google_settings": google_settings,
+            "runtime_config": runtime_config,
+            "calendar_catalog": runtime_service.list_calendars(),
+            "flash_message": flash_message,
+            "error_message": error_message,
+            "connect_url": "/auth/google/start",
+        },
+        status_code=200 if error_message is None else 400,
+    )
+
+
+@router.get("/auth/google/start")
+def google_oauth_start(request: Request):
+    operator_settings = OperatorSettingsService()
+    oauth_settings = operator_settings.get_google_oauth_settings()
+    client_id = str(oauth_settings["client_id"] or "").strip()
+    client_secret = str(oauth_settings["client_secret"] or "").strip()
+    if not client_id or not client_secret:
+        raise HTTPException(status_code=400, detail="Google OAuth settings are incomplete.")
+
+    state = str(uuid4())
+    operator_settings.set_google_oauth_state(state)
+    redirect_uri = str(request.url_for("google_oauth_callback"))
+    client = GoogleCalendarClient(
+        GoogleOAuthConfig(
+            account_label="Google",
+            account_email="",
+            client_id=client_id,
+            client_secret=client_secret,
+            refresh_token="placeholder",
+            primary_calendar_id="primary",
+            primary_calendar_name="Primary",
+        )
+    )
+    return RedirectResponse(
+        client.authorization_url(redirect_uri=redirect_uri, state=state),
+        status_code=302,
+    )
+
+
+@router.get("/auth/google/callback", name="google_oauth_callback")
+def google_oauth_callback(
+    request: Request,
+    state: str,
+    code: str,
+):
+    operator_settings = OperatorSettingsService()
+    expected_state = operator_settings.get_google_oauth_state()
+    if not expected_state or state != expected_state:
+        raise HTTPException(status_code=400, detail="Google OAuth state did not match.")
+    operator_settings.clear_google_oauth_state()
+
+    oauth_settings = operator_settings.get_google_oauth_settings()
+    client_id = str(oauth_settings["client_id"] or "").strip()
+    client_secret = str(oauth_settings["client_secret"] or "").strip()
+    if not client_id or not client_secret:
+        raise HTTPException(status_code=400, detail="Google OAuth settings are incomplete.")
+
+    client = GoogleCalendarClient(
+        GoogleOAuthConfig(
+            account_label="Google",
+            account_email="",
+            client_id=client_id,
+            client_secret=client_secret,
+            refresh_token="placeholder",
+            primary_calendar_id="primary",
+            primary_calendar_name="Primary",
+        )
+    )
+    redirect_uri = str(request.url_for("google_oauth_callback"))
+    token_payload = client.exchange_code(code=code, redirect_uri=redirect_uri)
+    refresh_token = str(token_payload["refresh_token"] or "").strip()
+    if not refresh_token:
+        raise HTTPException(
+            status_code=400,
+            detail="Google did not return a refresh token. Reconnect with consent again.",
+        )
+    access_token = str(token_payload["access_token"] or "").strip()
+    account_email = client.current_user_email(access_token=access_token)
+    calendar_catalog = client.list_calendars(access_token=access_token)
+    operator_settings.set_google_account_settings(
+        account_label=account_email,
+        account_email=account_email,
+        refresh_token=refresh_token,
+    )
+    operator_settings.set_google_calendar_catalog(calendar_catalog)
+
+    runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
+    google_settings = operator_settings.describe_google_oauth_settings()
+    runtime_config = runtime_service.resolve()
+    return _templates.TemplateResponse(
+        request,
+        "google_setup.html",
+        {
+            "request": request,
+            "google_settings": google_settings,
+            "runtime_config": runtime_config,
+            "calendar_catalog": runtime_service.list_calendars(),
+            "flash_message": "Google account connected and calendars discovered.",
+            "error_message": None,
+            "connect_url": "/auth/google/start",
+        },
     )
 
 
@@ -424,7 +584,13 @@ def scheduling_console(
         ).items
         selected_detail = _resolve_selected_detail(service, appointments, appointment_id)
         schedule_error = None
-    except (AppleCalDAVError, ModuleNotFoundError, SQLAlchemyError, ValueError):
+    except (
+        AppleCalDAVError,
+        GoogleCalendarError,
+        ModuleNotFoundError,
+        SQLAlchemyError,
+        ValueError,
+    ):
         appointments = []
         selected_detail = None
         schedule_error = "Schedule data is unavailable right now."
@@ -444,7 +610,7 @@ def scheduling_console(
                 date_to=str(availability_form_values["date_to"]),
                 duration_minutes=availability_duration_minutes,
             ).items
-        except (AppleCalDAVError, ValueError) as exc:
+        except (AppleCalDAVError, GoogleCalendarError, ValueError) as exc:
             availability_error = str(exc)
     return _templates.TemplateResponse(
         request,
@@ -501,7 +667,7 @@ def create_appointment_from_console(
             url=f"/?created=1&view=week&appointment_id={created.appointment_id}",
             status_code=303,
         )
-    except (AppleCalDAVError, ValueError) as exc:
+    except (AppleCalDAVError, GoogleCalendarError, ValueError) as exc:
         date_from, date_to, selected_window = _resolve_window("week")
         appointments = service.list_range(
             date_from=date_from.isoformat(),
@@ -650,7 +816,7 @@ def edit_appointment_from_console(
             },
             status_code=400,
         )
-    except AppleCalDAVError as exc:
+    except (AppleCalDAVError, GoogleCalendarError) as exc:
         appointment = service.get(appointment_id)
         return _templates.TemplateResponse(
             request,
@@ -692,6 +858,8 @@ def cancel_appointment_from_console(appointment_id: str):
         service.cancel(appointment_id, actor="console")
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (AppleCalDAVError, GoogleCalendarError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return RedirectResponse(url="/?cancelled=1&view=week", status_code=303)
 
 
@@ -951,6 +1119,8 @@ def _friendly_timestamp(value: str) -> str:
 def _provider_label(provider_type: str) -> str:
     if provider_type == "icloud_caldav":
         return "Apple Calendar"
+    if provider_type == "google_calendar":
+        return "Google Calendar"
     return provider_type.replace("_", " ").title()
 
 
@@ -987,7 +1157,7 @@ def _audit_summary(action: str, payload_json: dict[str, object] | None) -> str:
         title = payload.get("title")
         if isinstance(title, str) and title:
             return f"Created with the title “{title}”."
-        return "Created in CalSync and written to the Apple calendar."
+        return "Created in CalSync and written to the connected calendar."
     if action == "update_appointment":
         changed_fields = []
         for key in ("title", "date", "start_time", "end_time", "location", "notes"):
@@ -995,10 +1165,10 @@ def _audit_summary(action: str, payload_json: dict[str, object] | None) -> str:
                 changed_fields.append(key.replace("_", " "))
         if changed_fields:
             readable = ", ".join(changed_fields)
-            return f"Updated {readable} and synced the same Apple calendar event."
-        return "Updated this appointment and synced the same Apple calendar event."
+            return f"Updated {readable} and synced the same connected calendar event."
+        return "Updated this appointment and synced the same connected calendar event."
     if action == "cancel_appointment":
-        return "Cancelled in CalSync and removed from the Apple calendar."
+        return "Cancelled in CalSync and removed from the connected calendar."
     return "Recorded activity for this appointment."
 
 
@@ -1008,11 +1178,11 @@ def _flash_message(
     cancelled: str | None,
 ) -> str | None:
     if created:
-        return "Appointment created on your Apple calendar."
+        return "Appointment created on the connected calendar."
     if updated:
-        return "Appointment updated on your Apple calendar."
+        return "Appointment updated on the connected calendar."
     if cancelled:
-        return "Appointment cancelled on your Apple calendar."
+        return "Appointment cancelled on the connected calendar."
     return None
 
 
@@ -1063,9 +1233,17 @@ def _calendar_options(
     options: list[dict[str, object]] = []
     for item in service.available_calendars:
         calendar_url = str(item["calendar_url"])
+        account_label = str(item.get("account_label") or "").strip()
+        provider_type = str(item.get("provider_type") or "").strip()
+        provider_label = _provider_label(provider_type) if provider_type else ""
+        label_parts = [str(item["calendar_name"])]
+        if provider_label:
+            label_parts.append(provider_label)
+        if account_label:
+            label_parts.append(account_label)
         options.append(
             {
-                "label": str(item["calendar_name"]),
+                "label": " · ".join(label_parts),
                 "value": calendar_url,
                 "is_selected": calendar_url == selected_value
                 or (not selected_value and bool(item.get("is_default"))),
