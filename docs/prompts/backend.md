@@ -111,6 +111,18 @@ Expected UX behavior:
 - low-level provider metadata may still exist, but it should stay tucked behind a disclosure instead of dominating the primary experience
 - the console should still use the same Apple write-back path for create, edit, and cancel
 
+## Unified Connections UX Requirement
+
+- GitHub issue: `#17`
+- interpreted requirement: provider onboarding should feel like one professional product flow instead of a set of scattered setup pages
+
+Expected behavior:
+
+- `GET /connections` should summarize the live Apple and Google connection state in one place
+- operators should be able to see which provider paths are already writable and which still need setup
+- the shared workspace shell should link to that Connections surface directly
+- Apple setup and Google setup can remain separate deeper pages, but the day-to-day operator experience should have one clear entry point for connection state
+
 Expected API/edge support:
 
 - `GET /api/appointments/{appointment_id}` should return the richer appointment detail payload

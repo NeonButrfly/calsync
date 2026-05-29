@@ -112,6 +112,31 @@ def calendar_setup_page(request: Request):
     )
 
 
+@router.get("/connections")
+def connections_page(request: Request):
+    operator_settings = OperatorSettingsService()
+    apple_runtime_service = AppleRuntimeConfigService(operator_settings=operator_settings)
+    google_runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
+    apple_settings = operator_settings.describe_apple_calendar_settings()
+    google_settings = operator_settings.describe_google_oauth_settings()
+    apple_runtime = apple_runtime_service.resolve()
+    google_runtime = google_runtime_service.resolve()
+    return _templates.TemplateResponse(
+        request,
+        "connections.html",
+        {
+            "request": request,
+            "apple_settings": apple_settings,
+            "apple_runtime": apple_runtime,
+            "apple_calendar_catalog": apple_runtime_service.list_calendars(),
+            "google_settings": google_settings,
+            "google_runtime": google_runtime,
+            "google_calendar_catalog": google_runtime_service.list_calendars(),
+            "readiness": ReadinessService().build(),
+        },
+    )
+
+
 @router.post("/calendar/setup")
 def calendar_setup_update(
     request: Request,

@@ -26,6 +26,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "readiness surface" in readme_content
     assert "get /api/readiness" in readme_content
     assert "get /api/availability" in readme_content
+    assert "get /connections" in readme_content
     assert "get /alexa/setup" in readme_content
     assert "post /alexa/setup" in readme_content
     assert "get /calendar/setup" in readme_content
@@ -42,6 +43,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "browser-based google oauth connect on the live calsync domain" in readme_content
     assert "google calendar refresh and disconnect controls" in readme_content
     assert "writable google calendar targets" in readme_content
+    assert "connections workspace at `/connections`" in readme_content
     assert "target-calendar picker" in readme_content
     assert "open-time finder" in readme_content
     assert "multiple saved apple calendar targets" in readme_content
@@ -74,6 +76,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "syncs existing apple calendar events" in ops_content
     assert "post /appointments" in ops_content
     assert "professional web scheduling workspace" in ops_content
+    assert "connections workspace at `/connections`" in ops_content
     assert "get /api/appointments/{appointment_id}" in ops_content
     assert "get /api/availability" in ops_content
     assert "include_cancelled=true" in ops_content
@@ -81,6 +84,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /calendar/setup" in ops_content
     assert "post /calendar/setup" in ops_content
     assert "post /calendar/setup/calendars" in ops_content
+    assert "get /connections" in ops_content
     assert "get /google/setup" in ops_content
     assert "post /google/setup" in ops_content
     assert "get /auth/google/start" in ops_content
@@ -124,6 +128,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#48" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
+    assert "#17" in prompt_content
     assert "apple live calendar sync requirement" in prompt_content
     assert "in-product apple calendar setup requirement" in prompt_content
     assert "selected appointment detail surface" in prompt_content
@@ -145,6 +150,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /auth/google/callback" in prompt_content
     assert "save the apple account label" in prompt_content
     assert "in-product google oauth setup and writable targets requirement" in prompt_content
+    assert "unified connections ux requirement" in prompt_content
+    assert "get /connections" in prompt_content
     assert "save the shared google oauth client id and client secret" in prompt_content
     assert "save the google refresh token" in prompt_content
     assert "expose a live refresh path" in prompt_content

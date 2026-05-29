@@ -30,6 +30,7 @@ Issues `#3`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45
 - Alembic migrations
 - Apple CalDAV adapter for create, update, cancel, and range-based event sync
 - a polished scheduling workspace at `/` for create, edit, cancel, filtered browsing, and appointment detail review
+- a dedicated connections workspace at `/connections` that summarizes Apple and Google setup in one product surface
 - Local audit entries and appointment-to-provider event mapping
 - A dedicated Cloudflare Worker in `workers/edge-calsync`
 - Live ChatGPT-first edge hostname: `https://edge-calsync.neonbutterfly.net`
@@ -54,6 +55,7 @@ Issues `#3`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45
 ### Endpoints
 
 - `GET /`
+- `GET /connections`
 - `GET /calendar/setup`
 - `POST /calendar/setup`
 - `POST /calendar/setup/calendars`
@@ -94,6 +96,7 @@ The root page now acts as the first family scheduling UX:
 - a first in-product Apple calendar target manager that can add more writable household calendars and choose the default target
 - a first in-product Google setup page that stores the shared OAuth app securely and supports browser-based Google connect
 - a first in-product Google account management flow that can refresh discovered Google calendars or disconnect the linked Google account while preserving the saved OAuth client
+- a first in-product Connections page that pulls Apple and Google readiness into one calmer operator view
 - a first in-product Alexa setup page that links the live endpoint, policy URLs, and skill package download
 - a first in-product Cloudflare access form that stores Worker-management credentials securely in the product vault
 - a first in-product Alexa edge-settings form that can read and update Worker Alexa flags when Cloudflare worker-management permission is configured

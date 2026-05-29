@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CalSync Connections</title>
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">CalSync</p>
+          <h1>Connections that feel like one product</h1>
+          <p>
+            Keep Apple and Google account setup, writable targets, and next
+            actions in one calm operator surface instead of hunting through
+            disconnected forms.
+          </p>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Workspace sections">
+          <a class="sidebar-nav__item" href="/">Schedule workspace</a>
+          <a class="sidebar-nav__item sidebar-nav__item--active" href="/connections">Connections</a>
+          <a class="sidebar-nav__item" href="/calendar/setup">Apple setup</a>
+          <a class="sidebar-nav__item" href="/google/setup">Google setup</a>
+          <a class="sidebar-nav__item" href="/alexa/setup">Alexa setup</a>
+          <a class="sidebar-nav__item" href="/alexa/simulator">Alexa simulator</a>
+          <a class="sidebar-nav__item" href="/privacy">Privacy policy</a>
+          <a class="sidebar-nav__item" href="/terms">Terms of use</a>
+        </nav>
+
+        <div class="sidebar-card">
+          <p class="eyebrow">Current readiness</p>
+          <strong>{% if readiness.origin.any_calendar_ready %}A calendar path is ready{% else %}Calendar setup still needed{% endif %}</strong>
+          <span>{{ readiness.next_action }}</span>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <section class="hero panel hero-panel">
+          <div>
+            <p class="eyebrow">Connections</p>
+            <h2>See every calendar path in one place</h2>
+            <p class="hero-copy">
+              This page summarizes what CalSync can already write to, which
+              providers still need attention, and where to go next.
+            </p>
+          </div>
+        </section>
+
+        <section class="workspace-grid">
+          <div class="workspace-column workspace-column--stack">
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Apple calendar</p>
+                  <h3>Household calendar path</h3>
+                </div>
+              </div>
+              <div class="detail-grid">
+                <article class="detail-card">
+                  <p class="eyebrow">Status</p>
+                  <strong>{% if apple_runtime.ready %}Ready{% else %}Needs setup{% endif %}</strong>
+                  <span>{% if apple_runtime.ready %}Apple read/write is available to the scheduling brain.{% else %}Apple credentials or target details are still incomplete.{% endif %}</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Account</p>
+                  <strong>{{ apple_runtime.account_label or "Not connected" }}</strong>
+                  <span>{{ apple_runtime.username or "No Apple account saved yet." }}</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Default target</p>
+                  <strong>{{ apple_runtime.primary_calendar_name or "Not set" }}</strong>
+                  <span>{{ apple_runtime.primary_calendar_url or "No Apple calendar target saved yet." }}</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Writable targets</p>
+                  <strong>{{ apple_calendar_catalog|length }}</strong>
+                  <span>Saved Apple calendars available to the workspace and Alexa.</span>
+                </article>
+              </div>
+              <div class="action-row">
+                <a class="button-link" href="/calendar/setup">Open Apple setup</a>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Google calendar</p>
+                  <h3>Browser-connected Google path</h3>
+                </div>
+              </div>
+              <div class="detail-grid">
+                <article class="detail-card">
+                  <p class="eyebrow">Status</p>
+                  <strong>{% if google_runtime.ready %}Ready{% else %}Needs setup{% endif %}</strong>
+                  <span>{% if google_runtime.ready %}Google writable scheduling is available in the shared appointment service.{% else %}Save the shared OAuth app and connect a Google account to finish this path.{% endif %}</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">OAuth app</p>
+                  <strong>{% if google_settings.client_secret_saved %}Saved{% else %}Missing{% endif %}</strong>
+                  <span>{{ google_settings.client_id or "No Google client ID saved yet." }}</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Connected account</p>
+                  <strong>{{ google_runtime.account_email or "Not connected" }}</strong>
+                  <span>{% if google_settings.refresh_token_saved %}Refresh token saved securely.{% else %}No connected Google account yet.{% endif %}</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Writable targets</p>
+                  <strong>{{ google_calendar_catalog|length }}</strong>
+                  <span>Discovered Google calendars available to create and edit flows.</span>
+                </article>
+              </div>
+              <div class="action-row">
+                <a class="button-link" href="/google/setup">Open Google setup</a>
+              </div>
+            </article>
+          </div>
+
+          <div class="workspace-column workspace-column--stack">
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">What this unlocks</p>
+                  <h3>Shared scheduling brain</h3>
+                </div>
+              </div>
+              <div class="detail-stack">
+                <p class="appointment-detail"><strong>Create and edit:</strong> the same appointment flow can already target Apple or Google when those connections are ready.</p>
+                <p class="appointment-detail"><strong>Availability:</strong> open-time lookup uses the same synced appointment inventory behind the workspace and Alexa.</p>
+                <p class="appointment-detail"><strong>Alexa:</strong> voice flows benefit from the same connected calendar paths once the edge turn-on is complete.</p>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Next actions</p>
+                  <h3>Finish the live stack</h3>
+                </div>
+              </div>
+              <div class="detail-stack">
+                <p class="appointment-detail"><strong>Readiness guidance:</strong> {{ readiness.next_action }}</p>
+                <p class="appointment-detail"><strong>Apple:</strong> {% if apple_runtime.ready %}already usable for live scheduling{% else %}open Apple setup and save the household calendar connection{% endif %}</p>
+                <p class="appointment-detail"><strong>Google:</strong> {% if google_runtime.ready %}already usable for live scheduling{% else %}open Google setup and connect the Google account through the browser{% endif %}</p>
+                <p class="appointment-detail"><strong>Alexa:</strong> finish edge enablement and skill-ID allowlisting from the Alexa setup page.</p>
+              </div>
+              <div class="action-row">
+                <a class="button-link" href="/alexa/setup">Open Alexa setup</a>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

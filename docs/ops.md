@@ -8,6 +8,7 @@ This guide covers the current CalSync service, family scheduling UX, live Apple 
 - exposes a date-range appointment list API for Worker lookup flows
 - exposes a shared availability API for open-slot lookup
 - exposes a professional web scheduling workspace at `/` for create, edit, cancel, filtered browsing, and review
+- exposes a connections workspace at `/connections` so Apple and Google setup can be reviewed together
 - stores normalized appointment records locally
 - syncs existing Apple calendar events and connected Google calendar events into the local scheduling brain for requested date windows
 - writes calendar mutations to one selected connected calendar target through CalDAV or Google Calendar
@@ -103,6 +104,7 @@ npm --prefix workers/edge-calsync test
 Root experience:
 
 - `GET /`
+- `GET /connections`
 - `GET /calendar/setup`
 - `POST /calendar/setup`
 - `POST /calendar/setup/calendars`
@@ -127,6 +129,7 @@ Behavior:
 - syncs the requested connected calendar date window before rendering the schedule
 - hides cancelled appointments from the default active schedule views while allowing a reference toggle when you intentionally want historical cancelled items
 - shows a full-stack readiness panel for Apple, channel tokens, edge reachability, and Alexa setup state
+- exposes a dedicated Connections page that summarizes Apple and Google setup in one place before the operator dives into provider-specific forms
 - exposes an in-product Apple calendar setup page with encrypted vault-backed storage instead of forcing host-only Apple env edits
 - exposes an in-product Google setup page with encrypted vault-backed OAuth storage plus browser-based account connect
 - exposes an in-product Alexa setup page with a live package download instead of forcing repo-only setup

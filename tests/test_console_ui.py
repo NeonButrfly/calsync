@@ -99,9 +99,44 @@ def test_console_root_renders_scheduler_surface(monkeypatch) -> None:
     assert "Calendar view" in response.text
     assert "Details that actually help" in response.text
     assert "System readiness" in response.text
+    assert "Connections" in response.text
     assert "Apple setup" in response.text
     assert "Google setup" in response.text
     assert "Find open time" in response.text
+
+
+def test_connections_page_renders_provider_summary(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.set_google_account_settings(
+        account_label="Kay Google",
+        account_email="kay@example.com",
+        refresh_token="google-refresh-token",
+    )
+    service.set_google_calendar_catalog(
+        [
+            {
+                "calendar_name": "Primary",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ]
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/connections")
+
+    assert response.status_code == 200
+    assert "Connections" in response.text
+    assert "Household calendar path" in response.text
+    assert "Browser-connected Google path" in response.text
+    assert "Open Apple setup" in response.text
+    assert "Open Google setup" in response.text
 
 
 def test_console_create_flow_redirects_and_shows_created_appointment(monkeypatch) -> None:
