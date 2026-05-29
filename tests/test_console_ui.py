@@ -98,6 +98,7 @@ def test_console_root_renders_scheduler_surface(monkeypatch) -> None:
     assert "Calendar view" in response.text
     assert "Details that actually help" in response.text
     assert "System readiness" in response.text
+    assert "Calendar setup" in response.text
 
 
 def test_console_create_flow_redirects_and_shows_created_appointment(monkeypatch) -> None:
@@ -313,6 +314,7 @@ def test_alexa_setup_page_renders_operator_steps(monkeypatch) -> None:
     assert "Download skill package" in response.text
     assert "https://edge-calsync.neonbutterfly.net/alexa" in response.text
     assert "/alexa/simulator" in response.text
+    assert "/calendar/setup" in response.text
     assert "Edge Worker controls" in response.text
     assert 'name="cloudflare_account_id"' in response.text
     assert 'name="cloudflare_api_token"' in response.text
@@ -427,6 +429,51 @@ def test_alexa_setup_page_saves_cloudflare_credentials(monkeypatch) -> None:
     assert service.get_cloudflare_worker_credentials() == {
         "account_id": "acct-123",
         "api_token": "token-123",
+    }
+
+
+def test_calendar_setup_page_renders_operator_fields(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/calendar/setup")
+
+    assert response.status_code == 200
+    assert "Calendar setup" in response.text
+    assert 'name="apple_account_label"' in response.text
+    assert 'name="apple_username"' in response.text
+    assert 'name="apple_app_specific_password"' in response.text
+    assert 'name="apple_primary_calendar_url"' in response.text
+    assert 'name="apple_primary_calendar_name"' in response.text
+
+
+def test_calendar_setup_page_saves_apple_settings(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/calendar/setup",
+        data={
+            "apple_account_label": "Household",
+            "apple_username": "household@example.com",
+            "apple_app_specific_password": "apple-secret-123",
+            "apple_primary_calendar_url": "https://caldav.icloud.com/household/",
+            "apple_primary_calendar_name": "Household",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Apple calendar settings saved securely." in response.text
+
+    service = OperatorSettingsService(settings=get_settings())
+    assert service.get_apple_calendar_settings() == {
+        "account_label": "Household",
+        "username": "household@example.com",
+        "app_specific_password": "apple-secret-123",
+        "primary_calendar_url": "https://caldav.icloud.com/household/",
+        "primary_calendar_name": "Household",
     }
 
 

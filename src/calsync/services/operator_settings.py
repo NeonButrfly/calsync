@@ -83,6 +83,66 @@ class OperatorSettingsService:
             "api_token": self.get_value("cloudflare_api_token"),
         }
 
+    def set_apple_calendar_settings(
+        self,
+        *,
+        account_label: str,
+        username: str,
+        app_specific_password: str,
+        primary_calendar_url: str,
+        primary_calendar_name: str,
+        preserve_existing_password: bool = False,
+    ) -> None:
+        normalized_account_label = account_label.strip()
+        normalized_username = username.strip()
+        normalized_password = app_specific_password.strip()
+        normalized_calendar_url = primary_calendar_url.strip()
+        normalized_calendar_name = primary_calendar_name.strip()
+
+        if not normalized_account_label:
+            raise ValueError("Apple account label is required.")
+        if not normalized_username:
+            raise ValueError("Apple username is required.")
+        if not normalized_calendar_url:
+            raise ValueError("Apple calendar URL is required.")
+        if not normalized_calendar_name:
+            raise ValueError("Apple calendar name is required.")
+
+        existing = self.get_apple_calendar_settings()
+        if not normalized_password and not (
+            preserve_existing_password and existing["app_specific_password"]
+        ):
+            raise ValueError("Apple app-specific password is required.")
+
+        self.set_value("apple_account_label", normalized_account_label)
+        self.set_value("apple_username", normalized_username)
+        self.set_value("apple_primary_calendar_url", normalized_calendar_url)
+        self.set_value("apple_primary_calendar_name", normalized_calendar_name)
+        if normalized_password:
+            self.set_value("apple_app_specific_password", normalized_password)
+
+    def get_apple_calendar_settings(self) -> dict[str, str | None]:
+        return {
+            "account_label": self.get_value("apple_account_label"),
+            "username": self.get_value("apple_username"),
+            "app_specific_password": self.get_value("apple_app_specific_password"),
+            "primary_calendar_url": self.get_value("apple_primary_calendar_url"),
+            "primary_calendar_name": self.get_value("apple_primary_calendar_name"),
+        }
+
+    def describe_apple_calendar_settings(self) -> dict[str, object]:
+        values = self.get_apple_calendar_settings()
+        return {
+            "account_label": values["account_label"] or "",
+            "username": values["username"] or "",
+            "primary_calendar_url": values["primary_calendar_url"] or "",
+            "primary_calendar_name": values["primary_calendar_name"] or "",
+            "password_saved": bool(values["app_specific_password"]),
+            "source": "product_vault"
+            if any(values.values())
+            else "missing",
+        }
+
     def describe_cloudflare_worker_credentials(self) -> dict[str, object]:
         values = self.get_cloudflare_worker_credentials()
         return {

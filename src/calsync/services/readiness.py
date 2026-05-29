@@ -5,6 +5,7 @@ from typing import Any
 import httpx
 
 from calsync.config import Settings, get_settings
+from calsync.services.apple_runtime_config import AppleRuntimeConfigService
 from calsync.services.channel_tokens import ChannelTokenManager
 
 
@@ -17,14 +18,16 @@ class ReadinessService:
         self.token_manager = ChannelTokenManager(
             runtime_path=self.settings.channel_token_runtime_path
         )
+        self.apple_runtime_config = AppleRuntimeConfigService(settings=self.settings)
 
     def build(self) -> dict[str, Any]:
         channel_tokens = self.token_manager.channel_presence(_CHANNELS)
         edge = self._fetch_edge_status()
+        apple = self.apple_runtime_config.resolve()
         origin = {
-            "apple_ready": self._apple_ready(),
-            "account_label": self.settings.apple_account_label,
-            "calendar_name": self.settings.apple_primary_calendar_name,
+            "apple_ready": bool(apple["ready"]),
+            "account_label": apple["account_label"],
+            "calendar_name": apple["primary_calendar_name"],
             "default_timezone": self.settings.default_timezone,
         }
         return {
@@ -81,10 +84,3 @@ class ReadinessService:
         if not channel_tokens.get("alexa", False):
             return "Bootstrap the Alexa channel token on the origin so voice-origin calls can be authenticated."
         return "The current Apple-first scheduling stack is ready for app, edge, and Alexa verification."
-
-    def _apple_ready(self) -> bool:
-        return bool(
-            self.settings.apple_username
-            and self.settings.apple_app_specific_password
-            and self.settings.apple_primary_calendar_url
-        )

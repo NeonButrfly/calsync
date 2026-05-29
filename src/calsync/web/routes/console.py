@@ -10,6 +10,7 @@ from zipfile import ZipFile
 from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.exc import SQLAlchemyError
 
 from calsync.schemas.appointments import (
     AppointmentDetailResponse,
@@ -20,6 +21,7 @@ from calsync.schemas.appointments import (
 from calsync.services.apple_caldav import AppleCalDAVError
 from calsync.services.alexa_simulator import AlexaSimulatorService
 from calsync.services.appointments import AppointmentService
+from calsync.services.apple_runtime_config import AppleRuntimeConfigService
 from calsync.services.cloudflare_worker_config import CloudflareWorkerConfigService
 from calsync.services.operator_settings import OperatorSettingsService
 from calsync.services.readiness import ReadinessService
@@ -80,6 +82,66 @@ def alexa_setup_page(request: Request):
             "flash_message": None,
             "error_message": None,
         },
+    )
+
+
+@router.get("/calendar/setup")
+def calendar_setup_page(request: Request):
+    apple_settings = OperatorSettingsService().describe_apple_calendar_settings()
+    runtime_config = AppleRuntimeConfigService().resolve()
+    return _templates.TemplateResponse(
+        request,
+        "calendar_setup.html",
+        {
+            "request": request,
+            "apple_settings": apple_settings,
+            "runtime_config": runtime_config,
+            "flash_message": None,
+            "error_message": None,
+        },
+    )
+
+
+@router.post("/calendar/setup")
+def calendar_setup_update(
+    request: Request,
+    apple_account_label: str = Form(""),
+    apple_username: str = Form(""),
+    apple_app_specific_password: str = Form(""),
+    apple_primary_calendar_url: str = Form(""),
+    apple_primary_calendar_name: str = Form(""),
+):
+    operator_settings = OperatorSettingsService()
+    try:
+        operator_settings.set_apple_calendar_settings(
+            account_label=apple_account_label,
+            username=apple_username,
+            app_specific_password=apple_app_specific_password,
+            primary_calendar_url=apple_primary_calendar_url,
+            primary_calendar_name=apple_primary_calendar_name,
+            preserve_existing_password=True,
+        )
+        flash_message = "Apple calendar settings saved securely."
+        error_message = None
+    except ValueError as exc:
+        flash_message = None
+        error_message = str(exc)
+
+    apple_settings = operator_settings.describe_apple_calendar_settings()
+    runtime_config = AppleRuntimeConfigService(
+        operator_settings=operator_settings
+    ).resolve()
+    return _templates.TemplateResponse(
+        request,
+        "calendar_setup.html",
+        {
+            "request": request,
+            "apple_settings": apple_settings,
+            "runtime_config": runtime_config,
+            "flash_message": flash_message,
+            "error_message": error_message,
+        },
+        status_code=200 if error_message is None else 400,
     )
 
 
@@ -285,12 +347,18 @@ def scheduling_console(
     service = AppointmentService()
     readiness = ReadinessService().build()
     date_from, date_to, selected_window = _resolve_window(view)
-    appointments = service.list_range(
-        date_from=date_from.isoformat(),
-        date_to=date_to.isoformat(),
-        include_cancelled=show_cancelled,
-    ).items
-    selected_detail = _resolve_selected_detail(service, appointments, appointment_id)
+    try:
+        appointments = service.list_range(
+            date_from=date_from.isoformat(),
+            date_to=date_to.isoformat(),
+            include_cancelled=show_cancelled,
+        ).items
+        selected_detail = _resolve_selected_detail(service, appointments, appointment_id)
+        schedule_error = None
+    except (AppleCalDAVError, ModuleNotFoundError, SQLAlchemyError, ValueError):
+        appointments = []
+        selected_detail = None
+        schedule_error = "Schedule data is unavailable right now."
     return _templates.TemplateResponse(
         request,
         "console.html",
@@ -300,7 +368,7 @@ def scheduling_console(
             appointments=appointments,
             selected_detail=selected_detail,
             flash_message=_flash_message(created, updated, cancelled),
-            error_message=None,
+            error_message=schedule_error,
             form_values=_empty_form_values(),
             selected_window=selected_window,
             show_cancelled=show_cancelled,
@@ -562,8 +630,8 @@ def _build_console_context(
             else None
         ),
         "form_values": form_values,
-        "calendar_label": service.settings.apple_primary_calendar_name,
-        "account_label": service.settings.apple_account_label,
+        "calendar_label": service.display_calendar_name,
+        "account_label": service.display_account_label,
         "selected_window": selected_window,
         "show_cancelled": show_cancelled,
         "window_options": _window_options(

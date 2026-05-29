@@ -13,6 +13,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#43" in readme_content
     assert "#44" in readme_content
     assert "#45" in readme_content
+    assert "#46" in readme_content
     assert "#37" in readme_content
     assert "polished scheduling workspace" in readme_content
     assert "live apple primary-calendar reads" in readme_content
@@ -22,8 +23,11 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /api/readiness" in readme_content
     assert "get /alexa/setup" in readme_content
     assert "post /alexa/setup" in readme_content
+    assert "get /calendar/setup" in readme_content
+    assert "post /calendar/setup" in readme_content
     assert "get /alexa/simulator" in readme_content
     assert "alexa setup page" in readme_content
+    assert "apple calendar setup page" in readme_content
     assert "edge-settings form" in readme_content
     assert "cloudflare access form" in readme_content
     assert "product vault" in readme_content
@@ -42,6 +46,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#41" in ops_content
     assert "#43" in ops_content
     assert "#45" in ops_content
+    assert "#46" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
     assert "web scheduling workspace" in ops_content
     assert "syncs existing apple calendar events" in ops_content
@@ -50,6 +55,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /api/appointments/{appointment_id}" in ops_content
     assert "include_cancelled=true" in ops_content
     assert "get /api/readiness" in ops_content
+    assert "get /calendar/setup" in ops_content
+    assert "post /calendar/setup" in ops_content
     assert "get /alexa/setup" in ops_content
     assert "post /alexa/setup" in ops_content
     assert "get /alexa/simulator" in ops_content
@@ -57,6 +64,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "post /alexa/simulator" in ops_content
     assert "post /alexa/simulate" in ops_content
     assert "cloudflare worker access form" in ops_content
+    assert "apple calendar setup page" in ops_content
     assert "encrypted with `encryption_key`" in ops_content
     assert "workers scripts write" in ops_content
     assert "enable_alexa" in ops_content
@@ -74,7 +82,9 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#41" in prompt_content
     assert "#43" in prompt_content
     assert "#45" in prompt_content
+    assert "#46" in prompt_content
     assert "apple live calendar sync requirement" in prompt_content
+    assert "in-product apple calendar setup requirement" in prompt_content
     assert "selected appointment detail surface" in prompt_content
     assert "get /v1/appointments/{appointment_id}" in prompt_content
     assert "default active views should hide cancelled appointments" in prompt_content
@@ -84,6 +94,9 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /alexa/setup" in prompt_content
     assert "get /alexa/skill-package.zip" in prompt_content
     assert "get /alexa/simulator" in prompt_content
+    assert "get /calendar/setup" in prompt_content
+    assert "post /calendar/setup" in prompt_content
+    assert "save the apple account label" in prompt_content
     assert "save cloudflare worker-management credentials inside the product" in prompt_content
     assert "stored encrypted at rest with `encryption_key`" in prompt_content
     assert "enable_alexa" in prompt_content

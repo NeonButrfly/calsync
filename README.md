@@ -22,7 +22,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, and `#45` are now backed by:
+Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, and `#46` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -39,12 +39,15 @@ Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, and `#45` are now
 - a first Alexa custom-skill adapter on top of the same shared scheduling brain
 - live Apple primary-calendar reads, so existing household events show up in the shared workspace and voice flows
 - a product-facing readiness surface for Apple setup, channel tokens, edge reachability, and Alexa status
+- an in-product Apple calendar setup page plus encrypted product-vault storage for the Apple read/write connection
 - an in-product Alexa setup page plus downloadable skill package
 - an encrypted product vault for Cloudflare Worker-management credentials, so the Alexa setup flow can store operator access safely inside CalSync
 
 ### Endpoints
 
 - `GET /`
+- `GET /calendar/setup`
+- `POST /calendar/setup`
 - `GET /alexa/setup`
 - `POST /alexa/setup`
 - `GET /alexa/simulator`
@@ -71,6 +74,7 @@ The root page now acts as the first family scheduling UX:
 - cancel flow for existing appointments
 - direct Apple calendar read/write through the same backend used by the API and Worker
 - a first in-product readiness panel that explains whether Apple, tokens, edge, and Alexa are actually ready
+- a first in-product Apple calendar setup page that stores Apple credentials and calendar details securely in the product vault
 - a first in-product Alexa setup page that links the live endpoint, policy URLs, and skill package download
 - a first in-product Cloudflare access form that stores Worker-management credentials securely in the product vault
 - a first in-product Alexa edge-settings form that can read and update Worker Alexa flags when Cloudflare worker-management permission is configured
@@ -219,6 +223,8 @@ Current channels:
 
 The API will not create calendar events until the Apple settings are populated.
 
+If you do not want Apple calendar credentials to live only in host env, the product now exposes `GET /calendar/setup`. That page stores the Apple username, app-specific password, primary calendar URL, calendar name, and account label securely in the product vault, encrypted at rest with `ENCRYPTION_KEY`.
+
 If you prefer not to keep a Worker-management API token in the host `.env`, the Alexa setup page can now save the Cloudflare account ID and API token inside CalSync. The product vault encrypts those values at rest with `ENCRYPTION_KEY`, then uses them for live `ENABLE_ALEXA` and `ALEXA_ALLOWED_SKILL_IDS` management.
 
 ## Tracking
@@ -228,6 +234,7 @@ If you prefer not to keep a Worker-management API token in the host `.env`, the 
 - Remote MCP server slice: issue `#37`
 - Alexa skill slice: issue `#38`
 - In-product Alexa setup flow: issue `#45`
+- In-product Apple calendar setup vault: issue `#46`
 - Runtime token store mount fix: issue `#44`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

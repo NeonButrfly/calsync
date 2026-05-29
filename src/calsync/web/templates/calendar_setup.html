@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CalSync Calendar Setup</title>
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">CalSync</p>
+          <h1>Calendar setup that feels like part of the product</h1>
+          <p>
+            Save the Apple calendar credentials and target calendar details inside
+            CalSync so the read/write scheduling path does not depend on host-only
+            environment editing.
+          </p>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Workspace sections">
+          <a class="sidebar-nav__item" href="/">Schedule workspace</a>
+          <a class="sidebar-nav__item sidebar-nav__item--active" href="/calendar/setup">Calendar setup</a>
+          <a class="sidebar-nav__item" href="/alexa/setup">Alexa setup</a>
+          <a class="sidebar-nav__item" href="/alexa/simulator">Alexa simulator</a>
+          <a class="sidebar-nav__item" href="/privacy">Privacy policy</a>
+          <a class="sidebar-nav__item" href="/terms">Terms of use</a>
+        </nav>
+
+        <div class="sidebar-card">
+          <p class="eyebrow">Current source</p>
+          <strong>{{ runtime_config.source.replace("_", " ").title() }}</strong>
+          <span>
+            {% if runtime_config.ready %}
+            Apple calendar setup is ready for the live scheduling brain.
+            {% else %}
+            Apple calendar setup is still incomplete.
+            {% endif %}
+          </span>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <section class="hero panel hero-panel">
+          <div>
+            <p class="eyebrow">Calendar setup</p>
+            <h2>Keep the Apple calendar connection inside CalSync</h2>
+            <p class="hero-copy">
+              These values are stored securely in the product vault and can power
+              the same read/write calendar path used by the workspace, the API,
+              ChatGPT, and Alexa.
+            </p>
+          </div>
+        </section>
+
+        {% if flash_message %}
+        <section class="flash flash--success">{{ flash_message }}</section>
+        {% endif %}
+
+        {% if error_message %}
+        <section class="flash flash--error">{{ error_message }}</section>
+        {% endif %}
+
+        <section class="workspace-grid">
+          <div class="workspace-column">
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Apple calendar</p>
+                  <h3>Calendar setup</h3>
+                </div>
+              </div>
+              <form class="form-grid" method="post" action="/calendar/setup">
+                <label>
+                  <span>Account label</span>
+                  <input name="apple_account_label" type="text" value="{{ apple_settings.account_label }}" placeholder="Family" required />
+                </label>
+                <label>
+                  <span>Apple username</span>
+                  <input name="apple_username" type="text" value="{{ apple_settings.username }}" placeholder="family@example.com" required />
+                </label>
+                <label>
+                  <span>App-specific password</span>
+                  <input
+                    name="apple_app_specific_password"
+                    type="password"
+                    placeholder="{% if apple_settings.password_saved %}Saved securely. Leave blank to keep it.{% else %}Paste an Apple app-specific password{% endif %}"
+                  />
+                </label>
+                <label>
+                  <span>Primary calendar URL</span>
+                  <input
+                    name="apple_primary_calendar_url"
+                    type="text"
+                    value="{{ apple_settings.primary_calendar_url }}"
+                    placeholder="https://caldav.icloud.com/..."
+                    required
+                  />
+                </label>
+                <label>
+                  <span>Primary calendar name</span>
+                  <input name="apple_primary_calendar_name" type="text" value="{{ apple_settings.primary_calendar_name }}" placeholder="Family" required />
+                </label>
+                <div class="action-row">
+                  <button type="submit">Save calendar setup</button>
+                </div>
+              </form>
+            </article>
+          </div>
+
+          <div class="workspace-column workspace-column--stack">
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Current runtime</p>
+                  <h3>What the live app will use</h3>
+                </div>
+              </div>
+              <div class="detail-grid">
+                <article class="detail-card">
+                  <p class="eyebrow">Account label</p>
+                  <strong>{{ runtime_config.account_label or "Not set" }}</strong>
+                  <span>Used across the workspace and audit detail.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Calendar name</p>
+                  <strong>{{ runtime_config.primary_calendar_name or "Not set" }}</strong>
+                  <span>Shown as the family-facing calendar destination.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Username</p>
+                  <strong>{{ runtime_config.username or "Not set" }}</strong>
+                  <span>The Apple account CalSync will use for CalDAV read/write.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Password status</p>
+                  <strong>{% if apple_settings.password_saved or runtime_config.source == "deployment_env" %}Saved{% else %}Missing{% endif %}</strong>
+                  <span>App-specific password stays encrypted at rest in the product vault.</span>
+                </article>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

@@ -112,6 +112,19 @@ Operational boundary:
 - this first live-read slice only needs range-based Apple sync for the requested window
 - it does not yet need a full long-running background mirror of the entire calendar history
 
+## In-Product Apple Calendar Setup Requirement
+
+- GitHub issue: `#46`
+- interpreted requirement: the Apple-first product should manage its own Apple calendar connection from the UI instead of depending only on host `.env` edits
+
+Expected behavior:
+
+- `GET /calendar/setup` should render an operator-facing Apple calendar setup page
+- `POST /calendar/setup` should save the Apple account label, Apple username, Apple app-specific password, primary calendar URL, and primary calendar name
+- those product-managed Apple settings should be stored encrypted at rest with `ENCRYPTION_KEY`
+- the appointment service and readiness surface should fall back to product-vault Apple settings when deployment env values are absent
+- the main workspace and Alexa setup flow should link back to the Apple calendar setup page
+
 ## Cloudflare Deployment Requirement
 
 - GitHub issue: `#35`

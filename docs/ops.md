@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, and Alexa setup flow tracked in issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, and `#45`.
+This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, and Alexa setup flow tracked in issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, and `#46`.
 
 ## What This Service Does
 
@@ -98,6 +98,8 @@ npm --prefix workers/edge-calsync test
 Root experience:
 
 - `GET /`
+- `GET /calendar/setup`
+- `POST /calendar/setup`
 - `GET /alexa/setup`
 - `POST /alexa/setup`
 - `GET /alexa/simulator`
@@ -114,12 +116,32 @@ Behavior:
 - syncs the requested Apple calendar date window before rendering the schedule
 - hides cancelled appointments from the default active schedule views while allowing a reference toggle when you intentionally want historical cancelled items
 - shows a full-stack readiness panel for Apple, channel tokens, edge reachability, and Alexa setup state
+- exposes an in-product Apple calendar setup page with encrypted vault-backed storage instead of forcing host-only Apple env edits
 - exposes an in-product Alexa setup page with a live package download instead of forcing repo-only setup
 - can read and update the edge Worker Alexa flags from the setup page when Cloudflare worker-management permission is configured
 - exposes an in-product Alexa simulator page that previews the real Worker voice logic before the Amazon-side turn-on is finished
 - shows a selected appointment detail panel with audit activity and provider metadata
 - edits and cancels the same Apple-backed appointment records used by the API
 - is intended to be the first family-facing control surface instead of forcing operators to work from raw API calls
+
+### Apple calendar setup page
+
+- `GET /calendar/setup`
+- `POST /calendar/setup`
+
+This operator-facing flow now serves:
+
+- Apple account label
+- Apple username
+- Apple app-specific password
+- Apple primary calendar URL
+- Apple primary calendar name
+
+Current management boundary:
+
+- the product can use either deployment env Apple settings or product-vault Apple settings
+- product-vault Apple settings are encrypted with `ENCRYPTION_KEY`
+- the appointment service and readiness surface now fall back to those saved product settings when host env Apple values are absent
 
 ### Alexa setup page
 

@@ -78,3 +78,59 @@ def test_operator_settings_keeps_existing_token_when_blank_update() -> None:
         "account_id": "acct-456",
         "api_token": "api-token-123",
     }
+
+
+def test_operator_settings_encrypts_apple_calendar_values_at_rest() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.set_apple_calendar_settings(
+        account_label="Family",
+        username="family@example.com",
+        app_specific_password="apple-secret-123",
+        primary_calendar_url="https://caldav.icloud.com/family/",
+        primary_calendar_name="Family",
+    )
+
+    apple_state = service.describe_apple_calendar_settings()
+    assert apple_state["username"] == "family@example.com"
+    assert apple_state["password_saved"] is True
+    assert apple_state["source"] == "product_vault"
+
+    session_factory = _get_session_factory_for_url(settings.database_url)
+    with session_factory() as session:
+        stored_rows = {
+            row.key: row.value_encrypted
+            for row in session.query(OperatorSetting).all()
+        }
+
+    assert stored_rows["apple_username"] != "family@example.com"
+    assert stored_rows["apple_app_specific_password"] != "apple-secret-123"
+    assert stored_rows["apple_primary_calendar_url"] != "https://caldav.icloud.com/family/"
+
+
+def test_operator_settings_keeps_existing_apple_password_when_blank_update() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.set_apple_calendar_settings(
+        account_label="Family",
+        username="family@example.com",
+        app_specific_password="apple-secret-123",
+        primary_calendar_url="https://caldav.icloud.com/family/",
+        primary_calendar_name="Family",
+    )
+    service.set_apple_calendar_settings(
+        account_label="Household",
+        username="household@example.com",
+        app_specific_password="",
+        primary_calendar_url="https://caldav.icloud.com/household/",
+        primary_calendar_name="Household",
+        preserve_existing_password=True,
+    )
+
+    apple_settings = service.get_apple_calendar_settings()
+    assert apple_settings["account_label"] == "Household"
+    assert apple_settings["username"] == "household@example.com"
+    assert apple_settings["app_specific_password"] == "apple-secret-123"
+    assert apple_settings["primary_calendar_url"] == "https://caldav.icloud.com/household/"

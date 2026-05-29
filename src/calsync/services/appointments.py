@@ -29,6 +29,7 @@ from calsync.services.apple_caldav import (
     AppleCalDAVError,
     AppleListedEvent,
 )
+from calsync.services.apple_runtime_config import AppleRuntimeConfigService
 
 
 class AppointmentService:
@@ -39,7 +40,8 @@ class AppointmentService:
         session_factory: sessionmaker[Session] | None = None,
     ) -> None:
         self.settings = settings or get_settings()
-        self.session_factory = session_factory or create_session_factory(self.settings)
+        self.session_factory = session_factory
+        self.apple_runtime_config = AppleRuntimeConfigService(settings=self.settings)
 
     def create(
         self,
@@ -52,7 +54,7 @@ class AppointmentService:
             payload.end_time,
             payload.timezone,
         )
-        with self.session_factory() as session:
+        with self._get_session_factory()() as session:
             connection = self._ensure_primary_connection(session)
             provider_record = self._build_apple_client().create_event(
                 title=payload.title,
@@ -114,7 +116,7 @@ class AppointmentService:
         if end < start:
             raise ValueError("date_to must be on or after date_from.")
 
-        with self.session_factory() as session:
+        with self._get_session_factory()() as session:
             try:
                 self._sync_primary_range(
                     session,
@@ -151,7 +153,7 @@ class AppointmentService:
         payload: UpdateAppointmentRequest,
         actor: str = "api",
     ) -> AppointmentResponse:
-        with self.session_factory() as session:
+        with self._get_session_factory()() as session:
             appointment = self._get_appointment(session, appointment_id)
             external_link = self._get_external_link(session, appointment_id)
             next_date = payload.date or appointment.starts_at.date().isoformat()
@@ -216,7 +218,7 @@ class AppointmentService:
             )
 
     def cancel(self, appointment_id: str, actor: str = "api") -> AppointmentResponse:
-        with self.session_factory() as session:
+        with self._get_session_factory()() as session:
             appointment = self._get_appointment(session, appointment_id)
             external_link = self._get_external_link(session, appointment_id)
             self._build_apple_client().cancel_event(
@@ -242,13 +244,13 @@ class AppointmentService:
             )
 
     def get(self, appointment_id: str) -> AppointmentListItem:
-        with self.session_factory() as session:
+        with self._get_session_factory()() as session:
             appointment = self._get_appointment(session, appointment_id)
             external_link = self._get_external_link(session, appointment_id)
             return self._to_list_item(appointment, external_link)
 
     def get_detail(self, appointment_id: str) -> AppointmentDetailResponse:
-        with self.session_factory() as session:
+        with self._get_session_factory()() as session:
             appointment = self._get_appointment(session, appointment_id)
             external_link = self._get_external_link(session, appointment_id)
             connection = session.get(AppleCalendarConnection, appointment.connection_id)
@@ -294,19 +296,16 @@ class AppointmentService:
             )
 
     def _build_apple_client(self) -> AppleCalDAVClient:
-        if not (
-            self.settings.apple_username
-            and self.settings.apple_app_specific_password
-            and self.settings.apple_primary_calendar_url
-        ):
+        config = self.apple_runtime_config.resolve()
+        if not config["ready"]:
             raise ValueError("Apple/iCloud calendar settings are incomplete.")
         return AppleCalDAVClient(
             AppleCalDAVConfig(
-                account_label=self.settings.apple_account_label,
-                apple_username=self.settings.apple_username,
-                app_specific_password=self.settings.apple_app_specific_password,
-                primary_calendar_url=self.settings.apple_primary_calendar_url,
-                primary_calendar_name=self.settings.apple_primary_calendar_name,
+                account_label=str(config["account_label"]),
+                apple_username=str(config["username"]),
+                app_specific_password=str(config["app_specific_password"]),
+                primary_calendar_url=str(config["primary_calendar_url"]),
+                primary_calendar_name=str(config["primary_calendar_name"]),
             )
         )
 
@@ -318,13 +317,14 @@ class AppointmentService:
         )
         if existing is not None:
             return existing
-        if not self.settings.apple_primary_calendar_url or not self.settings.apple_username:
+        config = self.apple_runtime_config.resolve()
+        if not config["ready"]:
             raise ValueError("Primary Apple/iCloud calendar is not configured.")
         connection = AppleCalendarConnection(
-            account_label=self.settings.apple_account_label,
-            apple_username=self.settings.apple_username,
-            primary_calendar_url=self.settings.apple_primary_calendar_url,
-            primary_calendar_name=self.settings.apple_primary_calendar_name,
+            account_label=str(config["account_label"]),
+            apple_username=str(config["username"]),
+            primary_calendar_url=str(config["primary_calendar_url"]),
+            primary_calendar_name=str(config["primary_calendar_name"]),
             is_primary=True,
         )
         session.add(connection)
@@ -483,6 +483,19 @@ class AppointmentService:
         if tzinfo is None:
             return self.settings.default_timezone
         return getattr(tzinfo, "key", None) or self.settings.default_timezone
+
+    @property
+    def display_account_label(self) -> str:
+        return str(self.apple_runtime_config.resolve()["account_label"])
+
+    @property
+    def display_calendar_name(self) -> str:
+        return str(self.apple_runtime_config.resolve()["primary_calendar_name"])
+
+    def _get_session_factory(self) -> sessionmaker[Session]:
+        if self.session_factory is None:
+            self.session_factory = create_session_factory(self.settings)
+        return self.session_factory
 
     def _to_list_item(
         self,
