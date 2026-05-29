@@ -39,17 +39,21 @@
         <div class="sidebar-card">
           <p class="eyebrow">System readiness</p>
           <strong>
-            {% if readiness.origin.apple_ready %}
-            Apple calendar ready
+            {% if readiness.origin.any_calendar_ready %}
+            Connected calendar ready
             {% else %}
-            Apple setup still needed
+            Calendar setup still needed
             {% endif %}
           </strong>
           <span>{{ readiness.next_action }}</span>
           <ul class="feature-list">
             <li>
+              Apple calendar:
+              {% if readiness.origin.apple_ready %}ready{% else %}not connected{% endif %}
+            </li>
+            <li>
               Google setup:
-              {% if readiness.origin.google_ready %}ready{% else %}optional but not connected yet{% endif %}
+              {% if readiness.origin.google_ready %}ready{% else %}not connected yet{% endif %}
             </li>
             <li>
               ChatGPT token:

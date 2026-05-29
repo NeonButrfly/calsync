@@ -222,6 +222,34 @@ def google_setup_page(request: Request):
     )
 
 
+def _build_google_client_from_settings(
+    operator_settings: OperatorSettingsService,
+) -> GoogleCalendarClient:
+    oauth_settings = operator_settings.get_google_oauth_settings()
+    account_settings = operator_settings.get_google_account_settings()
+    runtime_config = GoogleRuntimeConfigService(
+        operator_settings=operator_settings
+    ).resolve()
+    client_id = str(oauth_settings["client_id"] or "").strip()
+    client_secret = str(oauth_settings["client_secret"] or "").strip()
+    refresh_token = str(account_settings["refresh_token"] or "").strip()
+    if not client_id or not client_secret:
+        raise ValueError("Google OAuth settings are incomplete.")
+    if not refresh_token:
+        raise ValueError("Google account is not connected yet.")
+    return GoogleCalendarClient(
+        GoogleOAuthConfig(
+            account_label=str(account_settings["account_label"] or "Google"),
+            account_email=str(account_settings["account_email"] or ""),
+            client_id=client_id,
+            client_secret=client_secret,
+            refresh_token=refresh_token,
+            primary_calendar_id=str(runtime_config["primary_calendar_id"] or "primary"),
+            primary_calendar_name=str(runtime_config["primary_calendar_name"] or "Primary"),
+        )
+    )
+
+
 @router.post("/google/setup")
 def google_setup_update(
     request: Request,
@@ -257,6 +285,69 @@ def google_setup_update(
             "connect_url": "/auth/google/start",
         },
         status_code=200 if error_message is None else 400,
+    )
+
+
+@router.post("/google/setup/refresh")
+def google_setup_refresh(request: Request):
+    operator_settings = OperatorSettingsService()
+    try:
+        client = _build_google_client_from_settings(operator_settings)
+        account_email = client.current_user_email()
+        calendar_catalog = client.list_calendars()
+        operator_settings.set_google_account_settings(
+            account_label=account_email,
+            account_email=account_email,
+            refresh_token="",
+            preserve_existing_refresh_token=True,
+        )
+        operator_settings.set_google_calendar_catalog(calendar_catalog)
+        flash_message = "Google calendars refreshed from the live account."
+        error_message = None
+    except (GoogleCalendarError, ValueError) as exc:
+        flash_message = None
+        error_message = str(exc)
+
+    google_settings = operator_settings.describe_google_oauth_settings()
+    runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
+    runtime_config = runtime_service.resolve()
+    return _templates.TemplateResponse(
+        request,
+        "google_setup.html",
+        {
+            "request": request,
+            "google_settings": google_settings,
+            "runtime_config": runtime_config,
+            "calendar_catalog": runtime_service.list_calendars(),
+            "flash_message": flash_message,
+            "error_message": error_message,
+            "connect_url": "/auth/google/start",
+        },
+        status_code=200 if error_message is None else 400,
+    )
+
+
+@router.post("/google/setup/disconnect")
+def google_setup_disconnect(request: Request):
+    operator_settings = OperatorSettingsService()
+    operator_settings.clear_google_oauth_state()
+    operator_settings.clear_google_account_settings()
+    operator_settings.clear_google_calendar_catalog()
+    google_settings = operator_settings.describe_google_oauth_settings()
+    runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
+    runtime_config = runtime_service.resolve()
+    return _templates.TemplateResponse(
+        request,
+        "google_setup.html",
+        {
+            "request": request,
+            "google_settings": google_settings,
+            "runtime_config": runtime_config,
+            "calendar_catalog": runtime_service.list_calendars(),
+            "flash_message": "Google account disconnected. The shared OAuth app is still saved.",
+            "error_message": None,
+            "connect_url": "/auth/google/start",
+        },
     )
 
 

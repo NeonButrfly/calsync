@@ -87,7 +87,7 @@
                 </label>
                 <div class="action-row">
                   <button type="submit">Save Google OAuth setup</button>
-                  <a class="button-link button-link--secondary" href="{{ connect_url }}">Connect Google account</a>
+                  <a class="button-link button-link--secondary" href="{{ connect_url }}">{% if google_settings.refresh_token_saved %}Reconnect Google account{% else %}Connect Google account{% endif %}</a>
                 </div>
               </form>
             </article>
@@ -122,6 +122,16 @@
                   <strong>{% if google_settings.refresh_token_saved %}Saved{% else %}Missing{% endif %}</strong>
                   <span>Used to refresh Google Calendar access without reauth every time.</span>
                 </article>
+              </div>
+              <div class="action-row">
+                <form method="post" action="/google/setup/refresh">
+                  <button type="submit" {% if not google_settings.refresh_token_saved %}disabled{% endif %}>Refresh Google calendars</button>
+                </form>
+                {% if google_settings.refresh_token_saved %}
+                <form method="post" action="/google/setup/disconnect">
+                  <button class="danger-button" type="submit">Disconnect Google account</button>
+                </form>
+                {% endif %}
               </div>
             </article>
 

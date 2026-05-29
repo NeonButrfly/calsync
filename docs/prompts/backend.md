@@ -75,6 +75,8 @@ Expected behavior:
 - those Google OAuth settings should be stored encrypted at rest with `ENCRYPTION_KEY`
 - `GET /auth/google/start` should begin a browser-based Google OAuth flow on the live CalSync domain
 - `GET /auth/google/callback` should exchange the code, save the Google refresh token, and discover the available calendars
+- the product should expose a live refresh path so operators can resync the discovered Google calendar catalog without reconnecting unnecessarily
+- the product should expose a safe disconnect path that clears the linked Google account and calendar list while preserving the shared deployment-wide OAuth client
 - discovered Google calendars should appear as writable targets in the same create and edit flows used by the workspace
 - the shared appointment service should be able to create, update, cancel, and date-range sync Google events through those targets
 

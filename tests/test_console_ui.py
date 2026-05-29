@@ -285,6 +285,38 @@ def test_google_setup_page_renders_oauth_connect_surface(monkeypatch) -> None:
     assert "Connect Google account" in response.text
 
 
+def test_google_setup_page_shows_refresh_and_disconnect_for_connected_account(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.set_google_account_settings(
+        account_label="Kay Google",
+        account_email="kay@example.com",
+        refresh_token="google-refresh-token",
+    )
+    service.set_google_calendar_catalog(
+        [
+            {
+                "calendar_name": "Primary",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ]
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/google/setup")
+
+    assert response.status_code == 200
+    assert "Reconnect Google account" in response.text
+    assert "Refresh Google calendars" in response.text
+    assert "Disconnect Google account" in response.text
+
+
 def test_google_oauth_start_redirects_with_saved_state(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     service = OperatorSettingsService(settings=get_settings())
@@ -370,6 +402,121 @@ def test_google_oauth_callback_saves_account_and_clears_state(monkeypatch) -> No
             "is_default": True,
         }
     ]
+
+
+def test_google_setup_refresh_updates_live_calendar_catalog(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.set_google_account_settings(
+        account_label="Old Label",
+        account_email="old@example.com",
+        refresh_token="google-refresh-token",
+    )
+    service.set_google_calendar_catalog(
+        [
+            {
+                "calendar_name": "Old Primary",
+                "calendar_id": "old-primary",
+                "is_default": True,
+            }
+        ]
+    )
+
+    class FakeGoogleCalendarClient:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def current_user_email(self, *, access_token: str | None = None) -> str:
+            assert access_token is None
+            return "kay@example.com"
+
+        def list_calendars(self, *, access_token: str | None = None):
+            assert access_token is None
+            return [
+                {
+                    "calendar_name": "Primary",
+                    "calendar_id": "primary",
+                    "is_default": True,
+                },
+                {
+                    "calendar_name": "Work",
+                    "calendar_id": "work",
+                    "is_default": False,
+                },
+            ]
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.GoogleCalendarClient",
+        FakeGoogleCalendarClient,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post("/google/setup/refresh")
+
+    assert response.status_code == 200
+    assert "Google calendars refreshed from the live account." in response.text
+    assert service.get_google_account_settings() == {
+        "account_label": "kay@example.com",
+        "account_email": "kay@example.com",
+        "refresh_token": "google-refresh-token",
+    }
+    assert service.get_google_calendar_catalog() == [
+        {
+            "calendar_name": "Primary",
+            "calendar_id": "primary",
+            "is_default": True,
+        },
+        {
+            "calendar_name": "Work",
+            "calendar_id": "work",
+            "is_default": False,
+        },
+    ]
+
+
+def test_google_setup_disconnect_clears_account_but_keeps_oauth_app(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.set_google_account_settings(
+        account_label="Kay Google",
+        account_email="kay@example.com",
+        refresh_token="google-refresh-token",
+    )
+    service.set_google_calendar_catalog(
+        [
+            {
+                "calendar_name": "Primary",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ]
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post("/google/setup/disconnect")
+
+    assert response.status_code == 200
+    assert "Google account disconnected. The shared OAuth app is still saved." in response.text
+    assert service.get_google_oauth_settings() == {
+        "client_id": "google-client-id",
+        "client_secret": "google-client-secret",
+    }
+    assert service.get_google_account_settings() == {
+        "account_label": None,
+        "account_email": None,
+        "refresh_token": None,
+    }
+    assert service.get_google_calendar_catalog() == []
 
 
 def test_public_policy_pages_render(monkeypatch) -> None:

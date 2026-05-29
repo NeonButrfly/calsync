@@ -45,6 +45,7 @@ Issues `#3`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45
 - an in-product Apple calendar setup page plus encrypted product-vault storage for the Apple read/write connection
 - an in-product Google setup page plus encrypted product-vault storage for the shared Google OAuth app and connected-account refresh token
 - browser-based Google OAuth connect on the live CalSync domain
+- in-product Google calendar refresh and disconnect controls so operators can resync calendar discovery or safely clear a connected Google account without losing the shared OAuth app
 - writable Google calendar targets that share the same create, edit, cancel, and schedule lookup paths
 - an in-product Alexa setup page plus downloadable skill package
 - an encrypted product vault for Cloudflare Worker-management credentials, so the Alexa setup flow can store operator access safely inside CalSync
@@ -92,6 +93,7 @@ The root page now acts as the first family scheduling UX:
 - a first in-product Apple calendar setup page that stores Apple credentials and calendar details securely in the product vault
 - a first in-product Apple calendar target manager that can add more writable household calendars and choose the default target
 - a first in-product Google setup page that stores the shared OAuth app securely and supports browser-based Google connect
+- a first in-product Google account management flow that can refresh discovered Google calendars or disconnect the linked Google account while preserving the saved OAuth client
 - a first in-product Alexa setup page that links the live endpoint, policy URLs, and skill package download
 - a first in-product Cloudflare access form that stores Worker-management credentials securely in the product vault
 - a first in-product Alexa edge-settings form that can read and update Worker Alexa flags when Cloudflare worker-management permission is configured
@@ -251,7 +253,7 @@ If you do not want Apple calendar credentials to live only in host env, the prod
 
 That same setup surface now also supports `POST /calendar/setup/calendars`, which lets operators add more Apple calendar targets and choose which one should be the default destination for new appointments.
 
-If you want Google scheduling without host-only secret edits, the product now exposes `GET /google/setup`. That page stores the shared Google OAuth client ID and secret securely in the product vault, then uses `GET /auth/google/start` and `GET /auth/google/callback` for the browser-based connect flow. Once connected, CalSync saves the Google refresh token, discovers calendars, and surfaces those writable Google targets in the same target-calendar picker used by the workspace.
+If you want Google scheduling without host-only secret edits, the product now exposes `GET /google/setup`. That page stores the shared Google OAuth client ID and secret securely in the product vault, then uses `GET /auth/google/start` and `GET /auth/google/callback` for the browser-based connect flow. Once connected, CalSync saves the Google refresh token, discovers calendars, and surfaces those writable Google targets in the same target-calendar picker used by the workspace. The same page can now also refresh the live Google calendar catalog or disconnect the linked Google account while leaving the shared OAuth app in place.
 
 If you prefer not to keep a Worker-management API token in the host `.env`, the Alexa setup page can now save the Cloudflare account ID and API token inside CalSync. The product vault encrypts those values at rest with `ENCRYPTION_KEY`, then uses them for live `ENABLE_ALEXA` and `ALEXA_ALLOWED_SKILL_IDS` management.
 

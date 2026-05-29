@@ -209,3 +209,44 @@ def test_operator_settings_encrypts_google_oauth_values_at_rest() -> None:
     assert stored_rows["google_client_id"] != "google-client-id"
     assert stored_rows["google_client_secret"] != "google-client-secret"
     assert stored_rows["google_refresh_token"] != "google-refresh-token"
+
+
+def test_operator_settings_can_clear_google_account_state() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.set_google_account_settings(
+        account_label="Kay Google",
+        account_email="kay@example.com",
+        refresh_token="google-refresh-token",
+    )
+    service.set_google_calendar_catalog(
+        [
+            {
+                "calendar_name": "Primary",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ]
+    )
+    service.set_google_oauth_state("state-123")
+
+    service.clear_google_oauth_state()
+    service.clear_google_account_settings()
+    service.clear_google_calendar_catalog()
+
+    assert service.get_google_oauth_settings() == {
+        "client_id": "google-client-id",
+        "client_secret": "google-client-secret",
+    }
+    assert service.get_google_account_settings() == {
+        "account_label": None,
+        "account_email": None,
+        "refresh_token": None,
+    }
+    assert service.get_google_calendar_catalog() == []
+    assert service.get_google_oauth_state() is None

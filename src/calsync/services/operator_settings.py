@@ -318,6 +318,14 @@ class OperatorSettingsService:
     def clear_google_oauth_state(self) -> None:
         self.delete_value("google_oauth_state")
 
+    def clear_google_account_settings(self) -> None:
+        self.delete_value("google_account_label")
+        self.delete_value("google_account_email")
+        self.delete_value("google_refresh_token")
+
+    def clear_google_calendar_catalog(self) -> None:
+        self.delete_value("google_calendar_catalog")
+
     def set_apple_calendar_catalog(self, calendars: list[dict[str, object]]) -> None:
         if not calendars:
             raise ValueError("At least one Apple calendar is required.")

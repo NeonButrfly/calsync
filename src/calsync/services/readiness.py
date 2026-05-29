@@ -40,6 +40,7 @@ class ReadinessService:
         origin = {
             "apple_ready": bool(apple["ready"]),
             "google_ready": bool(google["ready"]),
+            "any_calendar_ready": bool(apple["ready"] or google["ready"]),
             "account_label": primary_account_label,
             "calendar_name": primary_calendar_name,
             "default_timezone": self.settings.default_timezone,
@@ -85,8 +86,8 @@ class ReadinessService:
         channel_tokens: dict[str, bool],
         edge: dict[str, Any],
     ) -> str:
-        if not origin["apple_ready"]:
-            return "Add the Apple calendar credentials so CalSync can read and write the family calendar."
+        if not origin["any_calendar_ready"]:
+            return "Add an Apple calendar or finish Google setup so CalSync can read and write a real connected calendar."
         if not channel_tokens.get("chatgpt", False):
             return "Bootstrap the ChatGPT channel token so the edge Worker can authenticate app requests."
         if not edge.get("reachable", False):
@@ -97,4 +98,4 @@ class ReadinessService:
             return "Add the real Alexa skill ID to the edge Worker allowlist before turning voice access on."
         if not channel_tokens.get("alexa", False):
             return "Bootstrap the Alexa channel token on the origin so voice-origin calls can be authenticated."
-        return "The current Apple-first scheduling stack is ready for app, edge, and Alexa verification."
+        return "The current scheduling stack is ready for app, edge, and Alexa verification."

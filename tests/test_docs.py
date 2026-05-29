@@ -40,6 +40,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "apple calendar setup page" in readme_content
     assert "apple calendar target manager" in readme_content
     assert "browser-based google oauth connect on the live calsync domain" in readme_content
+    assert "google calendar refresh and disconnect controls" in readme_content
     assert "writable google calendar targets" in readme_content
     assert "target-calendar picker" in readme_content
     assert "open-time finder" in readme_content
@@ -96,6 +97,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "google setup page" in ops_content
     assert "browser-based account connect on the live calsync domain" in ops_content
     assert "writable google targets appear in the same picker" in ops_content
+    assert "refresh action that resyncs the connected google account email and discovered calendars" in ops_content
+    assert "disconnect action that clears the linked google account" in ops_content
     assert "target apple calendar" in ops_content
     assert "additional tracked apple calendar targets" in ops_content
     assert "move an appointment from one saved apple calendar target to another" in ops_content
@@ -144,6 +147,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "in-product google oauth setup and writable targets requirement" in prompt_content
     assert "save the shared google oauth client id and client secret" in prompt_content
     assert "save the google refresh token" in prompt_content
+    assert "expose a live refresh path" in prompt_content
+    assert "safe disconnect path" in prompt_content
     assert "create, update, cancel, and date-range sync google events" in prompt_content
     assert "multi-calendar apple target requirement" in prompt_content
     assert "target_calendar_url" in prompt_content

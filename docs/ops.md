@@ -173,12 +173,15 @@ This operator-facing flow now serves:
 - browser-based account connect on the live CalSync domain
 - encrypted refresh-token storage in the product vault
 - discovered Google calendar targets that can feed the same target picker used by the workspace
+- a refresh action that resyncs the connected Google account email and discovered calendars from the live Google API
+- a disconnect action that clears the linked Google account and calendar catalog while preserving the shared OAuth client
 
 Current management boundary:
 
 - the product stores the shared Google client ID, client secret, connected account label/email, refresh token, and discovered Google calendar catalog encrypted with `ENCRYPTION_KEY`
 - writable Google targets appear in the same picker used for `POST /appointments` and `POST /appointments/{appointment_id}/edit`
 - Google mutations and date-range reads now run through the same shared appointment service instead of a separate product path
+- disconnecting the Google account keeps the deployment-wide OAuth client in place so the operator can reconnect without re-entering the client ID and secret
 
 ### Alexa setup page
 
