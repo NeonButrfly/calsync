@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, and `#52` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, and `#53` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -33,6 +33,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - a polished scheduling workspace at `/` for create, edit, cancel, filtered browsing, and appointment detail review
 - a dedicated connections workspace at `/connections` that summarizes Apple, Google, and Microsoft setup in one product surface
 - a checklist-style connections workspace at `/connections` that also shows persisted write verification and direct run-test actions
+- a stronger Connections control center that can also trigger shared Google and Microsoft connect, refresh, and disconnect actions without leaving the page
 - Local audit entries and appointment-to-provider event mapping
 - A dedicated Cloudflare Worker in `workers/edge-calsync`
 - Live ChatGPT-first edge hostname: `https://edge-calsync.neonbutterfly.net`
@@ -69,6 +70,10 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - `GET /`
 - `GET /connections`
 - `POST /connections/test`
+- `POST /connections/google/refresh`
+- `POST /connections/google/disconnect`
+- `POST /connections/microsoft/refresh`
+- `POST /connections/microsoft/disconnect`
 - `GET /calendar/setup`
 - `POST /calendar/setup`
 - `POST /calendar/setup/calendars`
@@ -120,6 +125,7 @@ The root page now acts as the first family scheduling UX:
 - a first in-product write-test action on Apple, Google, and Microsoft target cards so operators can prove a writable calendar path works end to end
 - a first in-product Connections page that pulls Apple, Google, and Microsoft readiness into one calmer operator view
 - that Connections workspace now also acts as a checklist and verification center with persisted last-write proof per target
+- that Connections workspace now also acts as the primary day-to-day provider control surface for Google and Microsoft account actions
 - a first in-product Alexa setup page that links the live endpoint, policy URLs, and skill package download
 - a first in-product Cloudflare access form that stores Worker-management credentials securely in the product vault
 - a first in-product Alexa edge-settings form that can read and update Worker Alexa flags when Cloudflare worker-management permission is configured

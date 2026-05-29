@@ -20,6 +20,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#50" in readme_content
     assert "#51" in readme_content
     assert "#52" in readme_content
+    assert "#53" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -32,6 +33,10 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /api/availability" in readme_content
     assert "get /connections" in readme_content
     assert "post /connections/test" in readme_content
+    assert "post /connections/google/refresh" in readme_content
+    assert "post /connections/google/disconnect" in readme_content
+    assert "post /connections/microsoft/refresh" in readme_content
+    assert "post /connections/microsoft/disconnect" in readme_content
     assert "get /alexa/setup" in readme_content
     assert "post /alexa/setup" in readme_content
     assert "get /calendar/setup" in readme_content
@@ -64,6 +69,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "connections workspace at `/connections`" in readme_content
     assert "checklist-style connections workspace" in readme_content
     assert "persisted connection verification summaries" in readme_content
+    assert "stronger connections control center" in readme_content
     assert "target-calendar picker" in readme_content
     assert "open-time finder" in readme_content
     assert "multiple saved apple calendar targets" in readme_content
@@ -94,6 +100,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#50" in ops_content
     assert "#51" in ops_content
     assert "#52" in ops_content
+    assert "#53" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -111,6 +118,10 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "post /calendar/setup/calendars" in ops_content
     assert "get /connections" in ops_content
     assert "post /connections/test" in ops_content
+    assert "post /connections/google/refresh" in ops_content
+    assert "post /connections/google/disconnect" in ops_content
+    assert "post /connections/microsoft/refresh" in ops_content
+    assert "post /connections/microsoft/disconnect" in ops_content
     assert "get /google/setup" in ops_content
     assert "post /google/setup" in ops_content
     assert "get /auth/google/start" in ops_content
@@ -140,6 +151,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "disconnect action that clears one linked google account" in ops_content
     assert "run an in-product write smoke test" in ops_content
     assert "checklist-style verification center at `/connections`" in ops_content
+    assert "direct google and microsoft refresh/disconnect actions from `/connections`" in ops_content
     assert "microsoft setup page" in ops_content
     assert "browser-based account connect on the live calsync domain" in ops_content
     assert "multiple connected microsoft accounts under the same shared oauth app" in ops_content
@@ -173,6 +185,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#50" in prompt_content
     assert "#51" in prompt_content
     assert "#52" in prompt_content
+    assert "#53" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -204,6 +217,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "in-product google oauth setup and writable targets requirement" in prompt_content
     assert "unified connections ux requirement" in prompt_content
     assert "connections verification center requirement" in prompt_content
+    assert "connections provider control center requirement" in prompt_content
     assert "get /connections" in prompt_content
     assert "post /connections/test" in prompt_content
     assert "save the shared google oauth client id and client secret" in prompt_content

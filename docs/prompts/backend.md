@@ -161,6 +161,19 @@ Expected behavior:
 - the Connections page should show the last write proof message and timestamp per target instead of relying on one-time flash messages only
 - provider-specific setup pages may still expose `Run write test`, but `/connections` should become the calm operator surface where setup and verification come together
 
+## Connections Provider Control Center Requirement
+
+- GitHub issue: `#53`
+- interpreted requirement: `/connections` should become the primary control surface for routine Google and Microsoft provider management instead of only a status-and-proof page
+
+Expected behavior:
+
+- `/connections` should expose direct connect actions for Google and Microsoft account onboarding
+- `/connections` should expose direct refresh actions for one connected Google or Microsoft account at a time
+- `/connections` should expose direct disconnect actions for one connected Google or Microsoft account at a time
+- those actions should return to the shared Connections page with updated readiness and verification state instead of dropping the operator into a separate setup page
+- the provider-specific setup pages can remain for deeper editing of shared OAuth app settings, but routine provider management should feel shared and product-like from `/connections`
+
 Expected API/edge support:
 
 - `GET /api/appointments/{appointment_id}` should return the richer appointment detail payload

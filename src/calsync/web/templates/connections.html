@@ -195,6 +195,26 @@
                   <span>Discovered Google calendars available to create and edit flows.</span>
                 </article>
               </div>
+              {% if google_accounts %}
+              <div class="detail-stack">
+                {% for account in google_accounts %}
+                <article class="detail-card">
+                  <p class="eyebrow">Google account</p>
+                  <strong>{{ account.account_label }}</strong>
+                  <span>{{ account.account_email }}</span>
+                  <p class="appointment-detail"><strong>Writable targets:</strong> {{ account.calendars|length }}</p>
+                  <div class="action-row">
+                    <form method="post" action="/connections/google/refresh?account_email={{ account.account_email|urlencode }}">
+                      <button type="submit">Refresh Google calendars</button>
+                    </form>
+                    <form method="post" action="/connections/google/disconnect?account_email={{ account.account_email|urlencode }}">
+                      <button class="danger-button" type="submit">Disconnect Google account</button>
+                    </form>
+                  </div>
+                </article>
+                {% endfor %}
+              </div>
+              {% endif %}
               {% if google_targets %}
               <div class="detail-stack">
                 {% for item in google_targets %}
@@ -218,6 +238,7 @@
               </div>
               {% endif %}
               <div class="action-row">
+                <a class="button-link" href="/auth/google/start">{% if google_accounts %}Connect another Google account{% else %}Connect Google account{% endif %}</a>
                 <a class="button-link" href="/google/setup">Open Google setup</a>
               </div>
             </article>
@@ -251,6 +272,26 @@
                   <span>Discovered Outlook calendars available to create and edit flows.</span>
                 </article>
               </div>
+              {% if microsoft_accounts %}
+              <div class="detail-stack">
+                {% for account in microsoft_accounts %}
+                <article class="detail-card">
+                  <p class="eyebrow">Microsoft account</p>
+                  <strong>{{ account.account_label }}</strong>
+                  <span>{{ account.account_email }}</span>
+                  <p class="appointment-detail"><strong>Writable targets:</strong> {{ account.calendars|length }}</p>
+                  <div class="action-row">
+                    <form method="post" action="/connections/microsoft/refresh?account_email={{ account.account_email|urlencode }}">
+                      <button type="submit">Refresh Microsoft calendars</button>
+                    </form>
+                    <form method="post" action="/connections/microsoft/disconnect?account_email={{ account.account_email|urlencode }}">
+                      <button class="danger-button" type="submit">Disconnect Microsoft account</button>
+                    </form>
+                  </div>
+                </article>
+                {% endfor %}
+              </div>
+              {% endif %}
               {% if microsoft_targets %}
               <div class="detail-stack">
                 {% for item in microsoft_targets %}
@@ -274,6 +315,7 @@
               </div>
               {% endif %}
               <div class="action-row">
+                <a class="button-link" href="/auth/microsoft/start">{% if microsoft_accounts %}Connect another Microsoft account{% else %}Connect Microsoft account{% endif %}</a>
                 <a class="button-link" href="/microsoft/setup">Open Microsoft setup</a>
               </div>
             </article>

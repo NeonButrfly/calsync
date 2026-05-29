@@ -247,6 +247,150 @@ def test_connections_page_renders_microsoft_summary(monkeypatch) -> None:
     assert "Open Microsoft setup" in response.text
 
 
+def test_connections_page_shows_direct_provider_control_actions(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.set_google_account_settings(
+        account_label="Kay Google",
+        account_email="kay@example.com",
+        refresh_token="google-refresh-token",
+    )
+    service.set_google_calendar_catalog(
+        [
+            {
+                "calendar_name": "Primary",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ]
+    )
+    service.set_microsoft_oauth_settings(
+        client_id="microsoft-client-id",
+        client_secret="microsoft-client-secret",
+    )
+    service.set_microsoft_account_settings(
+        account_label="Kay Microsoft",
+        account_email="kay@outlook.com",
+        refresh_token="microsoft-refresh-token",
+    )
+    service.set_microsoft_calendar_catalog(
+        [
+            {
+                "calendar_name": "Calendar",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ]
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/connections")
+
+    assert response.status_code == 200
+    assert "Connect another Google account" in response.text
+    assert "Refresh Google calendars" in response.text
+    assert "Disconnect Google account" in response.text
+    assert "Connect another Microsoft account" in response.text
+    assert "Refresh Microsoft calendars" in response.text
+    assert "Disconnect Microsoft account" in response.text
+
+
+def test_connections_google_refresh_updates_live_calendar_catalog(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.upsert_google_account(
+        account_label="Old Label",
+        account_email="old@example.com",
+        refresh_token="google-refresh-token",
+        calendars=[
+            {
+                "calendar_name": "Old Primary",
+                "calendar_id": "old-primary",
+                "is_default": True,
+            }
+        ],
+    )
+
+    class FakeGoogleCalendarClient:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def current_user_email(self, *, access_token: str | None = None) -> str:
+            assert access_token is None
+            return "kay@example.com"
+
+        def list_calendars(self, *, access_token: str | None = None):
+            assert access_token is None
+            return [
+                {
+                    "calendar_name": "Primary",
+                    "calendar_id": "primary",
+                    "is_default": True,
+                }
+            ]
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.GoogleCalendarClient",
+        FakeGoogleCalendarClient,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post("/connections/google/refresh?account_email=old@example.com")
+
+    assert response.status_code == 200
+    assert "Connections" in response.text
+    assert "Google calendars refreshed from the live account." in response.text
+    assert "kay@example.com" in response.text
+
+
+def test_connections_microsoft_disconnect_clears_account_and_stays_on_connections(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_microsoft_oauth_settings(
+        client_id="microsoft-client-id",
+        client_secret="microsoft-client-secret",
+    )
+    service.set_microsoft_account_settings(
+        account_label="Kay Microsoft",
+        account_email="kay@outlook.com",
+        refresh_token="microsoft-refresh-token",
+    )
+    service.set_microsoft_calendar_catalog(
+        [
+            {
+                "calendar_name": "Calendar",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ]
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post("/connections/microsoft/disconnect?account_email=kay@outlook.com")
+
+    assert response.status_code == 200
+    assert "Connections" in response.text
+    assert "Microsoft account disconnected. The shared OAuth app is still saved." in response.text
+    assert service.get_microsoft_account_settings() == {
+        "account_label": None,
+        "account_email": None,
+        "refresh_token": None,
+    }
+
+
 def test_console_create_flow_redirects_and_shows_created_appointment(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     monkeypatch.setattr(

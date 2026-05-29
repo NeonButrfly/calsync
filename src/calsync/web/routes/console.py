@@ -184,6 +184,130 @@ def connections_run_write_test(
     )
 
 
+@router.post("/connections/google/refresh")
+def connections_google_refresh(request: Request):
+    operator_settings = OperatorSettingsService()
+    requested_account_email = str((request.query_params.get("account_email") or "")).strip() or None
+    try:
+        client = _build_google_client_from_settings(
+            operator_settings,
+            account_email=requested_account_email,
+        )
+        selected_runtime = GoogleRuntimeConfigService(
+            operator_settings=operator_settings
+        ).resolve(account_email=requested_account_email)
+        account_email = client.current_user_email()
+        calendar_catalog = client.list_calendars()
+        previous_account_email = str(selected_runtime["account_email"] or "").strip()
+        if previous_account_email and previous_account_email.lower() != account_email.lower():
+            operator_settings.remove_google_account(previous_account_email)
+        operator_settings.upsert_google_account(
+            account_label=account_email,
+            account_email=account_email,
+            refresh_token=str(selected_runtime["refresh_token"] or ""),
+            calendars=calendar_catalog,
+        )
+        flash_message = "Google calendars refreshed from the live account."
+        error_message = None
+    except (GoogleCalendarError, ValueError) as exc:
+        flash_message = None
+        error_message = str(exc)
+
+    return _templates.TemplateResponse(
+        request,
+        "connections.html",
+        _build_connections_context(
+            request,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
+        status_code=200 if error_message is None else 400,
+    )
+
+
+@router.post("/connections/google/disconnect")
+def connections_google_disconnect(request: Request):
+    operator_settings = OperatorSettingsService()
+    operator_settings.clear_google_oauth_state()
+    account_email = str((request.query_params.get("account_email") or "")).strip() or None
+    if account_email:
+        operator_settings.remove_google_account(account_email)
+    else:
+        operator_settings.clear_google_account_settings()
+        operator_settings.clear_google_calendar_catalog()
+    return _templates.TemplateResponse(
+        request,
+        "connections.html",
+        _build_connections_context(
+            request,
+            flash_message="Google account disconnected. The shared OAuth app is still saved.",
+            error_message=None,
+        ),
+    )
+
+
+@router.post("/connections/microsoft/refresh")
+def connections_microsoft_refresh(request: Request):
+    operator_settings = OperatorSettingsService()
+    requested_account_email = str((request.query_params.get("account_email") or "")).strip() or None
+    try:
+        client = _build_microsoft_client_from_settings(
+            operator_settings,
+            account_email=requested_account_email,
+        )
+        selected_runtime = MicrosoftRuntimeConfigService(
+            operator_settings=operator_settings
+        ).resolve(account_email=requested_account_email)
+        account_email = client.current_user_email()
+        calendar_catalog = client.list_calendars()
+        previous_account_email = str(selected_runtime["account_email"] or "").strip()
+        if previous_account_email and previous_account_email.lower() != account_email.lower():
+            operator_settings.remove_microsoft_account(previous_account_email)
+        operator_settings.upsert_microsoft_account(
+            account_label=account_email,
+            account_email=account_email,
+            refresh_token=str(selected_runtime["refresh_token"] or ""),
+            calendars=calendar_catalog,
+        )
+        flash_message = "Microsoft calendars refreshed from the live account."
+        error_message = None
+    except (MicrosoftCalendarError, ValueError) as exc:
+        flash_message = None
+        error_message = str(exc)
+
+    return _templates.TemplateResponse(
+        request,
+        "connections.html",
+        _build_connections_context(
+            request,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
+        status_code=200 if error_message is None else 400,
+    )
+
+
+@router.post("/connections/microsoft/disconnect")
+def connections_microsoft_disconnect(request: Request):
+    operator_settings = OperatorSettingsService()
+    operator_settings.clear_microsoft_oauth_state()
+    account_email = str((request.query_params.get("account_email") or "")).strip() or None
+    if account_email:
+        operator_settings.remove_microsoft_account(account_email)
+    else:
+        operator_settings.clear_microsoft_account_settings()
+        operator_settings.clear_microsoft_calendar_catalog()
+    return _templates.TemplateResponse(
+        request,
+        "connections.html",
+        _build_connections_context(
+            request,
+            flash_message="Microsoft account disconnected. The shared OAuth app is still saved.",
+            error_message=None,
+        ),
+    )
+
+
 @router.post("/calendar/setup")
 def calendar_setup_update(
     request: Request,
