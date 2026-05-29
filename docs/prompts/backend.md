@@ -174,6 +174,19 @@ Expected behavior:
 - those actions should return to the shared Connections page with updated readiness and verification state instead of dropping the operator into a separate setup page
 - the provider-specific setup pages can remain for deeper editing of shared OAuth app settings, but routine provider management should feel shared and product-like from `/connections`
 
+## Planner-Style Schedule Board Requirement
+
+- GitHub issue: `#54`
+- interpreted requirement: the root schedule workspace should feel like a real planner product, so day, week, and month browsing must materially change the schedule presentation instead of only changing the query range under one agenda layout
+
+Expected behavior:
+
+- `/` should render a day board when `view=day`
+- `/` should render a week board when `view=week`
+- `/` should render a month board when `view=month`
+- the selected-appointment detail pane and write actions should remain intact while the schedule board becomes more calendar-like
+- the schedule board should remain useful even when some days are empty, so the planner surface still communicates open space instead of collapsing into a blank page
+
 Expected API/edge support:
 
 - `GET /api/appointments/{appointment_id}` should return the richer appointment detail payload

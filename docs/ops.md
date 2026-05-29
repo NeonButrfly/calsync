@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current CalSync service, family scheduling UX, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, Alexa setup flow, in-product writable target verification, the checklist-style Connections verification center, and direct provider actions from that shared surface tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, and `#53`.
+This guide covers the current CalSync service, family scheduling UX, the planner-style day/week/month schedule board, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, Alexa setup flow, in-product writable target verification, the checklist-style Connections verification center, and direct provider actions from that shared surface tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, and `#54`.
 
 ## What This Service Does
 
@@ -8,6 +8,7 @@ This guide covers the current CalSync service, family scheduling UX, live Apple 
 - exposes a date-range appointment list API for Worker lookup flows
 - exposes a shared availability API for open-slot lookup
 - exposes a professional web scheduling workspace at `/` for create, edit, cancel, filtered browsing, and review
+- exposes a planner-style day/week/month board at `/` so the selected schedule horizon changes the actual presentation layer
 - exposes a connections workspace at `/connections` so Apple, Google, and Microsoft setup can be reviewed together
 - exposes a checklist-style verification center at `/connections` so provider readiness and last write proof can be reviewed together
 - exposes direct Google and Microsoft refresh/disconnect actions from `/connections` so the shared control surface is not just read-only
@@ -150,6 +151,7 @@ Behavior:
 - exposes a dedicated Connections page that summarizes Apple, Google, and Microsoft setup in one place before the operator dives into provider-specific forms
 - exposes a checklist-driven Connections page that persists last write proof for each writable target and can rerun that proof directly from one place
 - exposes shared Google and Microsoft account actions from that same Connections page so operators can connect, refresh, or disconnect without bouncing into a different workflow for routine tasks
+- exposes a root schedule board that now renders distinct day, week, and month planning states instead of only a single agenda layout
 - exposes an in-product Apple calendar setup page with encrypted vault-backed storage instead of forcing host-only Apple env edits
 - exposes an in-product Google setup page with encrypted vault-backed OAuth storage plus browser-based account connect
 - exposes an in-product Microsoft setup page with encrypted vault-backed OAuth storage plus browser-based account connect

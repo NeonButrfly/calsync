@@ -1,7 +1,9 @@
 import tempfile
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
 
@@ -96,7 +98,7 @@ def test_console_root_renders_scheduler_surface(monkeypatch) -> None:
     assert response.status_code == 200
     assert "See the household schedule clearly" in response.text
     assert "New appointment" in response.text
-    assert "Calendar view" in response.text
+    assert "Week board" in response.text
     assert "Details that actually help" in response.text
     assert "System readiness" in response.text
     assert "Connections" in response.text
@@ -1846,6 +1848,59 @@ def test_console_supports_window_filters_and_selected_detail(monkeypatch) -> Non
     assert "Summer camp intake" in response.text
     assert "What CalSync has done with this appointment" in response.text
     assert "Bring forms" in response.text
+
+
+def test_console_root_renders_distinct_planner_boards_for_day_week_and_month(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    today = datetime.now(UTC).astimezone(ZoneInfo("America/Anchorage")).date()
+    schedule = (
+        ("Today visit", today),
+        ("Week check-in", today + timedelta(days=2)),
+        ("Month planning", today + timedelta(days=12)),
+    )
+    for title, appointment_day in schedule:
+        create_response = client.post(
+            "/api/appointments",
+            json={
+                "title": title,
+                "date": appointment_day.isoformat(),
+                "start_time": "09:00",
+                "end_time": "10:00",
+                "timezone": "America/Anchorage",
+            },
+        )
+        assert create_response.status_code == 201
+
+    day_response = client.get("/?view=day")
+    assert day_response.status_code == 200
+    assert "Day board" in day_response.text
+    assert "schedule-board schedule-board--day" in day_response.text
+    assert "Today visit" in day_response.text
+    assert "Week check-in" not in day_response.text
+
+    week_response = client.get("/?view=week")
+    assert week_response.status_code == 200
+    assert "Week board" in week_response.text
+    assert "schedule-board schedule-board--week" in week_response.text
+    assert "Today visit" in week_response.text
+    assert "Week check-in" in week_response.text
+    assert "Month planning" not in week_response.text
+
+    month_response = client.get("/?view=month")
+    assert month_response.status_code == 200
+    assert "Month board" in month_response.text
+    assert "schedule-board schedule-board--month" in month_response.text
+    assert "Today visit" in month_response.text
+    assert "Week check-in" in month_response.text
+    assert "Month planning" in month_response.text
 
 
 def test_console_root_shows_existing_synced_apple_events(monkeypatch) -> None:

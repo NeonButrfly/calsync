@@ -166,22 +166,58 @@
               <div class="panel-head">
                 <div>
                   <p class="eyebrow">Upcoming</p>
-                  <h3>Calendar view</h3>
+                  <h3>{{ schedule_board.title }}</h3>
+                  <p class="panel-copy">{{ schedule_board.copy }}</p>
                 </div>
               </div>
 
-              {% if schedule_sections %}
-              <div class="schedule-sections">
-                {% for section in schedule_sections %}
-                <section class="schedule-section">
-                  <div class="schedule-section__head">
-                    <p class="eyebrow">{{ section.eyebrow }}</p>
-                    <h4>{{ section.date_label }}</h4>
+              {% if schedule_board.mode == "month" %}
+              <div class="schedule-board schedule-board--month">
+                {% for week in schedule_board.weeks %}
+                <div class="month-row">
+                  {% for day in week.days %}
+                  <section class="month-cell{% if not day.is_in_window %} month-cell--outside{% endif %}{% if day.is_today %} month-cell--today{% endif %}">
+                    <div class="month-cell__head">
+                      <span>{{ day.eyebrow }}</span>
+                      <strong>{{ day.day_number }}</strong>
+                    </div>
+                    {% if day.entries %}
+                    <div class="month-cell__stack">
+                      {% for item in day.entries %}
+                      <a
+                        class="month-chip{% if item.is_selected %} month-chip--selected{% endif %}"
+                        href="{{ item.detail_href }}"
+                        title="{{ item.title }} · {{ item.time_label }}"
+                      >
+                        <strong>{{ item.title }}</strong>
+                        <span>{{ item.time_label }}</span>
+                      </a>
+                      {% endfor %}
+                      {% if day.overflow_count %}
+                      <p class="month-overflow">+{{ day.overflow_count }} more</p>
+                      {% endif %}
+                    </div>
+                    {% elif day.is_in_window %}
+                    <p class="board-empty board-empty--compact">Open</p>
+                    {% endif %}
+                  </section>
+                  {% endfor %}
+                </div>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="schedule-board schedule-board--{{ schedule_board.mode }}">
+                {% for column in schedule_board.columns %}
+                <section class="board-column{% if column.is_today %} board-column--today{% endif %}">
+                  <div class="board-column__head">
+                    <p class="eyebrow">{{ column.eyebrow }}</p>
+                    <h4>{{ column.date_label }}</h4>
                   </div>
+                  {% if column.entries %}
                   <div class="schedule-stack">
-                    {% for item in section.entries %}
+                    {% for item in column.entries %}
                     <a
-                      class="schedule-card{% if item.is_selected %} schedule-card--selected{% endif %}"
+                      class="schedule-card{% if item.is_selected %} schedule-card--selected{% endif %}{% if schedule_board.mode == 'week' %} schedule-card--compact{% endif %}"
                       href="{{ item.detail_href }}"
                     >
                       <div class="schedule-card__row">
@@ -200,16 +236,11 @@
                     </a>
                     {% endfor %}
                   </div>
+                  {% else %}
+                  <p class="board-empty">Nothing scheduled yet</p>
+                  {% endif %}
                 </section>
                 {% endfor %}
-              </div>
-              {% else %}
-              <div class="empty-state">
-                <h4>No appointments in this window yet</h4>
-                <p>
-                  Create something new on the right, or let CalSync pull the
-                  existing Apple calendar schedule into this workspace.
-                </p>
               </div>
               {% endif %}
             </article>

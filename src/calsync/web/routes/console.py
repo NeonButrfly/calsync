@@ -1722,7 +1722,7 @@ def _build_console_context(
         ),
         "window_label": _WINDOWS[selected_window][0],
         "window_summary": _window_summary(selected_window),
-        "schedule_sections": _build_schedule_sections(
+        "schedule_board": _build_schedule_board(
             appointments,
             selected_window=selected_window,
             show_cancelled=show_cancelled,
@@ -1737,43 +1737,117 @@ def _build_console_context(
     }
 
 
-def _build_schedule_sections(
+def _build_schedule_board(
     appointments: list[AppointmentListItem],
     *,
     selected_window: str,
     show_cancelled: bool,
     selected_appointment_id: str | None,
-) -> list[dict[str, object]]:
-    sections: list[dict[str, object]] = []
-    grouped: dict[str, list[AppointmentListItem]] = {}
+) -> dict[str, object]:
+    grouped: dict[str, list[dict[str, object]]] = {}
     for item in appointments:
-        grouped.setdefault(item.date, []).append(item)
-
-    for day, items in grouped.items():
-        sections.append(
+        grouped.setdefault(item.date, []).append(
             {
-                "date_label": _friendly_date_label(day),
-                "eyebrow": _schedule_eyebrow(day),
-                "entries": [
-                    {
-                        "appointment_id": item.appointment_id,
-                        "title": item.title,
-                        "status": item.status,
-                        "time_label": _time_label(item),
-                        "people_label": item.attendees_text,
-                        "location_label": item.location,
-                        "detail_href": _detail_href(
-                            selected_window=selected_window,
-                            appointment_id=item.appointment_id,
-                            show_cancelled=show_cancelled,
-                        ),
-                        "is_selected": item.appointment_id == selected_appointment_id,
-                    }
-                    for item in items
-                ],
+                "appointment_id": item.appointment_id,
+                "title": item.title,
+                "status": item.status,
+                "time_label": _time_label(item),
+                "people_label": item.attendees_text,
+                "location_label": item.location,
+                "detail_href": _detail_href(
+                    selected_window=selected_window,
+                    appointment_id=item.appointment_id,
+                    show_cancelled=show_cancelled,
+                ),
+                "is_selected": item.appointment_id == selected_appointment_id,
             }
         )
-    return sections
+
+    window_start, window_end, _ = _resolve_window(selected_window)
+    if selected_window == "month":
+        return _build_month_board(
+            grouped,
+            window_start=window_start,
+            window_end=window_end,
+        )
+    return _build_column_board(
+        grouped,
+        selected_window=selected_window,
+        window_start=window_start,
+        window_end=window_end,
+    )
+
+
+def _build_column_board(
+    grouped: dict[str, list[dict[str, object]]],
+    *,
+    selected_window: str,
+    window_start: date,
+    window_end: date,
+) -> dict[str, object]:
+    columns: list[dict[str, object]] = []
+    cursor = window_start
+    today = _today_in_alaska()
+    while cursor <= window_end:
+        day_key = cursor.isoformat()
+        columns.append(
+            {
+                "eyebrow": _schedule_eyebrow(day_key),
+                "date_label": _friendly_date_label(day_key),
+                "entries": grouped.get(day_key, []),
+                "is_today": cursor == today,
+            }
+        )
+        cursor += timedelta(days=1)
+    return {
+        "mode": selected_window,
+        "title": "Day board" if selected_window == "day" else "Week board",
+        "copy": (
+            "Focus on the immediate day with one clean planning lane."
+            if selected_window == "day"
+            else "See the next seven days in parallel so it feels like real calendar planning."
+        ),
+        "has_appointments": any(column["entries"] for column in columns),
+        "columns": columns,
+    }
+
+
+def _build_month_board(
+    grouped: dict[str, list[dict[str, object]]],
+    *,
+    window_start: date,
+    window_end: date,
+) -> dict[str, object]:
+    grid_start = window_start - timedelta(days=window_start.weekday())
+    grid_end = window_end + timedelta(days=6 - window_end.weekday())
+    weeks: list[dict[str, object]] = []
+    today = _today_in_alaska()
+    cursor = grid_start
+    while cursor <= grid_end:
+        days: list[dict[str, object]] = []
+        for _ in range(7):
+            day_key = cursor.isoformat()
+            entries = grouped.get(day_key, [])
+            days.append(
+                {
+                    "eyebrow": cursor.strftime("%a").upper(),
+                    "day_number": cursor.day,
+                    "date_label": _friendly_date_label(day_key),
+                    "entries": entries[:3],
+                    "overflow_count": max(0, len(entries) - 3),
+                    "is_today": cursor == today,
+                    "is_in_window": window_start <= cursor <= window_end,
+                }
+            )
+            cursor += timedelta(days=1)
+        weeks.append({"days": days})
+    return {
+        "mode": "month",
+        "title": "Month board",
+        "copy": "See the next 30 days as a real planning board instead of a long undifferentiated list.",
+        "has_appointments": any(day["entries"] for week in weeks for day in week["days"]),
+        "weeks": weeks,
+    }
 
 
 def _serialize_detail(detail: AppointmentDetailResponse | None) -> dict[str, object] | None:

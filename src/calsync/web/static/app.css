@@ -305,6 +305,11 @@ button:hover,
   margin: 0.15rem 0 0;
 }
 
+.panel-copy {
+  color: var(--muted);
+  margin: 0.45rem 0 0;
+}
+
 .filter-row {
   display: flex;
   flex-wrap: wrap;
@@ -381,6 +386,112 @@ button:hover,
   gap: 0.75rem;
 }
 
+.schedule-board {
+  display: grid;
+  gap: 1rem;
+}
+
+.schedule-board--day {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.schedule-board--week {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.board-column {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(244, 249, 255, 0.82));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 0.9rem;
+  min-height: 16rem;
+  padding: 1rem;
+}
+
+.board-column--today,
+.month-cell--today {
+  border-color: rgba(11, 122, 105, 0.2);
+  box-shadow: 0 10px 24px rgba(11, 122, 105, 0.08);
+}
+
+.board-column__head,
+.month-cell__head {
+  align-items: start;
+  display: flex;
+  gap: 0.6rem;
+  justify-content: space-between;
+}
+
+.board-empty {
+  color: var(--muted);
+  margin: 0;
+}
+
+.board-empty--compact {
+  font-size: 0.9rem;
+}
+
+.month-row {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.month-cell {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(244, 249, 255, 0.82));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 0.75rem;
+  min-height: 11rem;
+  padding: 0.9rem;
+}
+
+.month-cell--outside {
+  opacity: 0.52;
+}
+
+.month-cell__stack {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.month-chip {
+  background: rgba(11, 122, 105, 0.08);
+  border: 1px solid transparent;
+  border-radius: 0.9rem;
+  color: inherit;
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.7rem 0.8rem;
+  text-decoration: none;
+}
+
+.month-chip strong,
+.month-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.month-chip span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.month-chip--selected {
+  background: rgba(11, 122, 105, 0.14);
+  border-color: rgba(11, 122, 105, 0.18);
+}
+
+.month-overflow {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  margin: 0;
+}
+
 .schedule-card {
   background: var(--surface-soft);
   border: 1px solid var(--border);
@@ -404,6 +515,10 @@ button:hover,
 .schedule-card--selected {
   background: rgba(11, 122, 105, 0.08);
   border-color: rgba(11, 122, 105, 0.18);
+}
+
+.schedule-card--compact {
+  padding: 0.85rem;
 }
 
 .schedule-card__row,
@@ -606,6 +721,11 @@ button:hover,
 
 @media (max-width: 1180px) {
   .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-board--week,
+  .month-row {
     grid-template-columns: 1fr;
   }
 }
