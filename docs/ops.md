@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, edge Worker, Alexa adapter, readiness surface, and Alexa setup flow tracked in issues `#32`, `#36`, `#38`, `#39`, `#40`, `#41`, `#43`, and `#45`.
+This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, and Alexa setup flow tracked in issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, and `#45`.
 
 ## What This Service Does
 
@@ -12,6 +12,7 @@ This guide covers the current Apple-first CalSync service, family scheduling UX,
 - writes calendar mutations to one configured iCloud calendar through CalDAV
 - keeps local audit entries for every mutation
 - supports Cloudflare edge token management for channel auth
+- exposes a remote authenticated MCP endpoint for ChatGPT-style tool access
 - reads the Pi-hosted `.runtime/channel-tokens.json` source-of-truth through an API-container bind mount
 
 ## Required Environment
@@ -203,6 +204,41 @@ Worker routes:
 - `PATCH /v1/appointments/{appointment_id}`
 - `POST /v1/appointments/{appointment_id}/cancel`
 - `POST /alexa`
+
+## MCP Worker summary
+
+Live MCP hostname:
+
+- `https://mcp-calsync.kaymayers9.workers.dev`
+
+Intended custom MCP hostname:
+
+- `https://mcp-calsync.neonbutterfly.net`
+
+Worker route:
+
+- `POST /mcp`
+
+Current tool surface:
+
+- `list_appointments`
+- `create_appointment`
+- `update_appointment`
+- `cancel_appointment`
+
+Current auth shape:
+
+- client access uses `Authorization: Bearer <token>` validated against the Worker secret `MCP_AUTH_TOKEN`
+- the MCP Worker forwards to `edge-calsync` using the Worker secret `EDGE_INTERNAL_TOKEN`
+- the live scheduling brain still remains on the origin and Apple CalDAV layer
+
+Recommended operator setup:
+
+1. Bootstrap or rotate an `mcp` token in the Pi runtime token store.
+2. Set that value as the `MCP_AUTH_TOKEN` Worker secret.
+3. Set the current `chatgpt` channel token as `EDGE_INTERNAL_TOKEN`.
+4. Deploy the Worker.
+5. Validate tool discovery and the full list/create/update/cancel flow against `POST /mcp`.
 
 ## Alexa skill summary
 

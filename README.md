@@ -22,7 +22,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#32`, `#36`, `#38`, `#39`, `#40`, `#41`, `#43`, and `#45` are now backed by:
+Issues `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, and `#45` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -32,6 +32,9 @@ Issues `#32`, `#36`, `#38`, `#39`, `#40`, `#41`, `#43`, and `#45` are now backed
 - Local audit entries and appointment-to-provider event mapping
 - A dedicated Cloudflare Worker in `workers/edge-calsync`
 - Live ChatGPT-first edge hostname: `https://edge-calsync.neonbutterfly.net`
+- a dedicated remote MCP Worker in `workers/mcp-calsync`
+- live MCP hostname: `https://mcp-calsync.kaymayers9.workers.dev`
+- intended custom MCP hostname: `https://mcp-calsync.neonbutterfly.net`
 - Live Pi origin hostname: `https://calsync.neonbutterfly.net`
 - a first Alexa custom-skill adapter on top of the same shared scheduling brain
 - live Apple primary-calendar reads, so existing household events show up in the shared workspace and voice flows
@@ -75,6 +78,29 @@ The root page now acts as the first family scheduling UX:
 - `PATCH /v1/appointments/{appointment_id}`
 - `POST /v1/appointments/{appointment_id}/cancel`
 - `POST /alexa`
+
+### MCP routes
+
+- `POST /mcp`
+
+### MCP tool slice
+
+The first remote MCP server now lives beside the edge Worker:
+
+- Worker endpoint: `https://mcp-calsync.kaymayers9.workers.dev/mcp`
+- intended custom domain endpoint: `https://mcp-calsync.neonbutterfly.net/mcp`
+- project: `workers/mcp-calsync`
+- tools:
+  - `list_appointments`
+  - `create_appointment`
+  - `update_appointment`
+  - `cancel_appointment`
+
+Current MCP auth shape:
+
+- client access requires `Authorization: Bearer <token>` matching `MCP_AUTH_TOKEN`
+- the MCP Worker forwards internally to `edge-calsync` using `EDGE_INTERNAL_TOKEN`
+- the edge/origin scheduling brain remains the only place where calendar mutations actually happen
 
 ### Alexa skill slice
 
@@ -183,6 +209,7 @@ The API will not create calendar events until the Apple settings are populated.
 
 - Conversational Apple-first app slice: issue `#32`
 - Cloudflare edge Worker slice: issue `#36`
+- Remote MCP server slice: issue `#37`
 - Alexa skill slice: issue `#38`
 - In-product Alexa setup flow: issue `#45`
 - Runtime token store mount fix: issue `#44`

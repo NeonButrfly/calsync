@@ -13,6 +13,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#43" in readme_content
     assert "#44" in readme_content
     assert "#45" in readme_content
+    assert "#37" in readme_content
     assert "polished scheduling workspace" in readme_content
     assert "live apple primary-calendar reads" in readme_content
     assert "selected appointment detail" in readme_content
@@ -22,9 +23,14 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /alexa/setup" in readme_content
     assert "alexa setup page" in readme_content
     assert "downloadable skill package" in readme_content
+    assert "https://mcp-calsync.kaymayers9.workers.dev/mcp" in readme_content
+    assert "https://mcp-calsync.neonbutterfly.net/mcp" in readme_content
+    assert "list_appointments" in readme_content
+    assert "edge_internal_token" in readme_content
     assert "mounts that same `.runtime` directory" in readme_content
     assert "http://127.0.0.1:3080/" in readme_content
 
+    assert "#37" in ops_content
     assert "#39" in ops_content
     assert "#40" in ops_content
     assert "#41" in ops_content
@@ -41,9 +47,13 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /alexa/setup" in ops_content
     assert "get /alexa/skill-package.zip" in ops_content
     assert "downloadable alexa custom skill package zip" in ops_content
+    assert "post /mcp" in ops_content
+    assert "mcp_auth_token" in ops_content
+    assert "edge_internal_token" in ops_content
     assert "get /status" in ops_content
     assert "channel-token presence that exists in `/home/kay/apps/calsync/.runtime/channel-tokens.json`" in ops_content
 
+    assert "#37" in prompt_content
     assert "#39" in prompt_content
     assert "#40" in prompt_content
     assert "#41" in prompt_content
@@ -58,6 +68,10 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "in-product alexa setup requirement" in prompt_content
     assert "get /alexa/setup" in prompt_content
     assert "get /alexa/skill-package.zip" in prompt_content
+    assert "remote mcp worker requirement" in prompt_content
+    assert "https://mcp-calsync.neonbutterfly.net/mcp" in prompt_content
+    assert "workers.dev" in prompt_content
+    assert "forward mcp tool calls into the live edge/origin stack" in prompt_content
 
 
 def test_docs_cover_first_alexa_skill_slice() -> None:

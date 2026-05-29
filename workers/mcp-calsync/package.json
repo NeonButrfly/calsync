@@ -1,0 +1,23 @@
+{
+  "name": "mcp-calsync-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "test": "vitest run",
+    "types": "wrangler types"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.8.70",
+    "@cloudflare/workers-types": "^4.20250910.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4",
+    "wrangler": "^4.95.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "agents": "^0.0.113",
+    "zod": "^3.25.76"
+  }
+}

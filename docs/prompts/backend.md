@@ -147,6 +147,24 @@ Current reality:
 - Cloudflare KV currently holds the active channel hashes used by the Worker
 - the API container must mount that same host `.runtime` directory so readiness and origin-side channel tooling reflect the real source-of-truth
 
+## Remote MCP Worker Requirement
+
+- GitHub issue: `#37`
+- interpreted requirement: expose the Apple-first scheduling brain as a real authenticated remote MCP server instead of only a raw edge HTTP API
+
+Expected behavior:
+
+- deploy a dedicated MCP Worker on `https://mcp-calsync.neonbutterfly.net/mcp`
+- keep a `workers.dev` endpoint available until the custom hostname is delegated cleanly
+- expose:
+  - `list_appointments`
+  - `create_appointment`
+  - `update_appointment`
+  - `cancel_appointment`
+- require authenticated client access from day one
+- keep the edge Worker and origin as the only places that know the lower-level scheduling API and Apple write path
+- forward MCP tool calls into the live edge/origin stack instead of duplicating calendar logic
+
 ## Alexa Skill Requirement
 
 - GitHub issue: `#38`

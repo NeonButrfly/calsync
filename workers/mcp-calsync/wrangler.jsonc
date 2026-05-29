@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "mcp-calsync",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "mcp-calsync.neonbutterfly.net/*",
+      "zone_name": "neonbutterfly.net"
+    }
+  ],
+  "vars": {
+    "EDGE_BASE_URL": "https://edge-calsync.neonbutterfly.net"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}

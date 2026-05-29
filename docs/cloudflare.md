@@ -10,6 +10,8 @@ Live hostnames:
 
 - Pi origin brain: `https://calsync.neonbutterfly.net`
 - ChatGPT-first edge Worker: `https://edge-calsync.neonbutterfly.net`
+- Remote MCP Worker: `https://mcp-calsync.kaymayers9.workers.dev`
+- Intended custom MCP hostname: `https://mcp-calsync.neonbutterfly.net`
 
 Live Worker:
 
@@ -20,6 +22,8 @@ Live Worker:
 ## What Cloudflare owns
 
 - public edge hostname for ChatGPT-facing requests
+- public MCP hostname for remote MCP clients
+- workers.dev fallback while the custom MCP hostname is not yet delegated
 - Worker auth validation
 - feature switches
 - request forwarding to the Pi origin
@@ -43,11 +47,15 @@ This keeps the scheduling brain on `kayraspi` while giving ChatGPT a stable, nar
 
 The Worker is not a backend rewrite. It is a public edge proxy.
 
+The MCP Worker is also not a backend rewrite. It is a tool-protocol adapter
+that sits in front of the already-deployed edge API.
+
 ## Worker project
 
 Worker code lives in:
 
 - `workers/edge-calsync`
+- `workers/mcp-calsync`
 
 Useful commands:
 
