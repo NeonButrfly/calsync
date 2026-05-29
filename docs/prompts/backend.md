@@ -148,6 +148,19 @@ Expected behavior:
 - the shared workspace shell should link to that Connections surface directly
 - Apple setup, Google setup, and Microsoft setup can remain separate deeper pages, but the day-to-day operator experience should have one clear entry point for connection state
 
+## Connections Verification Center Requirement
+
+- GitHub issue: `#52`
+- interpreted requirement: the shared Connections surface should behave like a setup checklist and live verification center instead of only a read-only provider summary
+
+Expected behavior:
+
+- `GET /connections` should show a checklist-style view of Apple, Google, Microsoft, and Alexa readiness
+- `POST /connections/test` should run the same in-product writable calendar smoke flow against a selected target from the Connections page
+- the product should persist the last write proof for each writable target so operators can see whether a path was last verified or failed
+- the Connections page should show the last write proof message and timestamp per target instead of relying on one-time flash messages only
+- provider-specific setup pages may still expose `Run write test`, but `/connections` should become the calm operator surface where setup and verification come together
+
 Expected API/edge support:
 
 - `GET /api/appointments/{appointment_id}` should return the richer appointment detail payload

@@ -1304,7 +1304,9 @@ def test_run_write_smoke_test_performs_create_update_cancel(monkeypatch) -> None
     assert result == {
         "calendar_name": "Family",
         "provider_label": "Google Calendar",
+        "provider_type": "",
         "account_label": "Kay Google",
+        "target_value": "google:kay@example.com:primary",
     }
     assert calls == [
         ("create", "console:write_smoke_test"),

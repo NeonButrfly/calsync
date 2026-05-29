@@ -139,6 +139,41 @@ def test_connections_page_renders_provider_summary(monkeypatch) -> None:
     assert "Open Google setup" in response.text
 
 
+def test_connections_page_shows_checklist_and_verification_state(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_apple_calendar_catalog(
+        [
+            {
+                "calendar_name": "Family",
+                "calendar_url": "https://caldav.icloud.com/family/",
+                "is_default": True,
+            }
+        ]
+    )
+    service.record_calendar_write_verification(
+        target_value="https://caldav.icloud.com/family/",
+        provider_type="apple",
+        provider_label="Apple Calendar",
+        account_label="Family",
+        calendar_name="Family",
+        passed=True,
+        message="Write test passed for Family on Apple Calendar (Family).",
+        checked_at="2026-05-29T22:30:00+00:00",
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/connections")
+
+    assert response.status_code == 200
+    assert "Setup checklist" in response.text
+    assert "Verification center" in response.text
+    assert "Last write proof" in response.text
+    assert "Write test passed for Family on Apple Calendar (Family)." in response.text
+    assert "Run write test" in response.text
+
+
 def test_connections_page_shows_multiple_google_accounts(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     service = OperatorSettingsService(settings=get_settings())
@@ -1146,6 +1181,52 @@ def test_microsoft_setup_page_can_run_write_test(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert "Write test passed for Calendar on Microsoft Calendar (Kay Microsoft)." in response.text
+
+
+def test_connections_page_can_run_write_test_and_persist_result(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_apple_calendar_catalog(
+        [
+            {
+                "calendar_name": "Family",
+                "calendar_url": "https://caldav.icloud.com/family/",
+                "is_default": True,
+            }
+        ]
+    )
+
+    def fake_run_write_smoke_test(self, *, target_calendar_url: str, actor: str = "console"):
+        assert target_calendar_url == "https://caldav.icloud.com/family/"
+        assert actor == "console"
+        return {
+            "calendar_name": "Family",
+            "provider_label": "Apple Calendar",
+            "provider_type": "apple",
+            "account_label": "Family",
+            "target_value": "https://caldav.icloud.com/family/",
+        }
+
+    monkeypatch.setattr(
+        AppointmentService,
+        "run_write_smoke_test",
+        fake_run_write_smoke_test,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/connections/test",
+        data={"target_calendar_url": "https://caldav.icloud.com/family/"},
+    )
+
+    assert response.status_code == 200
+    assert "Write test passed for Family on Apple Calendar (Family)." in response.text
+    verification = service.get_calendar_write_verification(
+        "https://caldav.icloud.com/family/"
+    )
+    assert verification is not None
+    assert verification["status"] == "passed"
 
 
 def test_calendar_setup_page_renders_operator_fields(monkeypatch) -> None:

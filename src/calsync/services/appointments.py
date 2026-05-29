@@ -460,8 +460,13 @@ class AppointmentService:
         return {
             "calendar_name": target["calendar_name"],
             "provider_label": target["provider_label"],
+            "provider_type": str(target.get("provider_type") or ""),
             "account_label": target["account_label"],
+            "target_value": target_calendar_url,
         }
+
+    def describe_target_calendar(self, target_calendar_url: str) -> dict[str, str]:
+        return self._describe_target_calendar(target_calendar_url)
 
     def get(self, appointment_id: str) -> AppointmentListItem:
         with self._get_session_factory()() as session:
@@ -1374,6 +1379,7 @@ class AppointmentService:
             raise ValueError("Writable calendar target was not found.")
         return {
             "calendar_name": str(selected["calendar_name"]),
+            "provider_type": str(selected["provider_type"]),
             "provider_label": self._provider_ui_label(str(selected["provider_type"])),
             "account_label": str(selected.get("account_label") or ""),
         }

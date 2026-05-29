@@ -122,35 +122,65 @@ def calendar_setup_page(request: Request):
 
 @router.get("/connections")
 def connections_page(request: Request):
-    operator_settings = OperatorSettingsService()
-    apple_runtime_service = AppleRuntimeConfigService(operator_settings=operator_settings)
-    google_runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
-    microsoft_runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
-    apple_settings = operator_settings.describe_apple_calendar_settings()
-    google_settings = operator_settings.describe_google_oauth_settings()
-    microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
-    apple_runtime = apple_runtime_service.resolve()
-    google_runtime = google_runtime_service.resolve()
-    microsoft_runtime = microsoft_runtime_service.resolve()
     return _templates.TemplateResponse(
         request,
         "connections.html",
-        {
-            "request": request,
-            "apple_settings": apple_settings,
-            "apple_runtime": apple_runtime,
-            "apple_accounts": apple_runtime_service.list_accounts(),
-            "apple_calendar_catalog": apple_runtime_service.list_calendars(),
-            "google_settings": google_settings,
-            "google_runtime": google_runtime,
-            "google_accounts": google_runtime_service.list_accounts(),
-            "google_calendar_catalog": google_runtime_service.list_calendars(),
-            "microsoft_settings": microsoft_settings,
-            "microsoft_runtime": microsoft_runtime,
-            "microsoft_accounts": microsoft_runtime_service.list_accounts(),
-            "microsoft_calendar_catalog": microsoft_runtime_service.list_calendars(),
-            "readiness": ReadinessService().build(),
-        },
+        _build_connections_context(
+            request,
+            flash_message=None,
+            error_message=None,
+        ),
+    )
+
+
+@router.post("/connections/test")
+def connections_run_write_test(
+    request: Request,
+    target_calendar_url: str = Form(""),
+):
+    operator_settings = OperatorSettingsService()
+    service = AppointmentService()
+    try:
+        result = service.run_write_smoke_test(
+            target_calendar_url=target_calendar_url,
+            actor="console",
+        )
+        flash_message = _write_test_success_message(result)
+        _record_write_test_verification(
+            operator_settings,
+            service,
+            target_calendar_url=target_calendar_url,
+            passed=True,
+            message=flash_message,
+            result=result,
+        )
+        error_message = None
+    except (
+        AppleCalDAVError,
+        GoogleCalendarError,
+        MicrosoftCalendarError,
+        ValueError,
+    ) as exc:
+        flash_message = None
+        error_message = str(exc)
+        _record_write_test_verification(
+            operator_settings,
+            service,
+            target_calendar_url=target_calendar_url,
+            passed=False,
+            message=error_message,
+            result=None,
+        )
+
+    return _templates.TemplateResponse(
+        request,
+        "connections.html",
+        _build_connections_context(
+            request,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
+        status_code=200 if error_message is None else 400,
     )
 
 
@@ -279,11 +309,14 @@ def calendar_setup_run_write_test(
             target_calendar_url=target_calendar_url,
             actor="console",
         )
-        flash_message = (
-            f"Write test passed for {result['calendar_name']} on "
-            f"{result['provider_label']}"
-            + (f" ({result['account_label']})" if result["account_label"] else "")
-            + "."
+        flash_message = _write_test_success_message(result)
+        _record_write_test_verification(
+            operator_settings,
+            service,
+            target_calendar_url=target_calendar_url,
+            passed=True,
+            message=flash_message,
+            result=result,
         )
         error_message = None
     except (
@@ -294,6 +327,14 @@ def calendar_setup_run_write_test(
     ) as exc:
         flash_message = None
         error_message = str(exc)
+        _record_write_test_verification(
+            operator_settings,
+            service,
+            target_calendar_url=target_calendar_url,
+            passed=False,
+            message=error_message,
+            result=None,
+        )
 
     runtime_service = AppleRuntimeConfigService(operator_settings=operator_settings)
     runtime_config = runtime_service.resolve()
@@ -525,18 +566,22 @@ def google_setup_run_write_test(
     request: Request,
     target_calendar_url: str = Form(""),
 ):
+    service = AppointmentService()
     operator_settings = OperatorSettingsService()
     runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
     try:
-        result = AppointmentService().run_write_smoke_test(
+        result = service.run_write_smoke_test(
             target_calendar_url=target_calendar_url,
             actor="console",
         )
-        flash_message = (
-            f"Write test passed for {result['calendar_name']} on "
-            f"{result['provider_label']}"
-            + (f" ({result['account_label']})" if result["account_label"] else "")
-            + "."
+        flash_message = _write_test_success_message(result)
+        _record_write_test_verification(
+            operator_settings,
+            service,
+            target_calendar_url=target_calendar_url,
+            passed=True,
+            message=flash_message,
+            result=result,
         )
         error_message = None
     except (
@@ -547,6 +592,14 @@ def google_setup_run_write_test(
     ) as exc:
         flash_message = None
         error_message = str(exc)
+        _record_write_test_verification(
+            operator_settings,
+            service,
+            target_calendar_url=target_calendar_url,
+            passed=False,
+            message=error_message,
+            result=None,
+        )
 
     return _templates.TemplateResponse(
         request,
@@ -816,18 +869,22 @@ def microsoft_setup_run_write_test(
     request: Request,
     target_calendar_url: str = Form(""),
 ):
+    service = AppointmentService()
     operator_settings = OperatorSettingsService()
     runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
     try:
-        result = AppointmentService().run_write_smoke_test(
+        result = service.run_write_smoke_test(
             target_calendar_url=target_calendar_url,
             actor="console",
         )
-        flash_message = (
-            f"Write test passed for {result['calendar_name']} on "
-            f"{result['provider_label']}"
-            + (f" ({result['account_label']})" if result["account_label"] else "")
-            + "."
+        flash_message = _write_test_success_message(result)
+        _record_write_test_verification(
+            operator_settings,
+            service,
+            target_calendar_url=target_calendar_url,
+            passed=True,
+            message=flash_message,
+            result=result,
         )
         error_message = None
     except (
@@ -838,6 +895,14 @@ def microsoft_setup_run_write_test(
     ) as exc:
         flash_message = None
         error_message = str(exc)
+        _record_write_test_verification(
+            operator_settings,
+            service,
+            target_calendar_url=target_calendar_url,
+            passed=False,
+            message=error_message,
+            result=None,
+        )
 
     return _templates.TemplateResponse(
         request,
@@ -1721,6 +1786,242 @@ def _provider_label(provider_type: str) -> str:
     if provider_type == "microsoft_calendar":
         return "Microsoft Calendar"
     return provider_type.replace("_", " ").title()
+
+
+def _write_test_success_message(result: dict[str, str]) -> str:
+    return (
+        f"Write test passed for {result['calendar_name']} on "
+        f"{result['provider_label']}"
+        + (f" ({result['account_label']})" if result["account_label"] else "")
+        + "."
+    )
+
+
+def _record_write_test_verification(
+    operator_settings: OperatorSettingsService,
+    service: AppointmentService,
+    *,
+    target_calendar_url: str,
+    passed: bool,
+    message: str,
+    result: dict[str, str] | None,
+) -> None:
+    try:
+        described_target = service.describe_target_calendar(target_calendar_url)
+        target = {
+            "provider_type": str(
+                (result or {}).get("provider_type")
+                or described_target["provider_type"]
+            ),
+            "provider_label": str(
+                (result or {}).get("provider_label")
+                or described_target["provider_label"]
+            ),
+            "account_label": str(
+                (result or {}).get("account_label")
+                or described_target.get("account_label")
+                or ""
+            ),
+            "calendar_name": str(
+                (result or {}).get("calendar_name")
+                or described_target["calendar_name"]
+            ),
+            "target_value": str(
+                (result or {}).get("target_value")
+                or target_calendar_url
+            ),
+        }
+        operator_settings.record_calendar_write_verification(
+            target_value=target["target_value"],
+            provider_type=str(target["provider_type"]),
+            provider_label=str(target["provider_label"]),
+            account_label=str(target.get("account_label") or ""),
+            calendar_name=str(target["calendar_name"]),
+            passed=passed,
+            message=message,
+            checked_at=datetime.now(UTC).isoformat(),
+        )
+    except ValueError:
+        return
+
+
+def _build_connections_context(
+    request: Request,
+    *,
+    flash_message: str | None,
+    error_message: str | None,
+) -> dict[str, object]:
+    operator_settings = OperatorSettingsService()
+    apple_runtime_service = AppleRuntimeConfigService(operator_settings=operator_settings)
+    google_runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
+    microsoft_runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
+    apple_settings = operator_settings.describe_apple_calendar_settings()
+    google_settings = operator_settings.describe_google_oauth_settings()
+    microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
+    apple_runtime = apple_runtime_service.resolve()
+    google_runtime = google_runtime_service.resolve()
+    microsoft_runtime = microsoft_runtime_service.resolve()
+    readiness = ReadinessService().build()
+    verification_map = {
+        str(item["target_value"]): item
+        for item in operator_settings.get_calendar_write_verifications()
+    }
+    apple_targets = _decorate_connection_targets(
+        apple_runtime_service.list_calendars(),
+        provider_type="apple",
+        verification_map=verification_map,
+    )
+    google_targets = _decorate_connection_targets(
+        google_runtime_service.list_calendars(),
+        provider_type="google",
+        verification_map=verification_map,
+    )
+    microsoft_targets = _decorate_connection_targets(
+        microsoft_runtime_service.list_calendars(),
+        provider_type="microsoft",
+        verification_map=verification_map,
+    )
+    verification_targets = [
+        *apple_targets,
+        *google_targets,
+        *microsoft_targets,
+    ]
+    passed_verifications = [
+        item for item in verification_targets if item["verification_status"] == "passed"
+    ]
+    failed_verifications = [
+        item for item in verification_targets if item["verification_status"] == "failed"
+    ]
+    setup_checklist = [
+        {
+            "label": "Apple calendar path",
+            "status_label": "Ready" if apple_runtime["ready"] else "Needs setup",
+            "detail": (
+                "Apple credentials and a writable target are available."
+                if apple_runtime["ready"]
+                else "Save the household Apple connection to unlock the first live calendar path."
+            ),
+        },
+        {
+            "label": "Google calendar path",
+            "status_label": "Ready" if google_runtime["ready"] else "Needs setup",
+            "detail": (
+                "Google OAuth, account connect, and at least one writable target are ready."
+                if google_runtime["ready"]
+                else "Save the shared Google OAuth app and connect a browser-approved account."
+            ),
+        },
+        {
+            "label": "Microsoft calendar path",
+            "status_label": "Ready" if microsoft_runtime["ready"] else "Needs setup",
+            "detail": (
+                "Microsoft OAuth, account connect, and at least one writable target are ready."
+                if microsoft_runtime["ready"]
+                else "Save the shared Microsoft OAuth app and connect an Outlook account."
+            ),
+        },
+        {
+            "label": "Alexa edge route",
+            "status_label": (
+                "Ready"
+                if readiness.get("edge", {}).get("reachable")
+                and readiness.get("edge", {}).get("alexa", {}).get("enabled")
+                else "Needs setup"
+            ),
+            "detail": (
+                "The edge Worker can accept Alexa traffic."
+                if readiness.get("edge", {}).get("reachable")
+                and readiness.get("edge", {}).get("alexa", {}).get("enabled")
+                else "Finish edge enablement and skill allowlisting before real device traffic is live."
+            ),
+        },
+    ]
+    return {
+        "request": request,
+        "apple_settings": apple_settings,
+        "apple_runtime": apple_runtime,
+        "apple_accounts": apple_runtime_service.list_accounts(),
+        "apple_calendar_catalog": apple_runtime_service.list_calendars(),
+        "google_settings": google_settings,
+        "google_runtime": google_runtime,
+        "google_accounts": google_runtime_service.list_accounts(),
+        "google_calendar_catalog": google_runtime_service.list_calendars(),
+        "microsoft_settings": microsoft_settings,
+        "microsoft_runtime": microsoft_runtime,
+        "microsoft_accounts": microsoft_runtime_service.list_accounts(),
+        "microsoft_calendar_catalog": microsoft_runtime_service.list_calendars(),
+        "readiness": readiness,
+        "flash_message": flash_message,
+        "error_message": error_message,
+        "setup_checklist": setup_checklist,
+        "apple_targets": apple_targets,
+        "google_targets": google_targets,
+        "microsoft_targets": microsoft_targets,
+        "verification_targets": verification_targets,
+        "passed_verification_count": len(passed_verifications),
+        "failed_verification_count": len(failed_verifications),
+        "verified_target_count": len(
+            [item for item in verification_targets if item["verification_status"] != "unverified"]
+        ),
+    }
+
+
+def _decorate_connection_targets(
+    targets: list[dict[str, object]],
+    *,
+    provider_type: str,
+    verification_map: dict[str, dict[str, str]],
+) -> list[dict[str, object]]:
+    decorated: list[dict[str, object]] = []
+    for item in targets:
+        target_value = str(
+            item.get("target_value")
+            or item.get("calendar_url")
+            or item.get("calendar_id")
+            or ""
+        )
+        verification = verification_map.get(target_value)
+        verification_status = (
+            str(verification["status"]) if verification is not None else "unverified"
+        )
+        decorated.append(
+            {
+                "provider_type": provider_type,
+                "provider_label": _provider_label(
+                    {
+                        "apple": "icloud_caldav",
+                        "google": "google_calendar",
+                        "microsoft": "microsoft_calendar",
+                    }[provider_type]
+                ),
+                "target_value": target_value,
+                "calendar_name": str(item.get("calendar_name") or ""),
+                "account_label": str(
+                    item.get("account_label")
+                    or item.get("username")
+                    or item.get("account_email")
+                    or ""
+                ),
+                "is_default": bool(item.get("is_default")),
+                "verification_status": verification_status,
+                "verification_status_label": {
+                    "passed": "Verified",
+                    "failed": "Needs attention",
+                    "unverified": "Not yet verified",
+                }[verification_status],
+                "verification_message": (
+                    str(verification["message"])
+                    if verification is not None
+                    else "Run the in-product write test to prove this path can create, update, and cancel safely."
+                ),
+                "verification_checked_at_label": (
+                    _friendly_timestamp(str(verification["checked_at"]))
+                    if verification is not None
+                    else ""
+                ),
+            }
+        )
+    return decorated
 
 
 def _actor_label(actor: str) -> str:

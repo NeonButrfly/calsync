@@ -752,6 +752,82 @@ class OperatorSettingsService:
     def clear_google_calendar_catalog(self) -> None:
         self.delete_value("google_calendar_catalog")
 
+    def record_calendar_write_verification(
+        self,
+        *,
+        target_value: str,
+        provider_type: str,
+        provider_label: str,
+        account_label: str,
+        calendar_name: str,
+        passed: bool,
+        message: str,
+        checked_at: str,
+    ) -> None:
+        normalized_target_value = str(target_value or "").strip()
+        normalized_provider_type = str(provider_type or "").strip()
+        normalized_provider_label = str(provider_label or "").strip()
+        normalized_account_label = str(account_label or "").strip()
+        normalized_calendar_name = str(calendar_name or "").strip()
+        normalized_message = str(message or "").strip()
+        normalized_checked_at = str(checked_at or "").strip()
+        if not normalized_target_value:
+            raise ValueError("Writable calendar target value is required.")
+        if not normalized_provider_type:
+            raise ValueError("Provider type is required.")
+        if not normalized_provider_label:
+            raise ValueError("Provider label is required.")
+        if not normalized_calendar_name:
+            raise ValueError("Calendar name is required.")
+        if not normalized_message:
+            raise ValueError("Verification message is required.")
+        if not normalized_checked_at:
+            raise ValueError("Verification timestamp is required.")
+
+        verification = {
+            "target_value": normalized_target_value,
+            "provider_type": normalized_provider_type,
+            "provider_label": normalized_provider_label,
+            "account_label": normalized_account_label,
+            "calendar_name": normalized_calendar_name,
+            "status": "passed" if passed else "failed",
+            "message": normalized_message,
+            "checked_at": normalized_checked_at,
+        }
+        remaining = [
+            item
+            for item in self.get_calendar_write_verifications()
+            if str(item.get("target_value") or "") != normalized_target_value
+        ]
+        remaining.append(verification)
+        self.set_value("calendar_write_verifications", json.dumps(remaining))
+
+    def get_calendar_write_verifications(self) -> list[dict[str, str]]:
+        raw = self.get_value("calendar_write_verifications")
+        if not raw:
+            return []
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            return []
+        return self._coerce_calendar_write_verifications(payload)
+
+    def get_calendar_write_verification(
+        self,
+        target_value: str,
+    ) -> dict[str, str] | None:
+        normalized_target_value = str(target_value or "").strip()
+        if not normalized_target_value:
+            return None
+        return next(
+            (
+                item
+                for item in self.get_calendar_write_verifications()
+                if str(item.get("target_value") or "") == normalized_target_value
+            ),
+            None,
+        )
+
     def set_microsoft_oauth_settings(
         self,
         *,
@@ -1123,6 +1199,52 @@ class OperatorSettingsService:
             return []
         payload = json.loads(raw)
         return self._coerce_apple_calendars(payload)
+
+    def _coerce_calendar_write_verifications(
+        self,
+        payload: object,
+    ) -> list[dict[str, str]]:
+        if not isinstance(payload, list):
+            return []
+        results: list[dict[str, str]] = []
+        seen_targets: set[str] = set()
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            target_value = str(item.get("target_value") or "").strip()
+            provider_type = str(item.get("provider_type") or "").strip()
+            provider_label = str(item.get("provider_label") or "").strip()
+            account_label = str(item.get("account_label") or "").strip()
+            calendar_name = str(item.get("calendar_name") or "").strip()
+            status = str(item.get("status") or "").strip()
+            message = str(item.get("message") or "").strip()
+            checked_at = str(item.get("checked_at") or "").strip()
+            if not (
+                target_value
+                and provider_type
+                and provider_label
+                and calendar_name
+                and status in {"passed", "failed"}
+                and message
+                and checked_at
+            ):
+                continue
+            if target_value in seen_targets:
+                continue
+            seen_targets.add(target_value)
+            results.append(
+                {
+                    "target_value": target_value,
+                    "provider_type": provider_type,
+                    "provider_label": provider_label,
+                    "account_label": account_label,
+                    "calendar_name": calendar_name,
+                    "status": status,
+                    "message": message,
+                    "checked_at": checked_at,
+                }
+            )
+        return results
 
     def _coerce_apple_accounts(self, payload: object) -> list[dict[str, object]]:
         if not isinstance(payload, list):

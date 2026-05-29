@@ -418,6 +418,47 @@ def test_operator_settings_encrypts_microsoft_oauth_values_at_rest() -> None:
     assert stored_rows["microsoft_refresh_token"] != "microsoft-refresh-token"
 
 
+def test_operator_settings_can_store_calendar_write_verifications() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.record_calendar_write_verification(
+        target_value="google:kay@example.com:primary",
+        provider_type="google",
+        provider_label="Google Calendar",
+        account_label="Kay Google",
+        calendar_name="Primary",
+        passed=True,
+        message="Write test passed for Primary on Google Calendar (Kay Google).",
+        checked_at="2026-05-29T22:30:00+00:00",
+    )
+    service.record_calendar_write_verification(
+        target_value="google:kay@example.com:primary",
+        provider_type="google",
+        provider_label="Google Calendar",
+        account_label="Kay Google",
+        calendar_name="Primary",
+        passed=False,
+        message="Token refresh failed.",
+        checked_at="2026-05-29T22:45:00+00:00",
+    )
+
+    verification = service.get_calendar_write_verification(
+        "google:kay@example.com:primary"
+    )
+
+    assert verification == {
+        "target_value": "google:kay@example.com:primary",
+        "provider_type": "google",
+        "provider_label": "Google Calendar",
+        "account_label": "Kay Google",
+        "calendar_name": "Primary",
+        "status": "failed",
+        "message": "Token refresh failed.",
+        "checked_at": "2026-05-29T22:45:00+00:00",
+    }
+
+
 def test_operator_settings_can_store_multiple_microsoft_accounts() -> None:
     settings = _settings()
     service = OperatorSettingsService(settings=settings)

@@ -50,6 +50,64 @@
           </div>
         </section>
 
+        {% if flash_message %}
+        <section class="flash flash--success">{{ flash_message }}</section>
+        {% endif %}
+
+        {% if error_message %}
+        <section class="flash flash--error">{{ error_message }}</section>
+        {% endif %}
+
+        <section class="workspace-grid">
+          <div class="workspace-column">
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Launch readiness</p>
+                  <h3>Setup checklist</h3>
+                </div>
+              </div>
+              <div class="detail-grid">
+                {% for item in setup_checklist %}
+                <article class="detail-card">
+                  <p class="eyebrow">{{ item.label }}</p>
+                  <strong>{{ item.status_label }}</strong>
+                  <span>{{ item.detail }}</span>
+                </article>
+                {% endfor %}
+              </div>
+            </article>
+          </div>
+
+          <div class="workspace-column workspace-column--stack">
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Write verification</p>
+                  <h3>Verification center</h3>
+                </div>
+              </div>
+              <div class="detail-grid">
+                <article class="detail-card">
+                  <p class="eyebrow">Verified targets</p>
+                  <strong>{{ passed_verification_count }}</strong>
+                  <span>Writable targets that passed a live create, update, and cancel check.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Needs attention</p>
+                  <strong>{{ failed_verification_count }}</strong>
+                  <span>Writable targets with a recent failed verification.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Tracked proofs</p>
+                  <strong>{{ verified_target_count }}</strong>
+                  <span>Targets with persisted write-test history inside CalSync.</span>
+                </article>
+              </div>
+            </article>
+          </div>
+        </section>
+
         <section class="workspace-grid">
           <div class="workspace-column workspace-column--stack">
             <article class="panel">
@@ -81,6 +139,28 @@
                   <span>Saved Apple calendars available to the workspace and Alexa.</span>
                 </article>
               </div>
+              {% if apple_targets %}
+              <div class="detail-stack">
+                {% for item in apple_targets %}
+                <article class="detail-card">
+                  <p class="eyebrow">{% if item.is_default %}Default target{% else %}Writable target{% endif %}</p>
+                  <strong>{{ item.calendar_name }}</strong>
+                  <span>{{ item.account_label }} · {{ item.provider_label }}</span>
+                  <p class="appointment-detail"><strong>Last write proof:</strong> {{ item.verification_message }}</p>
+                  {% if item.verification_checked_at_label %}
+                  <p class="appointment-detail"><strong>Checked:</strong> {{ item.verification_checked_at_label }}</p>
+                  {% endif %}
+                  <div class="action-row">
+                    <span class="status-pill status-pill--{% if item.verification_status == 'passed' %}confirmed{% elif item.verification_status == 'failed' %}cancelled{% else %}draft{% endif %}">{{ item.verification_status_label }}</span>
+                    <form method="post" action="/connections/test">
+                      <input name="target_calendar_url" type="hidden" value="{{ item.target_value }}" />
+                      <button type="submit">Run write test</button>
+                    </form>
+                  </div>
+                </article>
+                {% endfor %}
+              </div>
+              {% endif %}
               <div class="action-row">
                 <a class="button-link" href="/calendar/setup">Open Apple setup</a>
               </div>
@@ -115,6 +195,28 @@
                   <span>Discovered Google calendars available to create and edit flows.</span>
                 </article>
               </div>
+              {% if google_targets %}
+              <div class="detail-stack">
+                {% for item in google_targets %}
+                <article class="detail-card">
+                  <p class="eyebrow">{% if item.is_default %}Default target{% else %}Writable target{% endif %}</p>
+                  <strong>{{ item.calendar_name }}</strong>
+                  <span>{{ item.account_label }} · {{ item.provider_label }}</span>
+                  <p class="appointment-detail"><strong>Last write proof:</strong> {{ item.verification_message }}</p>
+                  {% if item.verification_checked_at_label %}
+                  <p class="appointment-detail"><strong>Checked:</strong> {{ item.verification_checked_at_label }}</p>
+                  {% endif %}
+                  <div class="action-row">
+                    <span class="status-pill status-pill--{% if item.verification_status == 'passed' %}confirmed{% elif item.verification_status == 'failed' %}cancelled{% else %}draft{% endif %}">{{ item.verification_status_label }}</span>
+                    <form method="post" action="/connections/test">
+                      <input name="target_calendar_url" type="hidden" value="{{ item.target_value }}" />
+                      <button type="submit">Run write test</button>
+                    </form>
+                  </div>
+                </article>
+                {% endfor %}
+              </div>
+              {% endif %}
               <div class="action-row">
                 <a class="button-link" href="/google/setup">Open Google setup</a>
               </div>
@@ -149,6 +251,28 @@
                   <span>Discovered Outlook calendars available to create and edit flows.</span>
                 </article>
               </div>
+              {% if microsoft_targets %}
+              <div class="detail-stack">
+                {% for item in microsoft_targets %}
+                <article class="detail-card">
+                  <p class="eyebrow">{% if item.is_default %}Default target{% else %}Writable target{% endif %}</p>
+                  <strong>{{ item.calendar_name }}</strong>
+                  <span>{{ item.account_label }} · {{ item.provider_label }}</span>
+                  <p class="appointment-detail"><strong>Last write proof:</strong> {{ item.verification_message }}</p>
+                  {% if item.verification_checked_at_label %}
+                  <p class="appointment-detail"><strong>Checked:</strong> {{ item.verification_checked_at_label }}</p>
+                  {% endif %}
+                  <div class="action-row">
+                    <span class="status-pill status-pill--{% if item.verification_status == 'passed' %}confirmed{% elif item.verification_status == 'failed' %}cancelled{% else %}draft{% endif %}">{{ item.verification_status_label }}</span>
+                    <form method="post" action="/connections/test">
+                      <input name="target_calendar_url" type="hidden" value="{{ item.target_value }}" />
+                      <button type="submit">Run write test</button>
+                    </form>
+                  </div>
+                </article>
+                {% endfor %}
+              </div>
+              {% endif %}
               <div class="action-row">
                 <a class="button-link" href="/microsoft/setup">Open Microsoft setup</a>
               </div>

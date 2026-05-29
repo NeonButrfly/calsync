@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current CalSync service, family scheduling UX, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, Alexa setup flow, and in-product writable target verification tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, and `#51`.
+This guide covers the current CalSync service, family scheduling UX, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, Alexa setup flow, in-product writable target verification, and the checklist-style Connections verification center tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, and `#52`.
 
 ## What This Service Does
 
@@ -9,6 +9,7 @@ This guide covers the current CalSync service, family scheduling UX, live Apple 
 - exposes a shared availability API for open-slot lookup
 - exposes a professional web scheduling workspace at `/` for create, edit, cancel, filtered browsing, and review
 - exposes a connections workspace at `/connections` so Apple, Google, and Microsoft setup can be reviewed together
+- exposes a checklist-style verification center at `/connections` so provider readiness and last write proof can be reviewed together
 - stores normalized appointment records locally
 - syncs existing Apple calendar events and connected Google or Microsoft calendar events into the local scheduling brain for requested date windows
 - writes calendar mutations to one selected connected calendar target through CalDAV, Google Calendar, or Microsoft Graph
@@ -110,6 +111,7 @@ Root experience:
 
 - `GET /`
 - `GET /connections`
+- `POST /connections/test`
 - `GET /calendar/setup`
 - `POST /calendar/setup`
 - `POST /calendar/setup/calendars`
@@ -141,6 +143,7 @@ Behavior:
 - hides cancelled appointments from the default active schedule views while allowing a reference toggle when you intentionally want historical cancelled items
 - shows a full-stack readiness panel for Apple, channel tokens, edge reachability, and Alexa setup state
 - exposes a dedicated Connections page that summarizes Apple, Google, and Microsoft setup in one place before the operator dives into provider-specific forms
+- exposes a checklist-driven Connections page that persists last write proof for each writable target and can rerun that proof directly from one place
 - exposes an in-product Apple calendar setup page with encrypted vault-backed storage instead of forcing host-only Apple env edits
 - exposes an in-product Google setup page with encrypted vault-backed OAuth storage plus browser-based account connect
 - exposes an in-product Microsoft setup page with encrypted vault-backed OAuth storage plus browser-based account connect

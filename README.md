@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, and `#51` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, and `#52` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -32,6 +32,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - Apple CalDAV adapter for create, update, cancel, and range-based event sync
 - a polished scheduling workspace at `/` for create, edit, cancel, filtered browsing, and appointment detail review
 - a dedicated connections workspace at `/connections` that summarizes Apple, Google, and Microsoft setup in one product surface
+- a checklist-style connections workspace at `/connections` that also shows persisted write verification and direct run-test actions
 - Local audit entries and appointment-to-provider event mapping
 - A dedicated Cloudflare Worker in `workers/edge-calsync`
 - Live ChatGPT-first edge hostname: `https://edge-calsync.neonbutterfly.net`
@@ -58,6 +59,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - multiple connected Microsoft accounts under one shared OAuth app, with calendars from each account available to the same create, edit, cancel, and schedule lookup flows
 - writable Microsoft calendar targets that share the same create, edit, cancel, and schedule lookup paths
 - in-product writable calendar smoke tests, so Apple, Google, and Microsoft targets can verify create, update, and cancel from inside CalSync
+- persisted connection verification summaries, so `/connections` can show the last successful or failed write proof per writable calendar target
 - an in-product Alexa setup page plus downloadable skill package
 - an encrypted product vault for Cloudflare Worker-management credentials, so the Alexa setup flow can store operator access safely inside CalSync
 - a first availability finder across the workspace, edge API, and Alexa so CalSync can suggest open appointment windows instead of only listing busy ones
@@ -66,6 +68,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 
 - `GET /`
 - `GET /connections`
+- `POST /connections/test`
 - `GET /calendar/setup`
 - `POST /calendar/setup`
 - `POST /calendar/setup/calendars`
@@ -116,6 +119,7 @@ The root page now acts as the first family scheduling UX:
 - a first in-product Microsoft account management flow that can connect more than one Microsoft account, refresh discovered calendars per account, and disconnect one account without losing the saved OAuth client
 - a first in-product write-test action on Apple, Google, and Microsoft target cards so operators can prove a writable calendar path works end to end
 - a first in-product Connections page that pulls Apple, Google, and Microsoft readiness into one calmer operator view
+- that Connections workspace now also acts as a checklist and verification center with persisted last-write proof per target
 - a first in-product Alexa setup page that links the live endpoint, policy URLs, and skill package download
 - a first in-product Cloudflare access form that stores Worker-management credentials securely in the product vault
 - a first in-product Alexa edge-settings form that can read and update Worker Alexa flags when Cloudflare worker-management permission is configured
