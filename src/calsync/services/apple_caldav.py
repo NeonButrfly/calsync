@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from datetime import date as date_value
+from xml.etree import ElementTree as ET
 from urllib.parse import urljoin
 from uuid import uuid4
 
@@ -27,6 +29,20 @@ class AppleEventRecord:
     provider_event_id: str
     href: str
     etag: str | None
+
+
+@dataclass(slots=True)
+class AppleListedEvent:
+    provider_event_id: str
+    href: str
+    etag: str | None
+    title: str
+    starts_at: datetime
+    ends_at: datetime
+    all_day: bool
+    location: str | None
+    notes: str | None
+    status: str
 
 
 def build_event_payload(
@@ -149,6 +165,116 @@ class AppleCalDAVClient:
             None,
             etag=etag,
         )
+
+    def list_events(
+        self,
+        *,
+        starts_at: datetime,
+        ends_at: datetime,
+    ) -> list[AppleListedEvent]:
+        body = self._build_calendar_query(starts_at=starts_at, ends_at=ends_at)
+        response = httpx.request(
+            "REPORT",
+            self.config.primary_calendar_url,
+            auth=(
+                self.config.apple_username,
+                self.config.app_specific_password,
+            ),
+            content=body,
+            headers={
+                "Depth": "1",
+                "Content-Type": "application/xml; charset=utf-8",
+            },
+            timeout=30,
+        )
+        if response.status_code == 401:
+            raise AppleCalDAVError("Apple/iCloud authentication failed.")
+        if response.status_code >= 400:
+            raise AppleCalDAVError("Apple/iCloud calendar read request failed.")
+        return self._parse_calendar_report(response.text)
+
+    def _build_calendar_query(self, *, starts_at: datetime, ends_at: datetime) -> bytes:
+        start_text = starts_at.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
+        end_text = ends_at.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
+        return f"""<?xml version="1.0" encoding="utf-8"?>
+<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+  <d:prop>
+    <d:getetag />
+    <c:calendar-data />
+  </d:prop>
+  <c:filter>
+    <c:comp-filter name="VCALENDAR">
+      <c:comp-filter name="VEVENT">
+        <c:time-range start="{start_text}" end="{end_text}" />
+      </c:comp-filter>
+    </c:comp-filter>
+  </c:filter>
+</c:calendar-query>
+""".encode("utf-8")
+
+    def _parse_calendar_report(self, xml_text: str) -> list[AppleListedEvent]:
+        namespace = {
+            "d": "DAV:",
+            "c": "urn:ietf:params:xml:ns:caldav",
+        }
+        root = ET.fromstring(xml_text)
+        events: list[AppleListedEvent] = []
+        for response_node in root.findall("d:response", namespace):
+            href = response_node.findtext("d:href", default="", namespaces=namespace)
+            resolved_href = urljoin(self.config.primary_calendar_url, href)
+            etag = response_node.findtext(
+                "d:propstat/d:prop/d:getetag",
+                default=None,
+                namespaces=namespace,
+            )
+            calendar_data = response_node.findtext(
+                "d:propstat/d:prop/c:calendar-data",
+                default=None,
+                namespaces=namespace,
+            )
+            if not calendar_data:
+                continue
+            calendar = Calendar.from_ical(calendar_data)
+            for component in calendar.walk("VEVENT"):
+                provider_event_id = str(component.get("uid") or "").strip()
+                if not provider_event_id:
+                    continue
+                starts_at = self._coerce_event_datetime(component.decoded("dtstart"))
+                ends_at = self._coerce_event_datetime(component.decoded("dtend"))
+                all_day = isinstance(component.decoded("dtstart"), date_value) and not isinstance(
+                    component.decoded("dtstart"), datetime
+                )
+                events.append(
+                    AppleListedEvent(
+                        provider_event_id=provider_event_id,
+                        href=resolved_href,
+                        etag=etag,
+                        title=str(component.get("summary") or "Untitled event"),
+                        starts_at=starts_at,
+                        ends_at=ends_at,
+                        all_day=all_day,
+                        location=self._optional_component_text(component, "location"),
+                        notes=self._optional_component_text(component, "description"),
+                        status=str(component.get("status") or "CONFIRMED").lower(),
+                    )
+                )
+        return events
+
+    def _coerce_event_datetime(self, value: datetime | date_value) -> datetime:
+        if isinstance(value, datetime):
+            return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+        return datetime(value.year, value.month, value.day, tzinfo=UTC)
+
+    def _optional_component_text(
+        self,
+        component: ICalEvent,
+        field_name: str,
+    ) -> str | None:
+        value = component.get(field_name)
+        if value is None:
+            return None
+        text = str(value).strip()
+        return text or None
 
     def _request_mutation(
         self,

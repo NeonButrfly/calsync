@@ -40,6 +40,28 @@ class FakeAppleClient:
         return None
 
 
+class SyncingAppleClient(FakeAppleClient):
+    def list_events(self, **_: object):
+        return [
+            type(
+                "ListedEvent",
+                (),
+                {
+                    "provider_event_id": "provider-existing",
+                    "href": "https://caldav.icloud.com/calendar/provider-existing.ics",
+                    "etag": '"etag-existing"',
+                    "title": "Existing School Visit",
+                    "starts_at": "2026-06-10T09:00:00-08:00",
+                    "ends_at": "2026-06-10T09:45:00-08:00",
+                    "all_day": False,
+                    "location": "School office",
+                    "notes": "Already on the family calendar",
+                    "status": "confirmed",
+                },
+            )()
+        ]
+
+
 class FailingAppleClient:
     def create_event(self, **_: object):
         raise AppleCalDAVError("Apple/iCloud authentication failed.")
@@ -258,3 +280,20 @@ def test_console_supports_window_filters_and_selected_detail(monkeypatch) -> Non
     assert "Summer camp intake" in response.text
     assert "What CalSync has done with this appointment" in response.text
     assert "Bring forms" in response.text
+
+
+def test_console_root_shows_existing_synced_apple_events(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: SyncingAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/?view=month")
+
+    assert response.status_code == 200
+    assert "Existing School Visit" in response.text
+    assert "School office" in response.text

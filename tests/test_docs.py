@@ -9,19 +9,25 @@ def test_docs_cover_first_family_scheduling_console() -> None:
 
     assert "#39" in readme_content
     assert "#40" in readme_content
+    assert "#41" in readme_content
     assert "polished scheduling workspace" in readme_content
+    assert "live apple primary-calendar reads" in readme_content
     assert "selected appointment detail" in readme_content
     assert "http://127.0.0.1:3080/" in readme_content
 
     assert "#39" in ops_content
     assert "#40" in ops_content
+    assert "#41" in ops_content
     assert "web scheduling workspace" in ops_content
+    assert "syncs existing apple calendar events" in ops_content
     assert "post /appointments" in ops_content
     assert "professional web scheduling workspace" in ops_content
     assert "get /api/appointments/{appointment_id}" in ops_content
 
     assert "#39" in prompt_content
     assert "#40" in prompt_content
+    assert "#41" in prompt_content
+    assert "apple live calendar sync requirement" in prompt_content
     assert "selected appointment detail surface" in prompt_content
     assert "get /v1/appointments/{appointment_id}" in prompt_content
 

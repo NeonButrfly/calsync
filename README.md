@@ -22,18 +22,19 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#32`, `#36`, `#38`, `#39`, and `#40` are now backed by:
+Issues `#32`, `#36`, `#38`, `#39`, `#40`, and `#41` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
 - Alembic migrations
-- Apple CalDAV write adapter for create, update, cancel, and list-backed lookup flows
+- Apple CalDAV adapter for create, update, cancel, and range-based event sync
 - a polished scheduling workspace at `/` for create, edit, cancel, filtered browsing, and appointment detail review
 - Local audit entries and appointment-to-provider event mapping
 - A dedicated Cloudflare Worker in `workers/edge-calsync`
 - Live ChatGPT-first edge hostname: `https://edge-calsync.neonbutterfly.net`
 - Live Pi origin hostname: `https://calsync.neonbutterfly.net`
 - a first Alexa custom-skill adapter on top of the same shared scheduling brain
+- live Apple primary-calendar reads, so existing household events show up in the shared workspace and voice flows
 
 ### Endpoints
 
@@ -52,10 +53,11 @@ The root page now acts as the first family scheduling UX:
 
 - polished create-appointment form
 - day, week, and month schedule browsing
+- real Apple calendar events synced into the local scheduling brain for the requested window
 - selected appointment detail with audit trail and provider metadata
 - edit flow for existing appointments
 - cancel flow for existing appointments
-- direct Apple calendar write-back through the same backend used by the API and Worker
+- direct Apple calendar read/write through the same backend used by the API and Worker
 
 ### Worker routes
 
@@ -89,6 +91,7 @@ Current voice capabilities:
 - read appointments for a requested day
 - cancel a matching appointment by title and date
 - reschedule a matching appointment to a new day or time
+- act on Apple events that already existed in the family calendar once the origin has synced the requested date window
 
 Current auth shape:
 
@@ -145,16 +148,18 @@ Current channels:
 2. Fill in the Apple/iCloud settings:
    - `APPLE_USERNAME`
    - `APPLE_APP_SPECIFIC_PASSWORD`
-   - `APPLE_PRIMARY_CALENDAR_URL`
+- `APPLE_PRIMARY_CALENDAR_URL`
 3. Choose a real `POSTGRES_PASSWORD`.
-4. If you want Pi-driven Cloudflare KV sync from the app runtime, also fill in:
+4. Optionally override the display timezone used for synced provider events:
+   - `DEFAULT_TIMEZONE`
+5. If you want Pi-driven Cloudflare KV sync from the app runtime, also fill in:
    - `CLOUDFLARE_ACCOUNT_ID`
    - `CLOUDFLARE_API_TOKEN`
    - `CLOUDFLARE_TOKEN_KV_NAMESPACE_ID`
-5. Start the stack with Docker Compose.
-6. Verify `http://127.0.0.1:3080/healthz`.
-7. Open `http://127.0.0.1:3080/` for the scheduling console.
-8. If you are preparing the Alexa slice, also set:
+6. Start the stack with Docker Compose.
+7. Verify `http://127.0.0.1:3080/healthz`.
+8. Open `http://127.0.0.1:3080/` for the scheduling console.
+9. If you are preparing the Alexa slice, also set:
    - `ALEXA_ALLOWED_SKILL_IDS`
    - `ALEXA_DEFAULT_TIMEZONE`
 
@@ -167,6 +172,7 @@ The API will not create calendar events until the Apple settings are populated.
 - Alexa skill slice: issue `#38`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`
+- Apple live calendar sync into the shared workspace and Alexa: issue `#41`
 - Legacy archive and clean reset: issue `#33`
 
 ## Legacy archive

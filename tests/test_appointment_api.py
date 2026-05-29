@@ -41,6 +41,28 @@ class FakeAppleClient:
         return None
 
 
+class SyncingAppleClient(FakeAppleClient):
+    def list_events(self, **_: object):
+        return [
+            type(
+                "ListedEvent",
+                (),
+                {
+                    "provider_event_id": "provider-existing",
+                    "href": "https://caldav.icloud.com/calendar/provider-existing.ics",
+                    "etag": '"etag-existing"',
+                    "title": "Existing School Visit",
+                    "starts_at": "2026-06-10T09:00:00-08:00",
+                    "ends_at": "2026-06-10T09:45:00-08:00",
+                    "all_day": False,
+                    "location": "School office",
+                    "notes": "Already on the family calendar",
+                    "status": "confirmed",
+                },
+            )()
+        ]
+
+
 class FailingAppleClient:
     def create_event(self, **_: object):
         raise AppleCalDAVError("Apple/iCloud authentication failed.")
@@ -155,6 +177,26 @@ def test_list_appointments_uses_appointment_local_date_window(monkeypatch) -> No
     assert [item["title"] for item in body["items"]] == ["Evening Visit"]
 
 
+def test_list_appointments_syncs_existing_apple_events(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: SyncingAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get(
+        "/api/appointments?date_from=2026-06-10&date_to=2026-06-10"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [item["title"] for item in body["items"]] == ["Existing School Visit"]
+    assert body["items"][0]["location"] == "School office"
+
+
 def test_create_appointment_uses_forwarded_channel_as_actor(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     monkeypatch.setattr(
@@ -247,6 +289,30 @@ def test_cancel_appointment_marks_status_cancelled(monkeypatch) -> None:
 
     assert cancel_response.status_code == 200
     assert cancel_response.json()["status"] == "cancelled"
+
+
+def test_cancel_appointment_can_target_synced_apple_event(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: SyncingAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    sync_response = client.get(
+        "/api/appointments?date_from=2026-06-10&date_to=2026-06-10"
+    )
+    appointment_id = sync_response.json()["items"][0]["appointment_id"]
+
+    cancel_response = client.post(f"/api/appointments/{appointment_id}/cancel")
+
+    assert cancel_response.status_code == 200
+    assert cancel_response.json()["status"] == "cancelled"
+    detail_response = client.get(f"/api/appointments/{appointment_id}")
+    assert detail_response.status_code == 200
+    assert detail_response.json()["status"] == "cancelled"
 
 
 def test_update_and_cancel_use_forwarded_channel_as_actor(monkeypatch) -> None:

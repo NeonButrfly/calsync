@@ -93,6 +93,23 @@ Expected API/edge support:
 - `GET /api/appointments/{appointment_id}` should return the richer appointment detail payload
 - `GET /v1/appointments/{appointment_id}` should expose the same detail through the Worker for future channel use
 
+## Apple Live Calendar Sync Requirement
+
+- GitHub issue: `#41`
+- interpreted requirement: the Apple-first workspace and Alexa flows must read the actual household Apple calendar, not only CalSync-created rows
+
+Expected behavior:
+
+- date-range schedule views should sync existing Apple calendar events into the shared appointment store before rendering
+- `GET /api/appointments` should surface Apple events that already existed before CalSync created anything
+- edit and cancel flows should work for provider-synced Apple events, not just locally originated writes
+- Alexa day-list, cancel, and reschedule flows should benefit from the same synced Apple event inventory because they already call the shared origin APIs
+
+Operational boundary:
+
+- this first live-read slice only needs range-based Apple sync for the requested window
+- it does not yet need a full long-running background mirror of the entire calendar history
+
 ## Cloudflare Deployment Requirement
 
 - GitHub issue: `#35`

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
@@ -23,7 +23,12 @@ from calsync.schemas.appointments import (
     ListAppointmentsResponse,
     UpdateAppointmentRequest,
 )
-from calsync.services.apple_caldav import AppleCalDAVClient, AppleCalDAVConfig
+from calsync.services.apple_caldav import (
+    AppleCalDAVClient,
+    AppleCalDAVConfig,
+    AppleCalDAVError,
+    AppleListedEvent,
+)
 
 
 class AppointmentService:
@@ -103,12 +108,21 @@ class AppointmentService:
         date_from: str,
         date_to: str,
     ) -> ListAppointmentsResponse:
-        start = datetime.fromisoformat(f"{date_from}T00:00:00").replace(tzinfo=UTC)
-        end = datetime.fromisoformat(f"{date_to}T23:59:59").replace(tzinfo=UTC)
+        start = datetime.combine(date.fromisoformat(date_from), time.min, tzinfo=UTC)
+        end = datetime.combine(date.fromisoformat(date_to), time.max, tzinfo=UTC)
         if end < start:
             raise ValueError("date_to must be on or after date_from.")
 
         with self.session_factory() as session:
+            try:
+                self._sync_primary_range(
+                    session,
+                    starts_at=start,
+                    ends_at=end,
+                )
+                session.commit()
+            except (AppleCalDAVError, AttributeError):
+                session.rollback()
             rows = session.execute(
                 select(Appointment, AppointmentExternalLink)
                 .join(
@@ -333,6 +347,92 @@ class AppointmentService:
             raise ValueError("Appointment external link not found.")
         return external_link
 
+    def _sync_primary_range(
+        self,
+        session: Session,
+        *,
+        starts_at: datetime,
+        ends_at: datetime,
+    ) -> None:
+        connection = self._ensure_primary_connection(session)
+        client = self._build_apple_client()
+        if not hasattr(client, "list_events"):
+            return
+        provider_events = client.list_events(
+            starts_at=starts_at,
+            ends_at=ends_at + timedelta(days=1),
+        )
+        for provider_event in provider_events:
+            self._upsert_synced_apple_event(
+                session,
+                connection=connection,
+                provider_event=provider_event,
+            )
+
+    def _upsert_synced_apple_event(
+        self,
+        session: Session,
+        *,
+        connection: AppleCalendarConnection,
+        provider_event: AppleListedEvent | object,
+    ) -> None:
+        provider_event_id = str(getattr(provider_event, "provider_event_id"))
+        external_link = session.scalar(
+            select(AppointmentExternalLink).where(
+                AppointmentExternalLink.provider_type == "icloud_caldav",
+                AppointmentExternalLink.provider_event_id == provider_event_id,
+            )
+        )
+        starts_at = self._coerce_provider_datetime(getattr(provider_event, "starts_at"))
+        ends_at = self._coerce_provider_datetime(getattr(provider_event, "ends_at"))
+        title = str(getattr(provider_event, "title"))
+        status = "cancelled" if str(getattr(provider_event, "status", "confirmed")).lower() == "cancelled" else "active"
+        all_day = bool(getattr(provider_event, "all_day", False))
+        location = getattr(provider_event, "location", None)
+        notes = getattr(provider_event, "notes", None)
+        href = str(getattr(provider_event, "href"))
+        etag = getattr(provider_event, "etag", None)
+
+        if external_link is None:
+            appointment = Appointment(
+                connection_id=connection.id,
+                title=title,
+                starts_at=starts_at,
+                ends_at=ends_at,
+                timezone_name=self._provider_timezone_name(starts_at),
+                all_day=all_day,
+                location=location,
+                notes=notes,
+                attendees_text=None,
+                status=status,
+                source="provider_sync",
+            )
+            session.add(appointment)
+            session.flush()
+            session.add(
+                AppointmentExternalLink(
+                    appointment_id=appointment.id,
+                    provider_type="icloud_caldav",
+                    provider_event_id=provider_event_id,
+                    provider_href=href,
+                    provider_etag=etag,
+                )
+            )
+            return
+
+        appointment = self._get_appointment(session, external_link.appointment_id)
+        appointment.connection_id = connection.id
+        appointment.title = title
+        appointment.starts_at = starts_at
+        appointment.ends_at = ends_at
+        appointment.timezone_name = self._provider_timezone_name(starts_at)
+        appointment.all_day = all_day
+        appointment.location = location
+        appointment.notes = notes
+        appointment.status = status
+        external_link.provider_href = href
+        external_link.provider_etag = etag
+
     def _parse_range(
         self,
         date_value: str,
@@ -350,6 +450,18 @@ class AppointmentService:
         if ends_at <= starts_at:
             raise ValueError("Appointment end time must be after the start time.")
         return starts_at, ends_at
+
+    def _coerce_provider_datetime(self, value: datetime | str) -> datetime:
+        if isinstance(value, datetime):
+            return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+        parsed = datetime.fromisoformat(value)
+        return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+
+    def _provider_timezone_name(self, value: datetime) -> str:
+        tzinfo = value.tzinfo
+        if tzinfo is None:
+            return self.settings.default_timezone
+        return getattr(tzinfo, "key", None) or self.settings.default_timezone
 
     def _to_list_item(
         self,

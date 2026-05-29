@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current Apple-first CalSync service, family scheduling UX, edge Worker, and first Alexa adapter tracked in issues `#32`, `#36`, `#38`, `#39`, and `#40`.
+This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, edge Worker, and first Alexa adapter tracked in issues `#32`, `#36`, `#38`, `#39`, `#40`, and `#41`.
 
 ## What This Service Does
 
@@ -8,6 +8,7 @@ This guide covers the current Apple-first CalSync service, family scheduling UX,
 - exposes a date-range appointment list API for Worker lookup flows
 - exposes a professional web scheduling workspace at `/` for create, edit, cancel, filtered browsing, and review
 - stores normalized appointment records locally
+- syncs existing Apple calendar events into the local scheduling brain for requested date windows
 - writes calendar mutations to one configured iCloud calendar through CalDAV
 - keeps local audit entries for every mutation
 - supports Cloudflare edge token management for channel auth
@@ -27,6 +28,7 @@ Copy `.env.example` to `.env` and fill in:
 - `APPLE_APP_SPECIFIC_PASSWORD`
 - `APPLE_PRIMARY_CALENDAR_URL`
 - `APPLE_PRIMARY_CALENDAR_NAME`
+- `DEFAULT_TIMEZONE`
 - `CLOUDFLARE_ACCOUNT_ID`
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_TOKEN_KV_NAMESPACE_ID`
@@ -101,6 +103,7 @@ Behavior:
 
 - shows a clean create-appointment form
 - browses appointments by day, week, or month
+- syncs the requested Apple calendar date window before rendering the schedule
 - shows a selected appointment detail panel with audit activity and provider metadata
 - edits and cancels the same Apple-backed appointment records used by the API
 - is intended to be the first family-facing control surface instead of forcing operators to work from raw API calls
@@ -141,6 +144,8 @@ This removes the Apple calendar event and marks the local appointment as `cancel
 `GET /api/appointments?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD`
 
 This powers the Worker-side “look up before editing or cancelling” flow.
+
+It now also syncs the requested Apple date range into the local appointment store so existing family-calendar events can be listed, edited, cancelled, and used by Alexa.
 
 ### Appointment detail
 
@@ -203,6 +208,7 @@ Current scope:
 - cancel a matching appointment by title and date
 - reschedule a matching appointment to a new day or time
 - keep all actual calendar writes in the origin service
+- rely on the origin's live Apple date-range sync so pre-existing family-calendar events can be surfaced to voice flows
 
 Operator setup:
 
