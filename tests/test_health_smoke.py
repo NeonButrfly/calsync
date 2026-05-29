@@ -1,4 +1,6 @@
 from importlib.resources import files
+from io import BytesIO
+from zipfile import ZipFile
 
 from fastapi.testclient import TestClient
 
@@ -65,3 +67,17 @@ def test_web_console_assets_are_packaged() -> None:
     assert (web_package / "templates" / "console.html").is_file()
     assert (web_package / "templates" / "appointment_edit.html").is_file()
     assert (web_package / "static" / "app.css").is_file()
+
+
+def test_alexa_skill_package_zip_is_served() -> None:
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/alexa/skill-package.zip")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    archive = ZipFile(BytesIO(response.content))
+    names = set(archive.namelist())
+    assert "skill-package/skill.json" in names
+    assert "skill-package/interactionModels/custom/en-US.json" in names

@@ -38,3 +38,4 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "calsync.web" = ["templates/*.html", "static/*.css"]
+"calsync.alexa_setup" = ["skill-package/*.json", "skill-package/interactionModels/custom/*.json"]

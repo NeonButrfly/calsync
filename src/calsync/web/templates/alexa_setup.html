@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CalSync Alexa Setup</title>
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">CalSync</p>
+          <h1>Alexa setup that matches the live stack</h1>
+          <p>
+            Import the current skill package, point Alexa at the live edge
+            endpoint, and use the readiness state below to finish voice setup
+            without guessing.
+          </p>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Workspace sections">
+          <a class="sidebar-nav__item" href="/">Schedule workspace</a>
+          <a class="sidebar-nav__item sidebar-nav__item--active" href="/alexa/setup">Alexa setup</a>
+          <a class="sidebar-nav__item" href="/privacy">Privacy policy</a>
+          <a class="sidebar-nav__item" href="/terms">Terms of use</a>
+        </nav>
+
+        <div class="sidebar-card">
+          <p class="eyebrow">Current live status</p>
+          <strong>
+            {% if readiness.edge.alexa.enabled %}
+            Alexa route enabled
+            {% else %}
+            Alexa not live yet
+            {% endif %}
+          </strong>
+          <span>{{ readiness.next_action }}</span>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <section class="hero panel hero-panel">
+          <div>
+            <p class="eyebrow">Voice setup</p>
+            <h2>Import Alexa setup from the running product</h2>
+            <p class="hero-copy">
+              This page mirrors the live Worker and origin configuration, so the
+              setup steps stay aligned with the real system instead of repo-only notes.
+            </p>
+          </div>
+        </section>
+
+        <section class="workspace-grid">
+          <div class="workspace-column">
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Step 1</p>
+                  <h3>Download skill package</h3>
+                </div>
+              </div>
+              <p class="appointment-detail">
+                Import the current package directly into the Alexa developer console.
+              </p>
+              <div class="action-row">
+                <a class="button-link" href="/alexa/skill-package.zip">Download skill package</a>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Step 2</p>
+                  <h3>Use the live endpoint</h3>
+                </div>
+              </div>
+              <p class="appointment-detail"><strong>Endpoint:</strong> {{ alexa_endpoint }}</p>
+              <p class="appointment-detail"><strong>Privacy policy:</strong> {{ privacy_url }}</p>
+              <p class="appointment-detail"><strong>Terms of use:</strong> {{ terms_url }}</p>
+            </article>
+          </div>
+
+          <div class="workspace-column workspace-column--stack">
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Step 3</p>
+                  <h3>Finish the live turn-on</h3>
+                </div>
+              </div>
+              <div class="detail-stack">
+                <p class="appointment-detail">
+                  <strong>Edge reachable:</strong>
+                  {% if readiness.edge.reachable %}Yes{% else %}No{% endif %}
+                </p>
+                <p class="appointment-detail">
+                  <strong>Alexa token present:</strong>
+                  {% if readiness.channel_tokens.alexa %}Yes{% else %}No{% endif %}
+                </p>
+                <p class="appointment-detail">
+                  <strong>Alexa route enabled:</strong>
+                  {% if readiness.edge.alexa.enabled %}Yes{% else %}No{% endif %}
+                </p>
+                <p class="appointment-detail">
+                  <strong>Allowed skill IDs configured:</strong>
+                  {% if readiness.edge.alexa.skill_ids_configured %}Yes{% else %}No{% endif %}
+                </p>
+                <p class="appointment-detail"><strong>Next action:</strong> {{ readiness.next_action }}</p>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

@@ -284,6 +284,19 @@ def test_public_policy_pages_render(monkeypatch) -> None:
     assert "shared brain" in terms_response.text
 
 
+def test_alexa_setup_page_renders_operator_steps(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/alexa/setup")
+
+    assert response.status_code == 200
+    assert "Alexa setup" in response.text
+    assert "Download skill package" in response.text
+    assert "https://edge-calsync.neonbutterfly.net/alexa" in response.text
+
+
 def test_console_supports_window_filters_and_selected_detail(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     monkeypatch.setattr(

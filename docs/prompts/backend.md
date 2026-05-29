@@ -196,3 +196,15 @@ Expected behavior:
 - `GET /status` on the edge Worker should return public-safe channel and Alexa readiness without requiring auth
 - the readiness surface should never expose raw tokens, secrets, or skill IDs
 - the app should point to the next meaningful operator action when Alexa or channel setup is incomplete
+
+## In-Product Alexa Setup Requirement
+
+- GitHub issue: `#45`
+- interpreted requirement: the running product should help operators finish Alexa setup directly, including a downloadable skill package and the live endpoint/policy links
+
+Expected behavior:
+
+- `GET /alexa/setup` should render a voice setup page inside the product
+- `GET /alexa/skill-package.zip` should return the Alexa custom skill package from the running app
+- the setup page should show the live edge endpoint, privacy URL, terms URL, and current readiness state
+- the root scheduling workspace should link operators into the Alexa setup flow

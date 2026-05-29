@@ -22,7 +22,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#32`, `#36`, `#38`, `#39`, `#40`, `#41`, and `#43` are now backed by:
+Issues `#32`, `#36`, `#38`, `#39`, `#40`, `#41`, `#43`, and `#45` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -36,10 +36,12 @@ Issues `#32`, `#36`, `#38`, `#39`, `#40`, `#41`, and `#43` are now backed by:
 - a first Alexa custom-skill adapter on top of the same shared scheduling brain
 - live Apple primary-calendar reads, so existing household events show up in the shared workspace and voice flows
 - a product-facing readiness surface for Apple setup, channel tokens, edge reachability, and Alexa status
+- an in-product Alexa setup page plus downloadable skill package
 
 ### Endpoints
 
 - `GET /`
+- `GET /alexa/setup`
 - `GET /api/info`
 - `GET /healthz`
 - `GET /api/readiness`
@@ -62,6 +64,7 @@ The root page now acts as the first family scheduling UX:
 - cancel flow for existing appointments
 - direct Apple calendar read/write through the same backend used by the API and Worker
 - a first in-product readiness panel that explains whether Apple, tokens, edge, and Alexa are actually ready
+- a first in-product Alexa setup page that links the live endpoint, policy URLs, and skill package download
 
 ### Worker routes
 
@@ -80,6 +83,8 @@ The first Alexa integration now lives beside the Worker:
 - Worker voice route: `POST /alexa`
 - interaction model: `workers/edge-calsync/alexa/interaction-model.json`
 - importable skill package: `workers/edge-calsync/alexa/skill-package`
+- in-product setup page: `GET /alexa/setup`
+- in-product package download: `GET /alexa/skill-package.zip`
 - first intents:
   - `CreateAppointmentIntent`
   - `ListAppointmentsIntent`
@@ -179,6 +184,7 @@ The API will not create calendar events until the Apple settings are populated.
 - Conversational Apple-first app slice: issue `#32`
 - Cloudflare edge Worker slice: issue `#36`
 - Alexa skill slice: issue `#38`
+- In-product Alexa setup flow: issue `#45`
 - Runtime token store mount fix: issue `#44`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

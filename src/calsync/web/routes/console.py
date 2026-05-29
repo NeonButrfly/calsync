@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
+from importlib.resources import files
+from io import BytesIO
 from pathlib import Path
 from zoneinfo import ZoneInfo
+from zipfile import ZipFile
 
 from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
 from calsync.schemas.appointments import (
@@ -50,6 +53,51 @@ def terms_page(request: Request):
         "terms.html",
         {
             "request": request,
+        },
+    )
+
+
+@router.get("/alexa/setup")
+def alexa_setup_page(request: Request):
+    readiness = ReadinessService().build()
+    return _templates.TemplateResponse(
+        request,
+        "alexa_setup.html",
+        {
+            "request": request,
+            "readiness": readiness,
+            "alexa_endpoint": "https://edge-calsync.neonbutterfly.net/alexa",
+            "privacy_url": "https://calsync.neonbutterfly.net/privacy",
+            "terms_url": "https://calsync.neonbutterfly.net/terms",
+        },
+    )
+
+
+@router.get("/alexa/skill-package.zip")
+def alexa_skill_package_zip() -> StreamingResponse:
+    package_root = files("calsync.alexa_setup")
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, "w") as archive:
+        archive.writestr(
+            "skill-package/skill.json",
+            (package_root / "skill-package" / "skill.json").read_text(encoding="utf-8"),
+        )
+        archive.writestr(
+            "skill-package/interactionModels/custom/en-US.json",
+            (
+                package_root
+                / "skill-package"
+                / "interactionModels"
+                / "custom"
+                / "en-US.json"
+            ).read_text(encoding="utf-8"),
+        )
+    zip_buffer.seek(0)
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": 'attachment; filename="calsync-alexa-skill-package.zip"'
         },
     )
 

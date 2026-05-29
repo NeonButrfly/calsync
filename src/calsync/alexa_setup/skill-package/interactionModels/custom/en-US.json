@@ -1,0 +1,146 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "cal sync family",
+      "intents": [
+        {
+          "name": "CreateAppointmentIntent",
+          "slots": [
+            {
+              "name": "title",
+              "type": "AMAZON.SearchQuery"
+            },
+            {
+              "name": "date",
+              "type": "AMAZON.DATE"
+            },
+            {
+              "name": "start_time",
+              "type": "AMAZON.TIME"
+            },
+            {
+              "name": "end_time",
+              "type": "AMAZON.TIME"
+            },
+            {
+              "name": "location",
+              "type": "AMAZON.SearchQuery"
+            },
+            {
+              "name": "notes",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "create an appointment called {title} on {date} at {start_time}",
+            "create an appointment called {title} on {date} at {start_time} ending at {end_time}",
+            "add {title} on {date} at {start_time}",
+            "schedule {title} on {date} at {start_time} ending at {end_time}"
+          ]
+        },
+        {
+          "name": "ListAppointmentsIntent",
+          "slots": [
+            {
+              "name": "date",
+              "type": "AMAZON.DATE"
+            }
+          ],
+          "samples": [
+            "what appointments do I have on {date}",
+            "what is on the calendar for {date}",
+            "read my calendar for {date}",
+            "what is scheduled for {date}"
+          ]
+        },
+        {
+          "name": "NextAppointmentIntent",
+          "samples": [
+            "what is my next appointment",
+            "what is next on the calendar",
+            "when is my next appointment",
+            "what do I have next"
+          ]
+        },
+        {
+          "name": "CancelAppointmentIntent",
+          "slots": [
+            {
+              "name": "title",
+              "type": "AMAZON.SearchQuery"
+            },
+            {
+              "name": "date",
+              "type": "AMAZON.DATE"
+            },
+            {
+              "name": "start_time",
+              "type": "AMAZON.TIME"
+            }
+          ],
+          "samples": [
+            "cancel {title} on {date}",
+            "cancel {title} on {date} at {start_time}",
+            "remove {title} from {date}",
+            "delete {title} on {date}"
+          ]
+        },
+        {
+          "name": "RescheduleAppointmentIntent",
+          "slots": [
+            {
+              "name": "title",
+              "type": "AMAZON.SearchQuery"
+            },
+            {
+              "name": "date",
+              "type": "AMAZON.DATE"
+            },
+            {
+              "name": "start_time",
+              "type": "AMAZON.TIME"
+            },
+            {
+              "name": "new_date",
+              "type": "AMAZON.DATE"
+            },
+            {
+              "name": "new_start_time",
+              "type": "AMAZON.TIME"
+            },
+            {
+              "name": "new_end_time",
+              "type": "AMAZON.TIME"
+            }
+          ],
+          "samples": [
+            "move {title} on {date} to {new_date} at {new_start_time}",
+            "reschedule {title} on {date} to {new_date} at {new_start_time}",
+            "move {title} on {date} at {start_time} to {new_date} at {new_start_time}",
+            "change {title} on {date} to {new_date} at {new_start_time} ending at {new_end_time}"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        }
+      ]
+    }
+  }
+}

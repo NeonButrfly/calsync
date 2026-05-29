@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, edge Worker, Alexa adapter, and readiness surface tracked in issues `#32`, `#36`, `#38`, `#39`, `#40`, `#41`, and `#43`.
+This guide covers the current Apple-first CalSync service, family scheduling UX, live Apple calendar sync, edge Worker, Alexa adapter, readiness surface, and Alexa setup flow tracked in issues `#32`, `#36`, `#38`, `#39`, `#40`, `#41`, `#43`, and `#45`.
 
 ## What This Service Does
 
@@ -96,6 +96,7 @@ npm --prefix workers/edge-calsync test
 Root experience:
 
 - `GET /`
+- `GET /alexa/setup`
 - `POST /appointments`
 - `GET /appointments/{appointment_id}/edit`
 - `POST /appointments/{appointment_id}/edit`
@@ -108,9 +109,22 @@ Behavior:
 - syncs the requested Apple calendar date window before rendering the schedule
 - hides cancelled appointments from the default active schedule views while allowing a reference toggle when you intentionally want historical cancelled items
 - shows a full-stack readiness panel for Apple, channel tokens, edge reachability, and Alexa setup state
+- exposes an in-product Alexa setup page with a live package download instead of forcing repo-only setup
 - shows a selected appointment detail panel with audit activity and provider metadata
 - edits and cancels the same Apple-backed appointment records used by the API
 - is intended to be the first family-facing control surface instead of forcing operators to work from raw API calls
+
+### Alexa setup page
+
+- `GET /alexa/setup`
+- `GET /alexa/skill-package.zip`
+
+This operator-facing flow now serves:
+
+- the live edge Alexa endpoint
+- the public privacy and terms URLs
+- the current readiness state
+- a downloadable Alexa custom skill package zip from the running app
 
 ### Readiness snapshot
 
