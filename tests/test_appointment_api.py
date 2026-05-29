@@ -63,6 +63,27 @@ class SyncingAppleClient(FakeAppleClient):
         ]
 
 
+class DuplicateSyncingAppleClient(FakeAppleClient):
+    def list_events(self, **_: object):
+        event = type(
+            "ListedEvent",
+            (),
+            {
+                "provider_event_id": "provider-duplicate",
+                "href": "https://caldav.icloud.com/calendar/provider-duplicate.ics",
+                "etag": '"etag-duplicate"',
+                "title": "Duplicate Provider Event",
+                "starts_at": "2026-06-11T09:00:00-08:00",
+                "ends_at": "2026-06-11T09:45:00-08:00",
+                "all_day": False,
+                "location": "School office",
+                "notes": "Should only appear once",
+                "status": "confirmed",
+            },
+        )()
+        return [event, event]
+
+
 class FailingAppleClient:
     def create_event(self, **_: object):
         raise AppleCalDAVError("Apple/iCloud authentication failed.")
@@ -195,6 +216,27 @@ def test_list_appointments_syncs_existing_apple_events(monkeypatch) -> None:
     body = response.json()
     assert [item["title"] for item in body["items"]] == ["Existing School Visit"]
     assert body["items"][0]["location"] == "School office"
+
+
+def test_list_appointments_deduplicates_provider_events_within_sync_response(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: DuplicateSyncingAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get(
+        "/api/appointments?date_from=2026-06-11&date_to=2026-06-11"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [item["provider_event_id"] for item in body["items"]] == [
+        "provider-duplicate"
+    ]
 
 
 def test_create_appointment_uses_forwarded_channel_as_actor(monkeypatch) -> None:

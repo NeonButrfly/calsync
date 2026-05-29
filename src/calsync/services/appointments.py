@@ -362,7 +362,12 @@ class AppointmentService:
             starts_at=starts_at,
             ends_at=ends_at + timedelta(days=1),
         )
+        seen_provider_event_ids: set[str] = set()
         for provider_event in provider_events:
+            provider_event_id = str(getattr(provider_event, "provider_event_id"))
+            if provider_event_id in seen_provider_event_ids:
+                continue
+            seen_provider_event_ids.add(provider_event_id)
             self._upsert_synced_apple_event(
                 session,
                 connection=connection,
@@ -377,12 +382,12 @@ class AppointmentService:
         provider_event: AppleListedEvent | object,
     ) -> None:
         provider_event_id = str(getattr(provider_event, "provider_event_id"))
-        external_link = session.scalar(
+        external_links = session.scalars(
             select(AppointmentExternalLink).where(
                 AppointmentExternalLink.provider_type == "icloud_caldav",
                 AppointmentExternalLink.provider_event_id == provider_event_id,
             )
-        )
+        ).all()
         starts_at = self._coerce_provider_datetime(getattr(provider_event, "starts_at"))
         ends_at = self._coerce_provider_datetime(getattr(provider_event, "ends_at"))
         title = str(getattr(provider_event, "title"))
@@ -392,6 +397,17 @@ class AppointmentService:
         notes = getattr(provider_event, "notes", None)
         href = str(getattr(provider_event, "href"))
         etag = getattr(provider_event, "etag", None)
+
+        external_link = None
+        if external_links:
+            external_link = external_links[0]
+            for duplicate_link in external_links[1:]:
+                duplicate_appointment = self._get_appointment(
+                    session,
+                    duplicate_link.appointment_id,
+                )
+                session.delete(duplicate_appointment)
+                session.delete(duplicate_link)
 
         if external_link is None:
             appointment = Appointment(
@@ -418,6 +434,7 @@ class AppointmentService:
                     provider_etag=etag,
                 )
             )
+            session.flush()
             return
 
         appointment = self._get_appointment(session, external_link.appointment_id)
