@@ -12,6 +12,7 @@ This guide covers the current Apple-first CalSync service, family scheduling UX,
 - writes calendar mutations to one configured iCloud calendar through CalDAV
 - keeps local audit entries for every mutation
 - supports Cloudflare edge token management for channel auth
+- reads the Pi-hosted `.runtime/channel-tokens.json` source-of-truth through an API-container bind mount
 
 ## Required Environment
 
@@ -264,10 +265,12 @@ Current planned target:
 3. Start the stack with Docker Compose.
 4. Run migrations through the `migrate` service.
 5. Bootstrap `.runtime/channel-tokens.json` on the host-backed volume if Worker auth is needed.
-6. Verify:
+6. Keep the host `.runtime` directory in place, because the API container now mounts it at `/app/.runtime` for readiness and channel-token operations.
+7. Verify:
    - `http://127.0.0.1:3080/healthz` on-host
    - `http://192.168.50.232:3080/healthz` over the network
    - `http://127.0.0.1:3080/` renders the scheduling console on-host
+   - `GET /api/readiness` shows the same channel-token presence that exists in `/home/kay/apps/calsync/.runtime/channel-tokens.json`
    - `GET /api/appointments` works on the public origin hostname
    - the edge Worker returns `401` without auth
    - the edge Worker can list, create, and cancel with the ChatGPT token

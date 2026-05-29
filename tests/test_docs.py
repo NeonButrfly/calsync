@@ -11,18 +11,21 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#40" in readme_content
     assert "#41" in readme_content
     assert "#43" in readme_content
+    assert "#44" in readme_content
     assert "polished scheduling workspace" in readme_content
     assert "live apple primary-calendar reads" in readme_content
     assert "selected appointment detail" in readme_content
     assert "hide cancelled appointments by default" in readme_content
     assert "readiness surface" in readme_content
     assert "get /api/readiness" in readme_content
+    assert "mounts that same `.runtime` directory" in readme_content
     assert "http://127.0.0.1:3080/" in readme_content
 
     assert "#39" in ops_content
     assert "#40" in ops_content
     assert "#41" in ops_content
     assert "#43" in ops_content
+    assert "mounts it at `/app/.runtime`" in ops_content
     assert "web scheduling workspace" in ops_content
     assert "syncs existing apple calendar events" in ops_content
     assert "post /appointments" in ops_content
@@ -31,6 +34,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "include_cancelled=true" in ops_content
     assert "get /api/readiness" in ops_content
     assert "get /status" in ops_content
+    assert "channel-token presence that exists in `/home/kay/apps/calsync/.runtime/channel-tokens.json`" in ops_content
 
     assert "#39" in prompt_content
     assert "#40" in prompt_content
@@ -41,6 +45,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /v1/appointments/{appointment_id}" in prompt_content
     assert "default active views should hide cancelled appointments" in prompt_content
     assert "full-stack readiness requirement" in prompt_content
+    assert "api container must mount that same host `.runtime` directory" in prompt_content
 
 
 def test_docs_cover_first_alexa_skill_slice() -> None:

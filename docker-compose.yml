@@ -33,6 +33,8 @@ services:
         condition: service_completed_successfully
     ports:
       - "${APP_PORT:-3080}:${APP_PORT:-3080}"
+    volumes:
+      - ./.runtime:/app/.runtime
     command: >-
       python -m uvicorn calsync.main:app --host ${APP_HOST:-0.0.0.0} --port ${APP_PORT:-3080}
     healthcheck:

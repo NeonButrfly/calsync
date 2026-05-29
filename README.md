@@ -141,6 +141,8 @@ Current source-of-truth location on `kayraspi`:
 
 - `/home/kay/apps/calsync/.runtime/channel-tokens.json`
 
+The API container now mounts that same `.runtime` directory at `/app/.runtime`, so product readiness and any origin-side channel tooling read the same live token source-of-truth.
+
 Current channels:
 
 - `chatgpt`
@@ -177,6 +179,7 @@ The API will not create calendar events until the Apple settings are populated.
 - Conversational Apple-first app slice: issue `#32`
 - Cloudflare edge Worker slice: issue `#36`
 - Alexa skill slice: issue `#38`
+- Runtime token store mount fix: issue `#44`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`
 - Apple live calendar sync into the shared workspace and Alexa: issue `#41`

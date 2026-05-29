@@ -145,6 +145,7 @@ Current reality:
 - the Pi origin now supports the Worker-facing list contract
 - the Pi stores channel tokens in `/home/kay/apps/calsync/.runtime/channel-tokens.json`
 - Cloudflare KV currently holds the active channel hashes used by the Worker
+- the API container must mount that same host `.runtime` directory so readiness and origin-side channel tooling reflect the real source-of-truth
 
 ## Alexa Skill Requirement
 
