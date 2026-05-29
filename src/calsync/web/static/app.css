@@ -112,6 +112,11 @@ button:hover,
   padding: 1.25rem;
 }
 
+.shell--narrow {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 1320px;
+}
+
 .sidebar,
 .panel {
   background: var(--surface);
@@ -215,6 +220,7 @@ button:hover,
 }
 
 .workspace,
+.workspace--single,
 .workspace-column,
 .workspace-column--stack,
 .schedule-sections,
@@ -348,8 +354,19 @@ button:hover,
   grid-template-columns: minmax(0, 1.1fr) minmax(380px, 0.9fr);
 }
 
+.workspace-grid--balanced {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .workspace-column--stack {
   align-content: start;
+}
+
+.hero-actions,
+.stack-actions {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
 }
 
 .panel-head {
@@ -471,6 +488,7 @@ button:hover,
 }
 
 .form-grid input,
+.form-grid select,
 .form-grid textarea {
   background: var(--surface-strong);
   border: 1px solid var(--border);
@@ -482,6 +500,7 @@ button:hover,
 }
 
 .form-grid input:focus,
+.form-grid select:focus,
 .form-grid textarea:focus {
   border-color: rgba(11, 122, 105, 0.34);
   box-shadow: 0 0 0 4px rgba(11, 122, 105, 0.08);
@@ -565,6 +584,24 @@ button:hover,
 .editor-topbar {
   display: grid;
   gap: 1rem;
+}
+
+.code-block {
+  background: rgba(18, 34, 56, 0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    Menlo,
+    monospace;
+  font-size: 0.9rem;
+  margin: 0;
+  overflow: auto;
+  padding: 0.95rem;
+  white-space: pre-wrap;
 }
 
 @media (max-width: 1180px) {

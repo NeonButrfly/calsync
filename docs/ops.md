@@ -98,6 +98,8 @@ Root experience:
 
 - `GET /`
 - `GET /alexa/setup`
+- `GET /alexa/simulator`
+- `POST /alexa/simulator`
 - `POST /appointments`
 - `GET /appointments/{appointment_id}/edit`
 - `POST /appointments/{appointment_id}/edit`
@@ -111,6 +113,7 @@ Behavior:
 - hides cancelled appointments from the default active schedule views while allowing a reference toggle when you intentionally want historical cancelled items
 - shows a full-stack readiness panel for Apple, channel tokens, edge reachability, and Alexa setup state
 - exposes an in-product Alexa setup page with a live package download instead of forcing repo-only setup
+- exposes an in-product Alexa simulator page that previews the real Worker voice logic before the Amazon-side turn-on is finished
 - shows a selected appointment detail panel with audit activity and provider metadata
 - edits and cancels the same Apple-backed appointment records used by the API
 - is intended to be the first family-facing control surface instead of forcing operators to work from raw API calls
@@ -118,6 +121,7 @@ Behavior:
 ### Alexa setup page
 
 - `GET /alexa/setup`
+- `GET /alexa/simulator`
 - `GET /alexa/skill-package.zip`
 
 This operator-facing flow now serves:
@@ -126,6 +130,18 @@ This operator-facing flow now serves:
 - the public privacy and terms URLs
 - the current readiness state
 - a downloadable Alexa custom skill package zip from the running app
+
+### Alexa simulator page
+
+- `GET /alexa/simulator`
+- `POST /alexa/simulator`
+
+This operator-facing flow now:
+
+- builds a voice test request from a simple form
+- sends it through the real edge Alexa simulation route using the live ChatGPT channel token
+- shows the spoken response, session-ending behavior, and raw Alexa response JSON
+- helps validate the live voice logic before `ENABLE_ALEXA=true` and the final skill-ID allowlist turn-on
 
 ### Readiness snapshot
 
@@ -204,6 +220,7 @@ Worker routes:
 - `PATCH /v1/appointments/{appointment_id}`
 - `POST /v1/appointments/{appointment_id}/cancel`
 - `POST /alexa`
+- `POST /alexa/simulate`
 
 ## MCP Worker summary
 
@@ -288,6 +305,7 @@ Current scope:
 - reschedule a matching appointment to a new day or time
 - keep all actual calendar writes in the origin service
 - rely on the origin's live Apple date-range sync so pre-existing family-calendar events can be surfaced to voice flows
+- let the product preview real voice responses through `/alexa/simulate` before signed device requests are turned on
 
 Operator setup:
 

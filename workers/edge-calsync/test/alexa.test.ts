@@ -551,4 +551,85 @@ describe("alexa worker adapter", () => {
       message: "Alexa request verification failed: invalid signature",
     });
   });
+
+  it("simulates an Alexa intent through the real handler when an authenticated channel calls the simulator route", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input, init) => {
+        expect(String(input)).toBe(
+          "https://calsync.neonbutterfly.net/api/appointments",
+        );
+        const headers = init?.headers as Headers;
+        expect(headers.get("X-CalSync-Channel")).toBe("alexa");
+        return new Response(
+          JSON.stringify({
+            appointment_id: "appt-123",
+            status: "active",
+            provider_event_id: "provider-123",
+            message: "Appointment created.",
+          }),
+          {
+            status: 201,
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+            },
+          },
+        );
+      });
+
+    const request = new Request(
+      "https://edge-calsync.neonbutterfly.net/alexa/simulate",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: "Bearer chatgpt-token",
+        },
+        body: JSON.stringify({
+          request_type: "IntentRequest",
+          intent_name: "CreateAppointmentIntent",
+          slots: {
+            title: "Dentist",
+            date: "2026-06-01",
+            start_time: "10:00",
+            end_time: "11:00",
+          },
+        }),
+      },
+    );
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(
+      request,
+      {
+        ...alexaEnv(),
+        ENABLE_CHATGPT: "true",
+        TOKEN_HASHES: {
+          get: vi.fn(async (key: string) =>
+            key === "chatgpt"
+              ? "8aa22830d27792eaec99566fe269943c50cb59c094f40a4c2bb5c8b05522802e"
+              : null,
+          ),
+        } as unknown as KVNamespace,
+      },
+      ctx,
+    );
+
+    await waitOnExecutionContext(ctx);
+
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      data: {
+        speech: expect.stringContaining("I added Dentist"),
+        raw_response: {
+          response: {
+            outputSpeech: {
+              text: expect.stringContaining("I added Dentist"),
+            },
+          },
+        },
+      },
+    });
+  });
 });

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CalSync Alexa Simulator</title>
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <div class="shell shell--narrow">
+      <main class="workspace workspace--single">
+        <section class="hero panel hero-panel">
+          <div>
+            <p class="eyebrow">Voice testing</p>
+            <h1>Alexa simulator</h1>
+            <p class="hero-copy">
+              Exercise the live Alexa Worker logic without waiting on the final
+              Amazon console turn-on. This uses the same scheduling brain as the
+              real skill flow.
+            </p>
+          </div>
+          <div class="hero-actions">
+            <a class="button-link button-link--secondary" href="/alexa/setup">Back to Alexa setup</a>
+            <a class="text-action" href="/">Return to schedule workspace</a>
+          </div>
+        </section>
+
+        {% if error_message %}
+        <section class="flash flash--error">{{ error_message }}</section>
+        {% endif %}
+
+        <section class="workspace-grid workspace-grid--balanced">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Request</p>
+                <h2>Run simulation</h2>
+              </div>
+            </div>
+
+            <form class="form-grid" method="post" action="/alexa/simulator">
+              <label>
+                <span>Request type</span>
+                <select name="request_type">
+                  <option value="LaunchRequest"{% if form_values.request_type == "LaunchRequest" %} selected{% endif %}>LaunchRequest</option>
+                  <option value="IntentRequest"{% if form_values.request_type == "IntentRequest" %} selected{% endif %}>IntentRequest</option>
+                </select>
+              </label>
+              <label>
+                <span>Intent</span>
+                <select name="intent_name">
+                  <option value="CreateAppointmentIntent"{% if form_values.intent_name == "CreateAppointmentIntent" %} selected{% endif %}>CreateAppointmentIntent</option>
+                  <option value="ListAppointmentsIntent"{% if form_values.intent_name == "ListAppointmentsIntent" %} selected{% endif %}>ListAppointmentsIntent</option>
+                  <option value="NextAppointmentIntent"{% if form_values.intent_name == "NextAppointmentIntent" %} selected{% endif %}>NextAppointmentIntent</option>
+                  <option value="CancelAppointmentIntent"{% if form_values.intent_name == "CancelAppointmentIntent" %} selected{% endif %}>CancelAppointmentIntent</option>
+                  <option value="RescheduleAppointmentIntent"{% if form_values.intent_name == "RescheduleAppointmentIntent" %} selected{% endif %}>RescheduleAppointmentIntent</option>
+                </select>
+              </label>
+              <label>
+                <span>Title</span>
+                <input name="title" type="text" value="{{ form_values.title }}" placeholder="Dentist" />
+              </label>
+              <label>
+                <span>Date</span>
+                <input name="date" type="date" value="{{ form_values.date }}" />
+              </label>
+              <div class="two-up">
+                <label>
+                  <span>Start</span>
+                  <input name="start_time" type="time" value="{{ form_values.start_time }}" />
+                </label>
+                <label>
+                  <span>End</span>
+                  <input name="end_time" type="time" value="{{ form_values.end_time }}" />
+                </label>
+              </div>
+              <label>
+                <span>Location</span>
+                <input name="location" type="text" value="{{ form_values.location }}" placeholder="Clinic, school, airport" />
+              </label>
+              <label>
+                <span>Notes</span>
+                <input name="notes" type="text" value="{{ form_values.notes }}" placeholder="Bring insurance card" />
+              </label>
+              <div class="two-up">
+                <label>
+                  <span>New date</span>
+                  <input name="new_date" type="date" value="{{ form_values.new_date }}" />
+                </label>
+                <label>
+                  <span>New start</span>
+                  <input name="new_start_time" type="time" value="{{ form_values.new_start_time }}" />
+                </label>
+              </div>
+              <label>
+                <span>New end</span>
+                <input name="new_end_time" type="time" value="{{ form_values.new_end_time }}" />
+              </label>
+              <button type="submit">Run simulation</button>
+            </form>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Result</p>
+                <h2>What Alexa would say</h2>
+              </div>
+            </div>
+
+            {% if simulation_result %}
+            <div class="detail-stack">
+              <div class="detail-card">
+                <p class="eyebrow">Spoken response</p>
+                <strong>{{ simulation_result.speech }}</strong>
+                <span>Card: {{ simulation_result.card_type }} · Ends session: {{ simulation_result.should_end_session }}</span>
+              </div>
+              <details class="detail-disclosure" open>
+                <summary>Raw response JSON</summary>
+                <div class="detail-disclosure__body">
+                  <pre class="code-block">{{ simulation_result.raw_response | tojson(indent=2) }}</pre>
+                </div>
+              </details>
+            </div>
+            {% else %}
+            <div class="empty-state">
+              <h3>No simulation yet</h3>
+              <p>
+                Pick a request shape on the left and run it to preview the live
+                Alexa response without the full device round-trip.
+              </p>
+            </div>
+            {% endif %}
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

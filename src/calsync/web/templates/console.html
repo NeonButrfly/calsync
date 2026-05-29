@@ -22,6 +22,8 @@
 
         <nav class="sidebar-nav" aria-label="Workspace sections">
           <a class="sidebar-nav__item sidebar-nav__item--active" href="/">Schedule workspace</a>
+          <a class="sidebar-nav__item" href="/alexa/setup">Alexa setup</a>
+          <a class="sidebar-nav__item" href="/alexa/simulator">Alexa simulator</a>
           <a class="sidebar-nav__item" href="/privacy">Privacy policy</a>
           <a class="sidebar-nav__item" href="/terms">Terms of use</a>
         </nav>
@@ -60,7 +62,10 @@
               {% if readiness.edge.reachable and readiness.edge.alexa.enabled %}enabled{% else %}not live yet{% endif %}
             </li>
           </ul>
-          <a class="text-action" href="/alexa/setup">Open Alexa setup</a>
+          <div class="stack-actions">
+            <a class="text-action" href="/alexa/setup">Open Alexa setup</a>
+            <a class="text-action" href="/alexa/simulator">Run Alexa simulator</a>
+          </div>
         </div>
 
         <div class="sidebar-card">

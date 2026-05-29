@@ -31,6 +31,13 @@ interface AlexaEnvelope {
   };
 }
 
+interface AlexaSimulationRequest {
+  request_type?: string;
+  intent_name?: string;
+  slots?: Record<string, string>;
+  timestamp?: string;
+}
+
 interface AlexaSlot {
   name?: string;
   value?: string;
@@ -97,6 +104,42 @@ export async function handleAlexaRequest(
     return alexaErrorResponse(400, `Alexa request verification failed: ${message}`, requestId);
   }
 
+  return dispatchAlexaPayload(payload, env, requestId);
+}
+
+export async function simulateAlexaRequest(
+  simulation: AlexaSimulationRequest,
+  env: WorkerEnv,
+  requestId: string,
+): Promise<Response> {
+  const requestType = simulation.request_type ?? "LaunchRequest";
+  const timestamp = simulation.timestamp ?? new Date().toISOString();
+  const slots = Object.fromEntries(
+    Object.entries(simulation.slots ?? {}).filter(([, value]) => value?.trim()),
+  );
+  const payload: AlexaEnvelope = {
+    request: {
+      type: requestType,
+      timestamp,
+      intent:
+        requestType === "IntentRequest" && simulation.intent_name
+          ? {
+              name: simulation.intent_name,
+              slots: Object.fromEntries(
+                Object.entries(slots).map(([name, value]) => [name, { value }]),
+              ),
+            }
+          : undefined,
+    },
+  };
+  return dispatchAlexaPayload(payload, env, requestId);
+}
+
+async function dispatchAlexaPayload(
+  payload: AlexaEnvelope,
+  env: WorkerEnv,
+  requestId: string,
+): Promise<Response> {
   const requestType = payload.request.type;
   if (requestType === "LaunchRequest") {
     return alexaResponse({

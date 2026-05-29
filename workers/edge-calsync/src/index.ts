@@ -1,5 +1,5 @@
 import { validateChannelToken } from "./auth";
-import { handleAlexaRequest } from "./alexa";
+import { handleAlexaRequest, simulateAlexaRequest } from "./alexa";
 import {
   allowedAlexaSkillIds,
   CHANNEL_FLAGS,
@@ -43,6 +43,63 @@ export default {
     }
     if (!isChannelEnabled(env, channel)) {
       return errorResponse(403, "This channel is disabled.", requestId);
+    }
+
+    if (url.pathname === "/alexa/simulate" && request.method === "POST") {
+      if (channel !== "chatgpt") {
+        return errorResponse(
+          403,
+          "Only the ChatGPT channel may run Alexa simulations.",
+          requestId,
+        );
+      }
+
+      const simulation = (await request.json()) as Record<string, unknown>;
+      const alexaResponse = await simulateAlexaRequest(
+        {
+          request_type:
+            typeof simulation.request_type === "string"
+              ? simulation.request_type
+              : undefined,
+          intent_name:
+            typeof simulation.intent_name === "string"
+              ? simulation.intent_name
+              : undefined,
+          timestamp:
+            typeof simulation.timestamp === "string"
+              ? simulation.timestamp
+              : undefined,
+          slots:
+            simulation.slots && typeof simulation.slots === "object"
+              ? Object.fromEntries(
+                  Object.entries(simulation.slots as Record<string, unknown>)
+                    .filter(([, value]) => typeof value === "string")
+                    .map(([key, value]) => [key, value as string]),
+                )
+              : undefined,
+        },
+        env,
+        requestId,
+      );
+      const body = (await alexaResponse.json()) as {
+        response?: {
+          outputSpeech?: { text?: string };
+          card?: { type?: string };
+          shouldEndSession?: boolean;
+        };
+      };
+
+      return jsonResponse(alexaResponse.status, {
+        ok: alexaResponse.ok,
+        message: "Alexa simulation completed.",
+        data: {
+          speech: body.response?.outputSpeech?.text ?? null,
+          card_type: body.response?.card?.type ?? null,
+          should_end_session: body.response?.shouldEndSession ?? null,
+          raw_response: body,
+        },
+        request_id: requestId,
+      });
     }
 
     return routeRequest(request, env, channel, requestId);

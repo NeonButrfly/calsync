@@ -18,6 +18,7 @@ from calsync.schemas.appointments import (
     UpdateAppointmentRequest,
 )
 from calsync.services.apple_caldav import AppleCalDAVError
+from calsync.services.alexa_simulator import AlexaSimulatorService
 from calsync.services.appointments import AppointmentService
 from calsync.services.readiness import ReadinessService
 
@@ -69,7 +70,85 @@ def alexa_setup_page(request: Request):
             "alexa_endpoint": "https://edge-calsync.neonbutterfly.net/alexa",
             "privacy_url": "https://calsync.neonbutterfly.net/privacy",
             "terms_url": "https://calsync.neonbutterfly.net/terms",
+            "simulator_url": "/alexa/simulator",
         },
+    )
+
+
+@router.get("/alexa/simulator")
+def alexa_simulator_page(request: Request):
+    return _templates.TemplateResponse(
+        request,
+        "alexa_simulator.html",
+        {
+            "request": request,
+            "simulation_result": None,
+            "error_message": None,
+            "form_values": _default_alexa_simulator_values(),
+        },
+    )
+
+
+@router.post("/alexa/simulator")
+def alexa_simulator_run(
+    request: Request,
+    request_type: str = Form(...),
+    intent_name: str = Form(""),
+    title: str = Form(""),
+    date: str = Form(""),
+    start_time: str = Form(""),
+    end_time: str = Form(""),
+    location: str = Form(""),
+    notes: str = Form(""),
+    new_date: str = Form(""),
+    new_start_time: str = Form(""),
+    new_end_time: str = Form(""),
+):
+    form_values = {
+        "request_type": request_type,
+        "intent_name": intent_name,
+        "title": title,
+        "date": date,
+        "start_time": start_time,
+        "end_time": end_time,
+        "location": location,
+        "notes": notes,
+        "new_date": new_date,
+        "new_start_time": new_start_time,
+        "new_end_time": new_end_time,
+    }
+    slots = {
+        "title": title,
+        "date": date,
+        "start_time": start_time,
+        "end_time": end_time,
+        "location": location,
+        "notes": notes,
+        "new_date": new_date,
+        "new_start_time": new_start_time,
+        "new_end_time": new_end_time,
+    }
+    try:
+        simulation_result = AlexaSimulatorService().simulate(
+            request_type=request_type,
+            intent_name=intent_name or None,
+            slots=slots,
+        )
+        error_message = None
+    except ValueError as exc:
+        simulation_result = None
+        error_message = str(exc)
+
+    return _templates.TemplateResponse(
+        request,
+        "alexa_simulator.html",
+        {
+            "request": request,
+            "simulation_result": simulation_result,
+            "error_message": error_message,
+            "form_values": form_values,
+        },
+        status_code=200 if simulation_result is not None else 400,
     )
 
 
@@ -663,4 +742,21 @@ def _empty_form_values() -> dict[str, object]:
         "notes": "",
         "attendees_text": "",
         "all_day": False,
+    }
+
+
+def _default_alexa_simulator_values() -> dict[str, str]:
+    next_day = _today_in_alaska() + timedelta(days=1)
+    return {
+        "request_type": "IntentRequest",
+        "intent_name": "CreateAppointmentIntent",
+        "title": "",
+        "date": next_day.isoformat(),
+        "start_time": "10:00",
+        "end_time": "11:00",
+        "location": "",
+        "notes": "",
+        "new_date": next_day.isoformat(),
+        "new_start_time": "13:00",
+        "new_end_time": "14:00",
     }

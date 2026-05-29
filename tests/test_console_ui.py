@@ -295,6 +295,68 @@ def test_alexa_setup_page_renders_operator_steps(monkeypatch) -> None:
     assert "Alexa setup" in response.text
     assert "Download skill package" in response.text
     assert "https://edge-calsync.neonbutterfly.net/alexa" in response.text
+    assert "/alexa/simulator" in response.text
+
+
+def test_alexa_simulator_page_renders_voice_test_surface(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/alexa/simulator")
+
+    assert response.status_code == 200
+    assert "Alexa simulator" in response.text
+    assert "CreateAppointmentIntent" in response.text
+    assert "Run simulation" in response.text
+
+
+def test_alexa_simulator_page_shows_simulated_response(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+
+    class FakeAlexaSimulatorService:
+        def simulate(self, *, request_type: str, intent_name: str | None, slots: dict[str, str]):
+            assert request_type == "IntentRequest"
+            assert intent_name == "CreateAppointmentIntent"
+            assert slots["title"] == "Dentist"
+            return {
+                "ok": True,
+                "speech": "I added Dentist for Monday, June 1, 2026 at 10:00 AM.",
+                "card_type": "Simple",
+                "should_end_session": True,
+                "raw_response": {
+                    "version": "1.0",
+                    "response": {
+                        "outputSpeech": {
+                            "type": "PlainText",
+                            "text": "I added Dentist for Monday, June 1, 2026 at 10:00 AM.",
+                        }
+                    },
+                },
+            }
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.AlexaSimulatorService",
+        FakeAlexaSimulatorService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/alexa/simulator",
+        data={
+            "request_type": "IntentRequest",
+            "intent_name": "CreateAppointmentIntent",
+            "title": "Dentist",
+            "date": "2026-06-01",
+            "start_time": "10:00",
+            "end_time": "11:00",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "I added Dentist for Monday, June 1, 2026 at 10:00 AM." in response.text
+    assert '"outputSpeech"' in response.text
 
 
 def test_console_supports_window_filters_and_selected_detail(monkeypatch) -> None:

@@ -191,9 +191,13 @@ Expected auth shape:
 Current repo artifacts:
 
 - Worker route: `POST /alexa`
+- Worker simulator route: `POST /alexa/simulate`
 - interaction model: `workers/edge-calsync/alexa/interaction-model.json`
 - importable skill package: `workers/edge-calsync/alexa/skill-package`
 - voice adapter implementation: `workers/edge-calsync/src/alexa.ts`
+- origin-side simulator page:
+  - `GET /alexa/simulator`
+  - `POST /alexa/simulator`
 - public policy pages on the origin:
   - `GET /privacy`
   - `GET /terms`
@@ -201,6 +205,7 @@ Current repo artifacts:
 Known boundary in this slice:
 
 - this is a first shared-household Alexa adapter, not a full multi-user account-linking platform
+- before the skill is fully live, the product should still preview the real voice logic through an authenticated simulator path instead of repo-only tests or blind guesswork
 
 ## Full-Stack Readiness Requirement
 
