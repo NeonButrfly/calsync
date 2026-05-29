@@ -61,30 +61,34 @@ class ReadinessService:
         }
 
     def _fetch_edge_status(self) -> dict[str, Any]:
+        default_status = {
+            "reachable": False,
+            "message": "Edge status is unavailable right now.",
+            "alexa": {
+                "enabled": False,
+                "skill_ids_configured": False,
+            },
+        }
         base_url = self.settings.edge_base_url.strip()
         if not base_url:
-            return {
-                "reachable": False,
-                "message": "Edge base URL is not configured.",
-            }
+            default_status["message"] = "Edge base URL is not configured."
+            return default_status
 
         try:
             response = httpx.get(f"{base_url.rstrip('/')}/status", timeout=5.0)
             response.raise_for_status()
             payload = response.json()
         except (httpx.HTTPError, ValueError):
-            return {
-                "reachable": False,
-                "message": "Edge status is unavailable right now.",
-            }
+            return default_status
 
         data = payload.get("data") if isinstance(payload, dict) else None
         if not isinstance(data, dict):
-            return {
-                "reachable": False,
-                "message": "Edge status returned an unexpected payload.",
-            }
+            default_status["message"] = "Edge status returned an unexpected payload."
+            return default_status
 
+        data.setdefault("alexa", {})
+        data["alexa"].setdefault("enabled", False)
+        data["alexa"].setdefault("skill_ids_configured", False)
         data["reachable"] = True
         return data
 

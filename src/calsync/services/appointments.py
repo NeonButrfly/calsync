@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
+import re
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
@@ -902,38 +903,8 @@ class AppointmentService:
         if target_calendar_url and target_calendar_url.startswith("microsoft:"):
             return target_calendar_url
         if target_calendar_name:
-            try:
-                microsoft_target = self.microsoft_runtime_config.resolve(
-                    calendar_name=target_calendar_name,
-                )
-                calendar_id = str(microsoft_target["primary_calendar_id"])
-                account_email = str(microsoft_target["account_email"])
-                if calendar_id and account_email:
-                    return self.microsoft_runtime_config.encode_target_value(
-                        account_email,
-                        calendar_id,
-                    )
-            except ValueError:
-                pass
-            try:
-                google_target = self.google_runtime_config.resolve(
-                        calendar_name=target_calendar_name,
-                )
-                calendar_id = str(google_target["primary_calendar_id"])
-                account_email = str(google_target["account_email"])
-                if calendar_id and account_email:
-                    return self.google_runtime_config.encode_target_value(
-                        account_email,
-                        calendar_id,
-                    )
-            except ValueError:
-                pass
-        return str(
-            self.apple_runtime_config.resolve(
-                calendar_url=target_calendar_url,
-                calendar_name=target_calendar_name,
-            )["primary_calendar_url"]
-        )
+            return self._resolve_target_calendar_name_value(target_calendar_name)
+        return str(self.apple_runtime_config.resolve(calendar_url=target_calendar_url)["primary_calendar_url"])
 
     def _parse_target_calendar_value(
         self,
@@ -1231,11 +1202,10 @@ class AppointmentService:
                 "calendar_name": str(item["calendar_name"]),
                 "calendar_url": str(item["calendar_url"]),
                 "is_default": bool(item.get("is_default")),
-                "account_label": str(self.apple_runtime_config.resolve()["account_label"]),
+                "account_label": str(item.get("account_label") or ""),
             }
             for item in self.apple_runtime_config.list_calendars()
         ]
-        google = self.google_runtime_config.resolve()
         calendars.extend(
             [
                 {
@@ -1261,6 +1231,156 @@ class AppointmentService:
             ]
         )
         return calendars
+
+    @property
+    def calendar_name_targets(self) -> list[dict[str, str]]:
+        return [
+            {
+                "label": str(item["display_label"]),
+                "value": str(item["voice_value"]),
+            }
+            for item in self._calendar_target_catalog()
+        ]
+
+    def _resolve_target_calendar_name_value(self, target_calendar_name: str) -> str:
+        normalized_target = self._normalize_calendar_target_name(target_calendar_name)
+        matches = [
+            item
+            for item in self._calendar_target_catalog()
+            if normalized_target in item["aliases"]
+        ]
+        if len(matches) == 1:
+            return str(matches[0]["calendar_url"])
+        if len(matches) > 1:
+            options = ", ".join(str(item["display_label"]) for item in matches)
+            raise ValueError(
+                f"Calendar target name '{target_calendar_name}' is ambiguous. Try one of: {options}."
+            )
+        raise ValueError(f"Calendar target name '{target_calendar_name}' was not found.")
+
+    def _calendar_target_catalog(self) -> list[dict[str, object]]:
+        calendars = self.available_calendars
+        name_counts: dict[str, int] = {}
+        name_provider_counts: dict[tuple[str, str], int] = {}
+        for item in calendars:
+            calendar_name = str(item["calendar_name"])
+            provider_word = self._provider_voice_word(str(item["provider_type"]))
+            name_counts[calendar_name] = name_counts.get(calendar_name, 0) + 1
+            key = (calendar_name, provider_word)
+            name_provider_counts[key] = name_provider_counts.get(key, 0) + 1
+
+        catalog: list[dict[str, object]] = []
+        for item in calendars:
+            calendar_name = str(item["calendar_name"])
+            provider_type = str(item["provider_type"])
+            provider_label = self._provider_ui_label(provider_type)
+            provider_word = self._provider_voice_word(provider_type)
+            account_label = str(item.get("account_label") or "").strip()
+            voice_value = self._calendar_target_voice_value(
+                calendar_name=calendar_name,
+                provider_word=provider_word,
+                account_label=account_label,
+                name_counts=name_counts,
+                name_provider_counts=name_provider_counts,
+            )
+            display_parts = [calendar_name, provider_label]
+            if account_label:
+                display_parts.append(account_label)
+            aliases = self._calendar_target_aliases(
+                calendar_name=calendar_name,
+                provider_word=provider_word,
+                account_label=account_label,
+                voice_value=voice_value,
+            )
+            catalog.append(
+                {
+                    "calendar_name": calendar_name,
+                    "calendar_url": str(item["calendar_url"]),
+                    "provider_type": provider_type,
+                    "provider_label": provider_label,
+                    "account_label": account_label,
+                    "display_label": " · ".join(part for part in display_parts if part),
+                    "voice_value": voice_value,
+                    "aliases": aliases,
+                }
+            )
+        return catalog
+
+    def _calendar_target_voice_value(
+        self,
+        *,
+        calendar_name: str,
+        provider_word: str,
+        account_label: str,
+        name_counts: dict[str, int],
+        name_provider_counts: dict[tuple[str, str], int],
+    ) -> str:
+        if name_counts.get(calendar_name, 0) == 1:
+            return calendar_name
+        if name_provider_counts.get((calendar_name, provider_word), 0) == 1:
+            return f"{calendar_name} on {provider_word}"
+        if account_label:
+            return f"{calendar_name} on {provider_word} for {account_label}"
+        return f"{calendar_name} on {provider_word}"
+
+    def _calendar_target_aliases(
+        self,
+        *,
+        calendar_name: str,
+        provider_word: str,
+        account_label: str,
+        voice_value: str,
+    ) -> set[str]:
+        aliases = {
+            self._normalize_calendar_target_name(calendar_name),
+            self._normalize_calendar_target_name(voice_value),
+            self._normalize_calendar_target_name(f"{calendar_name} on {provider_word}"),
+            self._normalize_calendar_target_name(f"{calendar_name} {provider_word}"),
+            self._normalize_calendar_target_name(
+                f"{calendar_name} {provider_word} calendar"
+            ),
+        }
+        if provider_word == "Microsoft":
+            aliases.add(
+                self._normalize_calendar_target_name(f"{calendar_name} on Outlook")
+            )
+            aliases.add(self._normalize_calendar_target_name(f"{calendar_name} Outlook"))
+        if account_label:
+            aliases.add(
+                self._normalize_calendar_target_name(f"{calendar_name} for {account_label}")
+            )
+            aliases.add(
+                self._normalize_calendar_target_name(
+                    f"{calendar_name} on {provider_word} for {account_label}"
+                )
+            )
+            aliases.add(
+                self._normalize_calendar_target_name(
+                    f"{calendar_name} {account_label} {provider_word}"
+                )
+            )
+        return aliases
+
+    def _provider_ui_label(self, provider_type: str) -> str:
+        if provider_type == "icloud_caldav":
+            return "Apple Calendar"
+        if provider_type == "google_calendar":
+            return "Google Calendar"
+        if provider_type == "microsoft_calendar":
+            return "Microsoft Calendar"
+        return provider_type.replace("_", " ").title()
+
+    def _provider_voice_word(self, provider_type: str) -> str:
+        if provider_type == "icloud_caldav":
+            return "Apple"
+        if provider_type == "google_calendar":
+            return "Google"
+        if provider_type == "microsoft_calendar":
+            return "Microsoft"
+        return provider_type.replace("_", " ").title()
+
+    def _normalize_calendar_target_name(self, value: str) -> str:
+        return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
 
     def _get_session_factory(self) -> sessionmaker[Session]:
         if self.session_factory is None:

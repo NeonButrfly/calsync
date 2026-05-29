@@ -900,7 +900,7 @@ def alexa_setup_update_cloudflare_credentials(
 
 @router.get("/alexa/simulator")
 def alexa_simulator_page(request: Request):
-    runtime_service = AppleRuntimeConfigService()
+    service = AppointmentService()
     return _templates.TemplateResponse(
         request,
         "alexa_simulator.html",
@@ -909,7 +909,7 @@ def alexa_simulator_page(request: Request):
             "simulation_result": None,
             "error_message": None,
             "form_values": _default_alexa_simulator_values(),
-            "calendar_name_options": _calendar_name_options(runtime_service),
+            "calendar_name_options": _calendar_name_options(service),
         },
     )
 
@@ -985,7 +985,7 @@ def alexa_simulator_run(
             "error_message": error_message,
             "form_values": form_values,
             "calendar_name_options": _calendar_name_options(
-                AppleRuntimeConfigService()
+                AppointmentService()
             ),
         },
         status_code=200 if simulation_result is not None else 400,
@@ -1737,12 +1737,6 @@ def _default_alexa_simulator_values() -> dict[str, str]:
 
 
 def _calendar_name_options(
-    runtime_service: AppleRuntimeConfigService,
+    service: AppointmentService,
 ) -> list[dict[str, str]]:
-    return [
-        {
-            "label": str(item["calendar_name"]),
-            "value": str(item["calendar_name"]),
-        }
-        for item in runtime_service.list_calendars()
-    ]
+    return service.calendar_name_targets

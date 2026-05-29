@@ -17,6 +17,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#47" in readme_content
     assert "#48" in readme_content
     assert "#49" in readme_content
+    assert "#50" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -66,6 +67,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "alexa simulator page" in readme_content
     assert "downloadable skill package" in readme_content
     assert "named apple calendar targeting through alexa and the simulator" in readme_content
+    assert "provider-aware alexa calendar targeting across apple, google, and microsoft" in readme_content
     assert "https://mcp-calsync.kaymayers9.workers.dev/mcp" in readme_content
     assert "https://mcp-calsync.neonbutterfly.net/mcp" in readme_content
     assert "list_appointments" in readme_content
@@ -83,6 +85,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#47" in ops_content
     assert "#48" in ops_content
     assert "#49" in ops_content
+    assert "#50" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -115,6 +118,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /alexa/skill-package.zip" in ops_content
     assert "post /alexa/simulator" in ops_content
     assert "post /alexa/simulate" in ops_content
+    assert "provider-aware calendar targets drawn from the shared scheduling brain" in ops_content
     assert "get /v1/availability" in ops_content
     assert "cloudflare worker access form" in ops_content
     assert "apple calendar setup page" in ops_content
@@ -155,6 +159,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#47" in prompt_content
     assert "#48" in prompt_content
     assert "#49" in prompt_content
+    assert "#50" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -201,6 +206,9 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "target_calendar_url" in prompt_content
     assert "create and edit flows should expose a target calendar picker" in prompt_content
     assert "named apple calendar voice target requirement" in prompt_content
+    assert "provider-aware alexa calendar target requirement" in prompt_content
+    assert "family on google" in prompt_content
+    assert "calendar on microsoft" in prompt_content
     assert "target_calendar_name" in prompt_content
     assert "availability requirement" in prompt_content
     assert "findavailabilityintent" in prompt_content
@@ -246,7 +254,7 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "rescheduleappointmentintent" in readme_content
     assert "findavailabilityintent" in readme_content
     assert "next upcoming appointment" in readme_content
-    assert "named saved apple calendar target" in readme_content
+    assert "provider-aware named calendar target across apple, google, and microsoft" in readme_content
 
     assert "#38" in ops_content
     assert "createappointmentintent" in ops_content
@@ -260,7 +268,7 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "edge worker controls" in ops_content
     assert "spoken response" in ops_content
     assert "token-hash presence flags" in ops_content
-    assert "named saved apple calendar target" in ops_content
+    assert "provider-aware named calendar target across apple, google, and microsoft" in ops_content
 
     assert "#38" in prompt_content
     assert "post /alexa" in prompt_content
@@ -307,3 +315,4 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "next upcoming appointment" in alexa_readme_content
     assert "find open time" in alexa_readme_content
     assert "named calendar routing" in alexa_readme_content
+    assert "provider-aware named calendar target across apple, google, and microsoft" in alexa_readme_content

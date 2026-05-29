@@ -211,6 +211,19 @@ Expected behavior:
 - Alexa reschedule flows should support a new calendar-name slot for moving an appointment to another saved Apple target
 - the in-product simulator should expose those calendar-name fields so voice routing can be tested without guessing raw payloads
 
+## Provider-Aware Alexa Calendar Target Requirement
+
+- GitHub issue: `#50`
+- interpreted requirement: Alexa and the in-product simulator should treat Apple, Google, and Microsoft calendar targets as one provider-aware scheduling surface instead of staying Apple-shaped after the shared scheduling brain became multi-provider
+
+Expected behavior:
+
+- the simulator should populate calendar-name options from the shared scheduling brain, not from Apple-only runtime state
+- `target_calendar_name` should resolve against a unified provider-aware calendar target catalog
+- provider-aware names such as `Family on Google` or `Calendar on Microsoft` should route correctly
+- ambiguous bare names should fail clearly with actionable options instead of silently falling through between providers
+- voice-facing docs and setup guidance should describe provider-aware targeting across Apple, Google, and Microsoft
+
 ## Availability Requirement
 
 - GitHub issue: `#48`

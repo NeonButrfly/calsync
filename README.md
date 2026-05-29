@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, and `#49` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, and `#50` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -41,6 +41,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - Live Pi origin hostname: `https://calsync.neonbutterfly.net`
 - a first Alexa custom-skill adapter on top of the same shared scheduling brain
 - named Apple calendar targeting through Alexa and the simulator, so voice flows can choose a saved household calendar instead of always using the default destination
+- provider-aware Alexa calendar targeting across Apple, Google, and Microsoft, so voice and simulator flows can choose the right connected calendar path without relying on Apple-only assumptions
 - live Apple primary-calendar reads, so existing household events show up in the shared workspace and voice flows
 - multiple saved Apple calendar targets, so create, edit, and sync flows can work across more than one household calendar
 - a product-facing readiness surface for Apple setup, channel tokens, edge reachability, and Alexa status
@@ -178,12 +179,12 @@ The first Alexa integration now lives beside the Worker:
 Current voice capabilities:
 
 - create a new appointment
-- create a new appointment on a named saved Apple calendar target
+- create a new appointment on a provider-aware named calendar target across Apple, Google, and Microsoft
 - read appointments for a requested day
 - read the next upcoming appointment in the next 30 days
 - read back open appointment windows for a requested date or date range
 - cancel a matching appointment by title and date
-- reschedule a matching appointment to a new day, time, or saved Apple calendar target
+- reschedule a matching appointment to a new day, time, or provider-aware named calendar target across Apple, Google, and Microsoft
 - act on Apple events that already existed in the family calendar once the origin has synced the requested date window
 - share the same open-time lookup and writable scheduling brain that now supports connected Google targets too
 
@@ -292,6 +293,7 @@ If you prefer not to keep a Worker-management API token in the host `.env`, the 
 - Named Apple calendar targeting for Alexa and simulator: issue `#47`
 - Availability search across workspace, edge, and Alexa: issue `#48`
 - Runtime token store mount fix: issue `#44`
+- Provider-aware Alexa calendar targeting across Apple, Google, and Microsoft: issue `#50`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`
 - Apple live calendar sync into the shared workspace and Alexa: issue `#41`

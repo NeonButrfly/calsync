@@ -1363,6 +1363,38 @@ def test_alexa_simulator_page_renders_voice_test_surface(monkeypatch) -> None:
             },
         ]
     )
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.upsert_google_account(
+        account_label="Work Google",
+        account_email="work@example.com",
+        refresh_token="work-google-refresh",
+        calendars=[
+            {
+                "calendar_name": "Work",
+                "calendar_id": "work",
+                "is_default": True,
+            }
+        ],
+    )
+    service.set_microsoft_oauth_settings(
+        client_id="microsoft-client-id",
+        client_secret="microsoft-client-secret",
+    )
+    service.upsert_microsoft_account(
+        account_label="Kay Microsoft",
+        account_email="kay@example.com",
+        refresh_token="microsoft-refresh",
+        calendars=[
+            {
+                "calendar_name": "Calendar",
+                "calendar_id": "primary",
+                "is_default": True,
+            }
+        ],
+    )
     app = create_app()
     client = TestClient(app)
 
@@ -1373,6 +1405,8 @@ def test_alexa_simulator_page_renders_voice_test_surface(monkeypatch) -> None:
     assert "CreateAppointmentIntent" in response.text
     assert "Target calendar" in response.text
     assert "School" in response.text
+    assert "Work · Google Calendar · Work Google" in response.text
+    assert "Calendar · Microsoft Calendar · Kay Microsoft" in response.text
     assert "Run simulation" in response.text
 
 

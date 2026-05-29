@@ -328,6 +328,51 @@ def _configure_microsoft_settings() -> None:
     )
 
 
+def _configure_duplicate_named_provider_targets() -> None:
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_apple_calendar_catalog(
+        [
+            {
+                "calendar_name": "Family",
+                "calendar_url": "https://caldav.icloud.com/family/",
+                "is_default": True,
+            }
+        ]
+    )
+    service.set_google_oauth_settings(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+    )
+    service.upsert_google_account(
+        account_label="Kay Google",
+        account_email="kay@example.com",
+        refresh_token="google-refresh-token",
+        calendars=[
+            {
+                "calendar_name": "Family",
+                "calendar_id": "family-google",
+                "is_default": True,
+            }
+        ],
+    )
+    service.set_microsoft_oauth_settings(
+        client_id="microsoft-client-id",
+        client_secret="microsoft-client-secret",
+    )
+    service.upsert_microsoft_account(
+        account_label="Kay Microsoft",
+        account_email="kay@example.com",
+        refresh_token="microsoft-refresh-token",
+        calendars=[
+            {
+                "calendar_name": "Family",
+                "calendar_id": "family-microsoft",
+                "is_default": True,
+            }
+        ],
+    )
+
+
 def test_create_appointment_returns_local_id(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     monkeypatch.setattr(
@@ -1071,6 +1116,135 @@ def test_update_appointment_can_move_to_a_saved_apple_calendar_by_name(monkeypat
     detail = client.get(f"/api/appointments/{appointment_id}")
     assert detail.status_code == 200
     assert detail.json()["calendar_name"] == "School"
+
+
+def test_create_appointment_can_target_google_calendar_by_provider_aware_name(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    _configure_duplicate_named_provider_targets()
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self, calendar_url=None: FakeAppleClient(),
+    )
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_google_client",
+        lambda self, calendar_id=None, account_email=None, calendar_name=None: FakeGoogleClient(),
+    )
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_microsoft_client",
+        lambda self, calendar_id=None, account_email=None, calendar_name=None: FakeMicrosoftClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Google family event",
+            "date": "2026-06-08",
+            "start_time": "13:00",
+            "end_time": "14:00",
+            "timezone": "America/Anchorage",
+            "target_calendar_name": "Family on Google",
+        },
+    )
+
+    assert response.status_code == 201
+    detail = client.get(f"/api/appointments/{response.json()['appointment_id']}")
+    assert detail.status_code == 200
+    assert detail.json()["provider_type"] == "google_calendar"
+    assert detail.json()["calendar_name"] == "Family"
+    assert detail.json()["account_label"] == "Kay Google"
+
+
+def test_create_appointment_can_target_microsoft_calendar_by_provider_aware_name(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    _configure_duplicate_named_provider_targets()
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self, calendar_url=None: FakeAppleClient(),
+    )
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_google_client",
+        lambda self, calendar_id=None, account_email=None, calendar_name=None: FakeGoogleClient(),
+    )
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_microsoft_client",
+        lambda self, calendar_id=None, account_email=None, calendar_name=None: FakeMicrosoftClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Microsoft family event",
+            "date": "2026-06-09",
+            "start_time": "15:00",
+            "end_time": "16:00",
+            "timezone": "America/Anchorage",
+            "target_calendar_name": "Family on Microsoft",
+        },
+    )
+
+    assert response.status_code == 201
+    detail = client.get(f"/api/appointments/{response.json()['appointment_id']}")
+    assert detail.status_code == 200
+    assert detail.json()["provider_type"] == "microsoft_calendar"
+    assert detail.json()["calendar_name"] == "Family"
+    assert detail.json()["account_label"] == "Kay Microsoft"
+
+
+def test_create_appointment_rejects_ambiguous_calendar_name_across_providers(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    _configure_duplicate_named_provider_targets()
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self, calendar_url=None: FakeAppleClient(),
+    )
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_google_client",
+        lambda self, calendar_id=None, account_email=None, calendar_name=None: FakeGoogleClient(),
+    )
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_microsoft_client",
+        lambda self, calendar_id=None, account_email=None, calendar_name=None: FakeMicrosoftClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Ambiguous family event",
+            "date": "2026-06-10",
+            "start_time": "11:00",
+            "end_time": "12:00",
+            "timezone": "America/Anchorage",
+            "target_calendar_name": "Family",
+        },
+    )
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert "ambiguous" in detail.lower()
+    assert "Family · Apple Calendar · Family" in detail
+    assert "Family · Google Calendar · Kay Google" in detail
+    assert "Family · Microsoft Calendar · Kay Microsoft" in detail
 
 
 def test_create_appointment_surfaces_provider_failure(monkeypatch) -> None:

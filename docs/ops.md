@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current CalSync service, family scheduling UX, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, named Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, and Alexa setup flow tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, and `#49`.
+This guide covers the current CalSync service, family scheduling UX, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, and Alexa setup flow tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, and `#50`.
 
 ## What This Service Does
 
@@ -257,7 +257,7 @@ Current management boundary:
 
 This operator-facing flow now:
 
-- builds a voice test request from a simple form
+- builds a voice test request from a simple form with provider-aware calendar targets drawn from the shared scheduling brain
 - sends it through the real edge Alexa simulation route using the live ChatGPT channel token
 - shows the spoken response, session-ending behavior, and raw Alexa response JSON
 - helps validate the live voice logic before `ENABLE_ALEXA=true` and the final skill-ID allowlist turn-on
@@ -429,12 +429,13 @@ Current readiness support:
 Current scope:
 
 - create an appointment through the shared scheduling brain
-- create an appointment on a named saved Apple calendar target
+- create an appointment on a provider-aware named calendar target across Apple, Google, and Microsoft
 - read appointments for a requested day
 - read the next upcoming appointment in the next 30 days
 - read back a few open availability windows for a requested date or date range
 - cancel a matching appointment by title and date
-- reschedule a matching appointment to a new day, time, or saved Apple calendar target
+- reschedule a matching appointment to a new day, time, or provider-aware named calendar target across Apple, Google, and Microsoft
+- reject ambiguous calendar-name routing with a clear follow-up error instead of silently guessing across providers
 - keep all actual calendar writes in the origin service
 - rely on the origin's live Apple date-range sync so pre-existing family-calendar events can be surfaced to voice flows
 - let the product preview real voice responses through `/alexa/simulate` before signed device requests are turned on
