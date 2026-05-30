@@ -488,3 +488,18 @@ Expected behavior:
 - the setup page should read the current edge Worker Alexa flags when Cloudflare worker-management settings are available
 - the setup page should let the operator update `ENABLE_ALEXA` and `ALEXA_ALLOWED_SKILL_IDS` from the product when the Cloudflare token has `Workers Scripts Write`
 - the root scheduling workspace should link operators into the Alexa setup flow
+
+## Desired Alexa Edge Settings Requirement
+
+- GitHub issue: `#61`
+- interpreted requirement: the product should preserve the intended Alexa edge state even before live Worker management is available, and it should show whether that saved plan still differs from the current Worker
+
+Expected behavior:
+
+- `POST /alexa/setup` should always save the desired `ENABLE_ALEXA` and `ALEXA_ALLOWED_SKILL_IDS` values in the product vault
+- those desired Alexa settings should be stored encrypted at rest with `ENCRYPTION_KEY`
+- if Cloudflare Worker management is configured, the same action should also apply the desired state to the live Worker
+- if Cloudflare Worker management is not configured, the operator should still get a success path for saving the desired state plus a clear explanation of what still blocks the live apply
+- `GET /alexa/setup` should show the saved desired Alexa state beside the live Worker state
+- the product should call out drift clearly when the saved desired Alexa state and live Worker do not match yet
+- `GET /api/readiness` should surface that saved desired Alexa state so the next-action guidance can reflect a saved-but-not-yet-applied Alexa turn-on plan

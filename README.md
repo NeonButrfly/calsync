@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, and `#60` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, and `#61` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -70,6 +70,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - persisted connection verification summaries, so `/connections` can show the last successful or failed write proof per writable calendar target
 - an in-product Alexa setup page plus downloadable skill package
 - an encrypted product vault for Cloudflare Worker-management credentials, so the Alexa setup flow can store operator access safely inside CalSync
+- persisted desired Alexa edge settings plus live-vs-desired drift visibility, so operators can save the intended skill allowlist and enablement plan even before Cloudflare Worker management is available
 - a first availability finder across the workspace, edge API, and Alexa so CalSync can suggest open appointment windows instead of only listing busy ones
 
 ### Endpoints
@@ -146,7 +147,7 @@ The root page now acts as the first family scheduling UX:
 - that booking setup flow now also lets operators make an existing booking type the default public flow or delete a stale type directly from the UI
 - a first in-product Alexa setup page that links the live endpoint, policy URLs, and skill package download
 - a first in-product Cloudflare access form that stores Worker-management credentials securely in the product vault
-- a first in-product Alexa edge-settings form that can read and update Worker Alexa flags when Cloudflare worker-management permission is configured
+- a first in-product Alexa edge-settings form that can always save the desired Alexa state in the product vault, then apply Worker Alexa flags live when Cloudflare worker-management permission is configured
 - a first in-product Alexa simulator page that previews real voice responses before the final Amazon console turn-on
 
 ### Worker routes
@@ -309,6 +310,8 @@ If you want Outlook scheduling without host-only secret edits, the product now e
 
 If you prefer not to keep a Worker-management API token in the host `.env`, the Alexa setup page can now save the Cloudflare account ID and API token inside CalSync. The product vault encrypts those values at rest with `ENCRYPTION_KEY`, then uses them for live `ENABLE_ALEXA` and `ALEXA_ALLOWED_SKILL_IDS` management.
 
+That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALEXA_ALLOWED_SKILL_IDS` state inside the product vault, then shows whether the live Worker still differs from that saved plan. This lets operators save the intended Alexa turn-on state even when Cloudflare Worker management is not configured yet.
+
 ## Tracking
 
 - Conversational Apple-first app slice: issue `#32`
@@ -330,6 +333,7 @@ If you prefer not to keep a Worker-management API token in the host `.env`, the 
 - Multiple public booking types with shareable links: issue `#58`
 - Public booking catalog for multiple appointment types: issue `#59`
 - In-product booking type management actions: issue `#60`
+- Persist desired Alexa edge settings and drift visibility: issue `#61`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`
 - Apple live calendar sync into the shared workspace and Alexa: issue `#41`

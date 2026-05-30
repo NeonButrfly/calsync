@@ -80,6 +80,29 @@ def test_operator_settings_keeps_existing_token_when_blank_update() -> None:
     }
 
 
+def test_operator_settings_can_store_desired_alexa_settings() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.set_desired_alexa_settings(
+        enable_alexa=True,
+        allowed_skill_ids=["amzn1.ask.skill.one", "amzn1.ask.skill.two"],
+    )
+
+    assert service.get_desired_alexa_settings() == {
+        "enable_alexa": True,
+        "allowed_skill_ids": ["amzn1.ask.skill.one", "amzn1.ask.skill.two"],
+    }
+    described = service.describe_desired_alexa_settings()
+    assert described["enable_alexa"] is True
+    assert described["allowed_skill_ids"] == [
+        "amzn1.ask.skill.one",
+        "amzn1.ask.skill.two",
+    ]
+    assert described["saved"] is True
+    assert described["source"] == "product_vault"
+
+
 def test_operator_settings_encrypts_apple_calendar_values_at_rest() -> None:
     settings = _settings()
     service = OperatorSettingsService(settings=settings)

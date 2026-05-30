@@ -30,6 +30,7 @@ class ReadinessService:
         apple = self.apple_runtime_config.resolve()
         google = self.google_runtime_config.resolve()
         microsoft = self.microsoft_runtime_config.resolve()
+        desired_alexa = self._load_desired_alexa_settings()
         primary_account_label = (
             apple["account_label"]
             if apple["ready"]
@@ -57,8 +58,29 @@ class ReadinessService:
             "origin": origin,
             "channel_tokens": channel_tokens,
             "edge": edge,
-            "next_action": self._next_action(origin, channel_tokens, edge),
+            "desired_alexa": desired_alexa,
+            "next_action": self._next_action(
+                origin,
+                channel_tokens,
+                edge,
+                desired_alexa,
+            ),
         }
+
+    def _load_desired_alexa_settings(self) -> dict[str, Any]:
+        try:
+            from calsync.services.operator_settings import OperatorSettingsService
+
+            return OperatorSettingsService(
+                settings=self.settings
+            ).describe_desired_alexa_settings()
+        except Exception:
+            return {
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "saved": False,
+                "source": "defaults",
+            }
 
     def _fetch_edge_status(self) -> dict[str, Any]:
         default_status = {
@@ -97,9 +119,26 @@ class ReadinessService:
         origin: dict[str, Any],
         channel_tokens: dict[str, bool],
         edge: dict[str, Any],
+        desired_alexa: dict[str, Any],
     ) -> str:
         if not origin["any_calendar_ready"]:
             return "Add an Apple calendar or finish Google or Microsoft setup so CalSync can read and write a real connected calendar."
+        desired_enabled = bool(desired_alexa.get("enable_alexa"))
+        desired_skill_ids = [
+            str(value).strip()
+            for value in desired_alexa.get("allowed_skill_ids", [])
+            if str(value).strip()
+        ]
+        live_enabled = bool(edge.get("alexa", {}).get("enabled", False))
+        live_skill_ids_configured = bool(
+            edge.get("alexa", {}).get("skill_ids_configured", False)
+        )
+        if desired_alexa.get("saved") and (
+            not edge.get("reachable", False)
+            or desired_enabled != live_enabled
+            or bool(desired_skill_ids) != live_skill_ids_configured
+        ):
+            return "Desired Alexa settings are saved in CalSync and still need to be applied to the live edge Worker."
         if not channel_tokens.get("chatgpt", False):
             return "Bootstrap the ChatGPT channel token so the edge Worker can authenticate app requests."
         if not edge.get("reachable", False):

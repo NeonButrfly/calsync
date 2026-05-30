@@ -28,6 +28,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#58" in readme_content
     assert "#59" in readme_content
     assert "#60" in readme_content
+    assert "#61" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -100,6 +101,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "product vault" in readme_content
     assert "alexa simulator page" in readme_content
     assert "downloadable skill package" in readme_content
+    assert "persisted desired alexa edge settings" in readme_content
+    assert "live-vs-desired drift visibility" in readme_content
     assert "named apple calendar targeting through alexa and the simulator" in readme_content
     assert "provider-aware alexa calendar targeting across apple, google, and microsoft" in readme_content
     assert "https://mcp-calsync.kaymayers9.workers.dev/mcp" in readme_content
@@ -130,6 +133,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#58" in ops_content
     assert "#59" in ops_content
     assert "#60" in ops_content
+    assert "#61" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -211,6 +215,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "enable_alexa" in ops_content
     assert "alexa_allowed_skill_ids" in ops_content
     assert "downloadable alexa custom skill package zip" in ops_content
+    assert "desired alexa edge-state summary" in ops_content
+    assert "save-now/apply-later path" in ops_content
     assert "post /mcp" in ops_content
     assert "mcp_auth_token" in ops_content
     assert "edge_internal_token" in ops_content
@@ -238,6 +244,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#58" in prompt_content
     assert "#59" in prompt_content
     assert "#60" in prompt_content
+    assert "#61" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -317,6 +324,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "findavailabilityintent" in prompt_content
     assert "save cloudflare worker-management credentials inside the product" in prompt_content
     assert "stored encrypted at rest with `encryption_key`" in prompt_content
+    assert "desired alexa edge settings requirement" in prompt_content
+    assert "should always save the desired `enable_alexa` and `alexa_allowed_skill_ids` values" in prompt_content
     assert "enable_alexa" in prompt_content
     assert "alexa_allowed_skill_ids" in prompt_content
     assert "post /alexa/simulate" in prompt_content

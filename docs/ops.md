@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current CalSync service, family scheduling UX, the planner-style day/week/month schedule board, a first public booking page, in-product booking setup, public booking availability rules, multiple public booking types with shareable links, a public booking catalog chooser, in-product booking type management actions, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, Alexa setup flow, in-product writable target verification, the checklist-style Connections verification center, and direct provider actions from that shared surface tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, and `#60`.
+This guide covers the current CalSync service, family scheduling UX, the planner-style day/week/month schedule board, a first public booking page, in-product booking setup, public booking availability rules, multiple public booking types with shareable links, a public booking catalog chooser, in-product booking type management actions, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, Alexa setup flow, persisted desired Alexa edge settings, in-product writable target verification, the checklist-style Connections verification center, and direct provider actions from that shared surface tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, and `#61`.
 
 ## What This Service Does
 
@@ -271,6 +271,7 @@ This operator-facing flow now serves:
 - a Cloudflare Worker access form for:
   - `CLOUDFLARE_ACCOUNT_ID`
   - `CLOUDFLARE_API_TOKEN`
+- a desired Alexa edge-state summary that shows what CalSync has saved versus what the live Worker is currently doing
 - edge Worker controls for:
   - `ENABLE_ALEXA`
   - `ALEXA_ALLOWED_SKILL_IDS`
@@ -279,6 +280,9 @@ Current management boundary:
 
 - the setup page can use either deployment env credentials or product-vault credentials saved from the setup page
 - product-vault credentials are encrypted with `ENCRYPTION_KEY`
+- the desired Alexa state is also saved in the product vault, encrypted at rest with `ENCRYPTION_KEY`
+- the setup page now keeps a save-now/apply-later path, so operators can persist the intended Alexa enablement and skill allowlist even when Cloudflare Worker management is not configured yet
+- the setup page shows live-versus-desired drift clearly instead of failing as an opaque one-shot control surface
 - the configured token must include `Workers Scripts Write`
 - if the token only has KV permissions, the product shows a clear permission error instead of pretending the edge Worker can be managed
 

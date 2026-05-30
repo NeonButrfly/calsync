@@ -563,8 +563,30 @@ def booking_type_delete(
 @router.get("/alexa/setup")
 def alexa_setup_page(request: Request):
     readiness = ReadinessService().build()
+    operator_settings = OperatorSettingsService()
     edge_settings = CloudflareWorkerConfigService().get_alexa_settings()
-    cloudflare_credentials = OperatorSettingsService().describe_cloudflare_worker_credentials()
+    return _render_alexa_setup_page(
+        request,
+        readiness=readiness,
+        operator_settings=operator_settings,
+        edge_settings=edge_settings,
+        flash_message=None,
+        error_message=None,
+        status_code=200,
+    )
+
+
+def _render_alexa_setup_page(
+    request: Request,
+    *,
+    readiness: dict[str, object],
+    operator_settings: OperatorSettingsService,
+    edge_settings: dict[str, object],
+    flash_message: str | None,
+    error_message: str | None,
+    status_code: int,
+):
+    desired_settings = operator_settings.describe_desired_alexa_settings()
     return _templates.TemplateResponse(
         request,
         "alexa_setup.html",
@@ -572,14 +594,20 @@ def alexa_setup_page(request: Request):
             "request": request,
             "readiness": readiness,
             "edge_settings": edge_settings,
-            "cloudflare_credentials": cloudflare_credentials,
+            "desired_alexa_settings": desired_settings,
+            "alexa_drift": _describe_alexa_settings_drift(
+                desired_settings=desired_settings,
+                edge_settings=edge_settings,
+            ),
+            "cloudflare_credentials": operator_settings.describe_cloudflare_worker_credentials(),
             "alexa_endpoint": "https://edge-calsync.neonbutterfly.net/alexa",
             "privacy_url": "https://calsync.neonbutterfly.net/privacy",
             "terms_url": "https://calsync.neonbutterfly.net/terms",
             "simulator_url": "/alexa/simulator",
-            "flash_message": None,
-            "error_message": None,
+            "flash_message": flash_message,
+            "error_message": error_message,
         },
+        status_code=status_code,
     )
 
 
@@ -1630,39 +1658,38 @@ def alexa_setup_update(
     allowed_skill_ids: str = Form(""),
     enable_alexa: str | None = Form(None),
 ):
-    readiness = ReadinessService().build()
+    operator_settings = OperatorSettingsService()
+    normalized_skill_ids = [
+        value.strip() for value in allowed_skill_ids.split(",") if value.strip()
+    ]
+    operator_settings.set_desired_alexa_settings(
+        enable_alexa=enable_alexa == "true",
+        allowed_skill_ids=normalized_skill_ids,
+    )
     service = CloudflareWorkerConfigService()
     try:
         edge_settings = service.update_alexa_settings(
             enable_alexa=enable_alexa == "true",
-            allowed_skill_ids=[
-                value.strip() for value in allowed_skill_ids.split(",") if value.strip()
-            ],
+            allowed_skill_ids=normalized_skill_ids,
         )
-        flash_message = "Edge Worker settings updated."
+        if edge_settings is None:
+            edge_settings = service.get_alexa_settings()
+        flash_message = "Desired Alexa settings saved and edge Worker updated."
         error_message = None
     except ValueError as exc:
         edge_settings = service.get_alexa_settings()
-        flash_message = None
+        flash_message = "Desired Alexa settings saved securely."
         error_message = str(exc)
+    readiness = ReadinessService().build()
 
-    cloudflare_credentials = OperatorSettingsService().describe_cloudflare_worker_credentials()
-    return _templates.TemplateResponse(
+    return _render_alexa_setup_page(
         request,
-        "alexa_setup.html",
-        {
-            "request": request,
-            "readiness": readiness,
-            "edge_settings": edge_settings,
-            "cloudflare_credentials": cloudflare_credentials,
-            "alexa_endpoint": "https://edge-calsync.neonbutterfly.net/alexa",
-            "privacy_url": "https://calsync.neonbutterfly.net/privacy",
-            "terms_url": "https://calsync.neonbutterfly.net/terms",
-            "simulator_url": "/alexa/simulator",
-            "flash_message": flash_message,
-            "error_message": error_message,
-        },
-        status_code=200 if error_message is None else 400,
+        readiness=readiness,
+        operator_settings=operator_settings,
+        edge_settings=edge_settings,
+        flash_message=flash_message,
+        error_message=error_message,
+        status_code=200,
     )
 
 
@@ -1672,7 +1699,6 @@ def alexa_setup_update_cloudflare_credentials(
     cloudflare_account_id: str = Form(""),
     cloudflare_api_token: str = Form(""),
 ):
-    readiness = ReadinessService().build()
     operator_settings = OperatorSettingsService()
     try:
         operator_settings.set_cloudflare_worker_credentials(
@@ -1686,23 +1712,15 @@ def alexa_setup_update_cloudflare_credentials(
         flash_message = None
         error_message = str(exc)
 
+    readiness = ReadinessService().build()
     edge_settings = CloudflareWorkerConfigService().get_alexa_settings()
-    cloudflare_credentials = operator_settings.describe_cloudflare_worker_credentials()
-    return _templates.TemplateResponse(
+    return _render_alexa_setup_page(
         request,
-        "alexa_setup.html",
-        {
-            "request": request,
-            "readiness": readiness,
-            "edge_settings": edge_settings,
-            "cloudflare_credentials": cloudflare_credentials,
-            "alexa_endpoint": "https://edge-calsync.neonbutterfly.net/alexa",
-            "privacy_url": "https://calsync.neonbutterfly.net/privacy",
-            "terms_url": "https://calsync.neonbutterfly.net/terms",
-            "simulator_url": "/alexa/simulator",
-            "flash_message": flash_message,
-            "error_message": error_message,
-        },
+        readiness=readiness,
+        operator_settings=operator_settings,
+        edge_settings=edge_settings,
+        flash_message=flash_message,
+        error_message=error_message,
         status_code=200 if error_message is None else 400,
     )
 
@@ -2998,6 +3016,42 @@ def _default_alexa_simulator_values() -> dict[str, str]:
         "new_start_time": "13:00",
         "new_end_time": "14:00",
         "new_calendar_name": "",
+    }
+
+
+def _describe_alexa_settings_drift(
+    *,
+    desired_settings: dict[str, object],
+    edge_settings: dict[str, object],
+) -> dict[str, object]:
+    desired_enabled = bool(desired_settings.get("enable_alexa"))
+    live_enabled = bool(edge_settings.get("enable_alexa"))
+    desired_skill_ids = [
+        str(value).strip()
+        for value in desired_settings.get("allowed_skill_ids", [])
+        if str(value).strip()
+    ]
+    live_skill_ids = [
+        str(value).strip()
+        for value in edge_settings.get("allowed_skill_ids", [])
+        if str(value).strip()
+    ]
+    pending_enable_change = desired_enabled != live_enabled
+    pending_skill_id_change = desired_skill_ids != live_skill_ids
+    pending_changes = pending_enable_change or pending_skill_id_change
+    if not desired_settings.get("saved"):
+        message = "No desired Alexa edge state has been saved in the product yet."
+    elif pending_changes:
+        message = "Desired Alexa settings differ from the live Worker and still need to be applied."
+    else:
+        message = "Desired Alexa settings already match the live Worker."
+    return {
+        "pending_changes": pending_changes,
+        "pending_enable_change": pending_enable_change,
+        "pending_skill_id_change": pending_skill_id_change,
+        "message": message,
+        "live_skill_id_count": len(live_skill_ids),
+        "desired_skill_id_count": len(desired_skill_ids),
     }
 
 

@@ -84,6 +84,31 @@ def test_readiness_service_uses_product_vault_apple_settings() -> None:
     assert readiness["origin"]["calendar_name"] == "Family"
 
 
+def test_readiness_service_mentions_saved_desired_alexa_drift() -> None:
+    settings = _settings()
+    operator_settings = OperatorSettingsService(settings=settings)
+    operator_settings.set_apple_calendar_settings(
+        account_label="Family",
+        username="family@example.com",
+        app_specific_password="apple-secret-123",
+        primary_calendar_url="https://caldav.icloud.com/family/",
+        primary_calendar_name="Family",
+    )
+    operator_settings.set_desired_alexa_settings(
+        enable_alexa=True,
+        allowed_skill_ids=["amzn1.ask.skill.real"],
+    )
+
+    readiness = ReadinessService(settings=settings).build()
+
+    assert readiness["desired_alexa"]["saved"] is True
+    assert readiness["desired_alexa"]["enable_alexa"] is True
+    assert readiness["desired_alexa"]["allowed_skill_ids"] == [
+        "amzn1.ask.skill.real"
+    ]
+    assert "Desired Alexa settings are saved" in readiness["next_action"]
+
+
 def test_appointment_service_uses_matching_apple_account_for_selected_calendar(
     monkeypatch,
 ) -> None:

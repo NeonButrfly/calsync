@@ -157,20 +157,46 @@
                 </div>
               </div>
               <p class="appointment-detail">
-                Update the live Worker flags from the product when this deployment has the right Cloudflare API permission.
+                Save the desired Alexa edge state in CalSync first, then update the live Worker from the product when this deployment has the right Cloudflare API permission.
               </p>
               <p class="appointment-detail"><strong>Worker:</strong> {{ edge_settings.worker_name }}</p>
               <p class="appointment-detail"><strong>Status:</strong> {{ edge_settings.message }}</p>
+              <div class="detail-grid">
+                <article class="detail-card">
+                  <p class="eyebrow">Desired Alexa settings</p>
+                  <strong>
+                    {% if desired_alexa_settings.enable_alexa %}
+                    Alexa should be enabled
+                    {% else %}
+                    Alexa should stay disabled
+                    {% endif %}
+                  </strong>
+                  <span>{{ alexa_drift.message }}</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Pending edge changes</p>
+                  <strong>
+                    {% if alexa_drift.pending_changes %}
+                    Live Worker differs from the saved plan
+                    {% else %}
+                    Live Worker already matches
+                    {% endif %}
+                  </strong>
+                  <span>
+                    Desired skill IDs: {{ desired_alexa_settings.allowed_skill_ids | join(", ") if desired_alexa_settings.allowed_skill_ids else "None saved yet" }}
+                  </span>
+                </article>
+              </div>
               <form class="form-grid" method="post" action="/alexa/setup">
                 <label class="checkbox-row">
-                  <input name="enable_alexa" type="checkbox" value="true"{% if edge_settings.enable_alexa %} checked{% endif %}{% if not edge_settings.manageable %} disabled{% endif %} />
+                  <input name="enable_alexa" type="checkbox" value="true"{% if desired_alexa_settings.enable_alexa %} checked{% endif %} />
                   <span>Enable Alexa on the edge Worker</span>
                 </label>
                 <label>
                   <span>Allowed skill IDs</span>
-                  <textarea name="allowed_skill_ids" rows="3"{% if not edge_settings.manageable %} disabled{% endif %}>{{ edge_settings.allowed_skill_ids | join(", ") }}</textarea>
+                  <textarea name="allowed_skill_ids" rows="3">{{ desired_alexa_settings.allowed_skill_ids | join(", ") }}</textarea>
                 </label>
-                <button type="submit"{% if not edge_settings.manageable %} disabled{% endif %}>Apply edge settings</button>
+                <button type="submit">Apply edge settings</button>
               </form>
             </article>
           </div>

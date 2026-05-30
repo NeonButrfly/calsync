@@ -66,6 +66,52 @@ class OperatorSettingsService:
                 session.delete(record)
                 session.commit()
 
+    def set_desired_alexa_settings(
+        self,
+        *,
+        enable_alexa: bool,
+        allowed_skill_ids: list[str],
+    ) -> None:
+        normalized_skill_ids = self._normalize_skill_ids(allowed_skill_ids)
+        self.set_value(
+            "desired_alexa_enable",
+            "true" if enable_alexa else "false",
+        )
+        self.set_value(
+            "desired_alexa_allowed_skill_ids",
+            json.dumps(normalized_skill_ids),
+        )
+
+    def get_desired_alexa_settings(self) -> dict[str, object]:
+        enable_value = self.get_value("desired_alexa_enable")
+        raw_skill_ids = self.get_value("desired_alexa_allowed_skill_ids")
+        if not enable_value and not raw_skill_ids:
+            return {
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+            }
+        try:
+            payload = json.loads(raw_skill_ids) if raw_skill_ids else []
+        except json.JSONDecodeError:
+            payload = []
+        return {
+            "enable_alexa": str(enable_value or "").strip().lower() == "true",
+            "allowed_skill_ids": self._normalize_skill_ids(payload if isinstance(payload, list) else []),
+        }
+
+    def describe_desired_alexa_settings(self) -> dict[str, object]:
+        values = self.get_desired_alexa_settings()
+        saved = bool(
+            self.get_value("desired_alexa_enable")
+            or self.get_value("desired_alexa_allowed_skill_ids")
+        )
+        return {
+            "enable_alexa": bool(values["enable_alexa"]),
+            "allowed_skill_ids": list(values["allowed_skill_ids"]),
+            "saved": saved,
+            "source": "product_vault" if saved else "defaults",
+        }
+
     def set_public_booking_settings(
         self,
         *,
@@ -1699,6 +1745,20 @@ class OperatorSettingsService:
         normalized = re.sub(r"-{2,}", "-", normalized).strip("-")
         if not normalized:
             raise ValueError("Public booking type slug is required.")
+        return normalized
+
+    @staticmethod
+    def _normalize_skill_ids(values: list[object]) -> list[str]:
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for value in values:
+            text = str(value or "").strip()
+            if not text:
+                continue
+            if text in seen:
+                continue
+            seen.add(text)
+            normalized.append(text)
         return normalized
 
     def _coerce_public_booking_types(self, payload: object) -> list[dict[str, object]]:
