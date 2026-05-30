@@ -111,6 +111,7 @@
             </p>
           </div>
           <div class="hero-stats">
+            {% if hero_ready %}
             <article>
               <span>{{ window_label }}</span>
               <strong>{{ appointment_count }}</strong>
@@ -123,6 +124,20 @@
               <span>Next up</span>
               <strong class="stat-copy">{{ next_up_label }}</strong>
             </article>
+            {% else %}
+            <article>
+              <span>Live schedule</span>
+              <strong>Blocked</strong>
+            </article>
+            <article>
+              <span>Writable calendar</span>
+              <strong>Needed</strong>
+            </article>
+            <article>
+              <span>Next step</span>
+              <strong class="stat-copy">Reconnect Apple first</strong>
+            </article>
+            {% endif %}
           </div>
         </section>
 
@@ -154,9 +169,11 @@
               </a>
               {% endfor %}
             </div>
+            {% if schedule_ready %}
             <a class="text-action" href="/?view={{ selected_window }}{% if selected_appointment %}&appointment_id={{ selected_appointment.appointment_id }}{% endif %}{% if not show_cancelled %}&show_cancelled=1{% endif %}">
               {% if show_cancelled %}Hide cancelled{% else %}Show cancelled for reference{% endif %}
             </a>
+            {% endif %}
           </div>
         </section>
 

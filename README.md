@@ -83,6 +83,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - recovery-aware Apple messaging across readiness, Connections, and Apple setup, so the live product points directly at the reconnect step once legacy hints have been imported
 - a safe Apple setup validation step before reconnect save, so operators can test a fresh Apple username, password, and calendar URL without persisting bad credentials first
 - legacy Apple recovery hint ranking that now prefers the real recovered writable booking target over a merely enabled personal-reference calendar
+- a fully blocked disconnected root workspace, so stale hero counts, next-up copy, and selected appointment detail no longer appear when no writable calendar is connected
 - voice-specific next guidance on Alexa-focused setup surfaces, so the Alexa setup page and Connections voice panel explain the actual voice turn-on work instead of falling back to generic provider onboarding copy
 - a simulator readiness summary for no-calendar voice testing states, so `/alexa/simulator` explains when LaunchRequest is still useful and why scheduling-intent tests are still blocked
 - a first availability finder across the workspace, edge API, and Alexa so CalSync can suggest open appointment windows instead of only listing busy ones
@@ -168,6 +169,7 @@ The root page now acts as the first family scheduling UX:
 - the root workspace now also blocks the create flow clearly when no writable calendar is connected, so operators get direct setup guidance instead of an apparently live scheduling form
 - the root workspace now also blocks availability search clearly when no writable calendar is connected, so operators do not get fake “no openings” signals from an unconfigured scheduling path
 - the root workspace now also blocks the empty schedule board and detail panel clearly when no writable calendar is connected, so an unconfigured runtime does not masquerade as a normal empty calendar
+- that disconnected root workspace now also blocks stale hero stats, next-up copy, and selected appointment detail, so old local appointment rows do not make the product look partially live
 - the Apple setup page now also stays truthful when no Apple account exists, so it no longer shows a fake `Family` connected-account state or add-calendar controls before the first Apple account is saved
 - that Apple setup page now also lets operators load a recovered legacy Apple calendar hint directly into the form instead of retyping the imported account and calendar values by hand
 - that Apple setup page now also auto-loads the recommended recovered Apple hint when no Apple account is connected yet, so the default reconnect screen opens in the right Family state
@@ -382,6 +384,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Prefer true writable Apple targets in legacy recovery hints: issue `#80`
 - Auto-load the recommended Apple recovery hint on reconnect: issue `#81`
 - Align Apple recovery guidance with the new auto-loaded reconnect flow: issue `#82`
+- Keep the entire root workspace blocked when no calendar is connected: issue `#83`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

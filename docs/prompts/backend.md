@@ -760,6 +760,18 @@ Expected behavior:
 - `/connections` should no longer expose a primary action that suggests the default recovered Apple hint still needs to be manually loaded first
 - operators should still be able to switch to another recovered calendar from inside `/calendar/setup` if the recommended reconnect target is not the one they want
 
+## Root Workspace Stale Detail Blocking Requirement
+
+- GitHub issue: `#83`
+- interpreted requirement: when no writable calendar is connected, the root workspace should not keep showing stale hero stats, next-up text, or selected appointment detail from old local appointment rows
+
+Expected behavior:
+
+- when `any_calendar_ready` is false, the root workspace should keep the hero summary in a clearly blocked state instead of showing stale appointment counts or a stale next-up appointment
+- when `any_calendar_ready` is false, the root workspace should not render selected appointment detail, audit trail, or edit/cancel actions from stale local appointment rows
+- the blocked board, blocked detail panel, blocked create form, and blocked availability state should all agree with each other about the disconnected state
+- the disconnected root workspace should not keep offering stale schedule-reference links that imply a still-live selected appointment context
+
 ## Alexa Save-Only Action Truthfulness Requirement
 
 - GitHub issue: `#74`

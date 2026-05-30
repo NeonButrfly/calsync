@@ -284,18 +284,79 @@ def test_console_root_explains_blocked_schedule_state_when_no_calendar_is_connec
     assert "Calendar setup still blocks live schedule sync." in day_response.text
     assert "Connect a writable calendar before CalSync can show a real live schedule window." in day_response.text
     assert "Choose a calendar connection before expecting appointment detail or activity here." in day_response.text
+    assert "Live schedule" in day_response.text
+    assert "Blocked" in day_response.text
+    assert "Writable calendar" in day_response.text
+    assert "Needed" in day_response.text
+    assert "Reconnect Apple first" in day_response.text
     assert "Nothing scheduled yet" not in day_response.text
     assert "Select an appointment" not in day_response.text
+    assert "Show cancelled for reference" not in day_response.text
 
     assert week_response.status_code == 200
     assert "Calendar setup still blocks live schedule sync." in week_response.text
     assert "Connect a writable calendar before CalSync can show a real live schedule window." in week_response.text
     assert "Nothing scheduled yet" not in week_response.text
+    assert "Show cancelled for reference" not in week_response.text
 
     assert month_response.status_code == 200
     assert "Calendar setup still blocks live schedule sync." in month_response.text
     assert "Connect a writable calendar before CalSync can show a real live schedule window." in month_response.text
     assert ">Open<" not in month_response.text
+    assert "Show cancelled for reference" not in month_response.text
+
+
+def test_console_root_hides_stale_stats_and_selected_detail_when_calendar_disconnects(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    connected_app = create_app()
+    connected_client = TestClient(connected_app)
+
+    create_response = connected_client.post(
+        "/api/appointments",
+        json={
+            "title": "Stale school reminder",
+            "date": "2026-06-12",
+            "start_time": "08:30",
+            "end_time": "09:15",
+            "timezone": "America/Anchorage",
+            "notes": "Should not appear once disconnected",
+        },
+    )
+    assert create_response.status_code == 201
+
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+
+    disconnected_app = create_app()
+    disconnected_client = TestClient(disconnected_app)
+
+    response = disconnected_client.get("/")
+
+    assert response.status_code == 200
+    assert "Calendar setup still blocks live schedule sync." in response.text
+    assert "Stale school reminder" not in response.text
+    assert "Should not appear once disconnected" not in response.text
+    assert "What CalSync has done with this appointment" not in response.text
+    assert "Edit appointment" not in response.text
+    assert "Cancel appointment" not in response.text
+    assert "No appointments in this window yet." not in response.text
+    assert "Reconnect Apple first" in response.text
 
 
 def test_booking_page_renders_public_surface_with_open_slots(monkeypatch) -> None:

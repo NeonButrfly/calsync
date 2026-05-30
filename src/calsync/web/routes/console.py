@@ -2818,7 +2818,11 @@ def _build_console_context(
     show_cancelled: bool,
     readiness: dict[str, object],
 ) -> dict[str, object]:
-    hero_subject = appointments[0] if appointments else None
+    origin = readiness.get("origin", {}) if isinstance(readiness, dict) else {}
+    any_calendar_ready = bool(origin.get("any_calendar_ready"))
+    visible_appointments = appointments if any_calendar_ready else []
+    visible_selected_detail = selected_detail if any_calendar_ready else None
+    hero_subject = visible_appointments[0] if visible_appointments else None
     calendar_options = _calendar_options(
         service,
         selected_calendar_url=str(form_values.get("target_calendar_url") or ""),
@@ -2871,22 +2875,33 @@ def _build_console_context(
         "window_options": _window_options(
             selected_window=selected_window,
             show_cancelled=show_cancelled,
-            selected_appointment_id=selected_detail.appointment_id if selected_detail else None,
+            selected_appointment_id=(
+                visible_selected_detail.appointment_id
+                if visible_selected_detail
+                else None
+            ),
         ),
         "window_label": _WINDOWS[selected_window][0],
         "window_summary": _window_summary(selected_window),
         "schedule_board": _build_schedule_board(
-            appointments,
+            visible_appointments,
             selected_window=selected_window,
             show_cancelled=show_cancelled,
-            selected_appointment_id=selected_detail.appointment_id if selected_detail else None,
+            selected_appointment_id=(
+                visible_selected_detail.appointment_id
+                if visible_selected_detail
+                else None
+            ),
         ),
         "workspace_capabilities": _workspace_capabilities(readiness),
-        "selected_appointment": _serialize_detail(selected_detail),
-        "appointment_count": len(appointments),
-        "active_count": len(appointments),
-        "cancelled_count": sum(1 for item in appointments if item.status == "cancelled"),
+        "selected_appointment": _serialize_detail(visible_selected_detail),
+        "appointment_count": len(visible_appointments),
+        "active_count": len(visible_appointments),
+        "cancelled_count": sum(
+            1 for item in visible_appointments if item.status == "cancelled"
+        ),
         "next_up_label": _next_up_label(hero_subject),
+        "hero_ready": any_calendar_ready,
         "readiness": readiness,
     }
 
