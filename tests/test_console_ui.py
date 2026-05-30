@@ -283,6 +283,62 @@ def test_booking_setup_can_create_a_new_booking_type_from_current_defaults(
     assert "/book/therapy-intake" in response.text
 
 
+def test_public_booking_root_shows_a_catalog_when_multiple_types_exist(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_public_booking_settings(
+        page_title="Book time with Kayra",
+        page_description="Choose a calm household scheduling slot.",
+        duration_minutes=45,
+        search_window_days=28,
+        success_message="You're booked.",
+        target_calendar_url="https://caldav.icloud.com/calendar/",
+        booking_weekdays=[0, 1, 2, 3, 4],
+        day_start_time="09:00",
+        day_end_time="15:00",
+    )
+    operator_settings.upsert_public_booking_type(
+        slug="school-intake",
+        page_title="School intake call",
+        page_description="Claim a school planning slot.",
+        duration_minutes=30,
+        search_window_days=21,
+        success_message="School intake booked.",
+        target_calendar_url="https://caldav.icloud.com/school/",
+        booking_weekdays=[0, 2, 4],
+        day_start_time="10:00",
+        day_end_time="14:00",
+        set_as_default=False,
+    )
+    operator_settings.upsert_public_booking_type(
+        slug="family-follow-up",
+        page_title="Family follow-up",
+        page_description="Book a longer family follow-up.",
+        duration_minutes=60,
+        search_window_days=14,
+        success_message="Family follow-up booked.",
+        target_calendar_url="https://caldav.icloud.com/family/",
+        booking_weekdays=[1, 3],
+        day_start_time="11:00",
+        day_end_time="16:00",
+        set_as_default=True,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/book")
+
+    assert response.status_code == 200
+    assert "Choose a booking type" in response.text
+    assert "School intake call" in response.text
+    assert "Family follow-up" in response.text
+    assert "/book/school-intake" in response.text
+    assert "/book/family-follow-up" in response.text
+    assert 'action="/book"' not in response.text
+
+
 def test_connections_page_renders_provider_summary(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     service = OperatorSettingsService(settings=get_settings())

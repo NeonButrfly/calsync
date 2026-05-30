@@ -282,6 +282,8 @@ class OperatorSettingsService:
             {
                 "slug": str(item.get("slug") or ""),
                 "page_title": str(item.get("page_title") or ""),
+                "page_description": str(item.get("page_description") or ""),
+                "duration_minutes": int(item.get("duration_minutes") or 60),
                 "public_url": self._public_booking_url(str(item.get("slug") or "")),
                 "is_default": bool(item.get("is_default")),
                 "weekday_summary": self._weekday_summary(

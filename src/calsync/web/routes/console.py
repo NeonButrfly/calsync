@@ -119,6 +119,27 @@ def _render_public_booking_page(
 ):
     service = AppointmentService()
     operator_settings = OperatorSettingsService()
+    booking_types = operator_settings.describe_public_booking_types()
+    if booking_slug is None and len(booking_types) > 1:
+        return _templates.TemplateResponse(
+            request,
+            "booking.html",
+            {
+                "request": request,
+                "flash_message": None,
+                "error_message": None,
+                "booking_confirmation": None,
+                "booking_form_values": _empty_booking_form_values(),
+                "booking_settings": operator_settings.describe_public_booking_settings(),
+                "public_booking_url": "/book",
+                "calendar_target": None,
+                "calendar_ready": False,
+                "availability_form_values": {},
+                "availability_results": [],
+                "booking_catalog_mode": True,
+                "booking_types": booking_types,
+            },
+        )
     booking_settings = _load_public_booking_settings(
         operator_settings,
         booking_slug=booking_slug,
@@ -137,6 +158,7 @@ def _render_public_booking_page(
             flash_message=None,
             error_message=None,
             booking_confirmation=None,
+            booking_types=booking_types,
         ),
     )
 
@@ -2144,6 +2166,7 @@ def _build_booking_context(
     flash_message: str | None,
     error_message: str | None,
     booking_confirmation: dict[str, object] | None,
+    booking_types: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
     defaults = _default_booking_availability_form_values(booking_settings=booking_settings)
     form_values = {
@@ -2179,6 +2202,8 @@ def _build_booking_context(
         "booking_form_values": booking_form_values,
         "booking_settings": booking_settings,
         "public_booking_url": str(booking_settings.get("public_url") or "/book"),
+        "booking_catalog_mode": False,
+        "booking_types": booking_types or [],
         "availability_form_values": form_values,
         "availability_results": _serialize_booking_slots(availability_results),
         "calendar_target": target,

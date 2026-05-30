@@ -243,6 +243,19 @@ Expected API/edge support:
 - `GET /api/appointments/{appointment_id}` should return the richer appointment detail payload
 - `GET /v1/appointments/{appointment_id}` should expose the same detail through the Worker for future channel use
 
+## Public Booking Catalog Requirement
+
+- GitHub issue: `#59`
+- interpreted requirement: once CalSync supports multiple public booking types, the root `/book` experience should feel like a professional scheduling catalog instead of silently dumping invitees into one default form
+
+Expected behavior:
+
+- when more than one public booking type exists, `GET /book` should render a chooser instead of a single booking form
+- the chooser should explain that the invitee must pick the appointment flow that fits their need before choosing time
+- each booking-type card should show the public title, description, duration, weekday summary, and time-window summary
+- each booking-type card should link directly into its focused booking URL such as `/book/school-intake`
+- when only one public booking type exists, `GET /book` may still render that focused booking form directly
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

@@ -26,6 +26,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#56" in readme_content
     assert "#57" in readme_content
     assert "#58" in readme_content
+    assert "#59" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -82,6 +83,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "public booking flow is now configurable" in readme_content
     assert "public booking availability rules" in readme_content
     assert "multiple public booking types with shareable links" in readme_content
+    assert "public booking catalog at `/book`" in readme_content
+    assert "default `/book` route now becomes a booking-type chooser" in readme_content
     assert "bookable weekdays and daily booking hours" in readme_content
     assert "/book/school-intake" in readme_content
     assert "get /book" in readme_content
@@ -123,6 +126,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#56" in ops_content
     assert "#57" in ops_content
     assert "#58" in ops_content
+    assert "#59" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -180,6 +184,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /booking/setup" in ops_content
     assert "public booking weekday and hour rules" in ops_content
     assert "multiple public booking types" in ops_content
+    assert "public booking catalog so `/book` becomes a chooser" in ops_content
+    assert "booking-type chooser at `/book`" in ops_content
     assert "get /book/{slug}" in ops_content
     assert "invitee-facing copy, default duration, search horizon, success message, and chosen writable target" in ops_content
     assert "get /book" in ops_content
@@ -224,6 +230,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#56" in prompt_content
     assert "#57" in prompt_content
     assert "#58" in prompt_content
+    assert "#59" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -265,6 +272,9 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "operators should be able to define which weekdays and hours are actually bookable" in prompt_content
     assert "multiple public booking types requirement" in prompt_content
     assert "shareable public url like `/book/school-intake`" in prompt_content
+    assert "public booking catalog requirement" in prompt_content
+    assert "when more than one public booking type exists, `get /book` should render a chooser" in prompt_content
+    assert "weekday summary, and time-window summary" in prompt_content
     assert "`get /book` should render a public booking page" in prompt_content
     assert "create a real appointment on the default writable connected calendar target" in prompt_content
     assert "get /connections" in prompt_content

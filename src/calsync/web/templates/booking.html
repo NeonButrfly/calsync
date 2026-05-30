@@ -85,6 +85,30 @@
         </section>
         {% endif %}
 
+        {% if booking_catalog_mode %}
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Booking types</p>
+              <h3>Choose a booking type</h3>
+              <p class="panel-copy">Pick the appointment flow that matches what you need, then choose an open time.</p>
+            </div>
+          </div>
+          <div class="detail-grid">
+            {% for item in booking_types %}
+            <article class="detail-card">
+              <p class="eyebrow">{% if item.is_default %}Default booking type{% else %}Booking type{% endif %}</p>
+              <strong>{{ item.page_title }}</strong>
+              <span>{{ item.page_description }}</span>
+              <span>{{ item.duration_minutes }} minutes · {{ item.weekday_summary }} · {{ item.time_window_summary }}</span>
+              <div class="action-row">
+                <a class="button-link" href="{{ item.public_url }}">Open booking type</a>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+        </section>
+        {% else %}
         <section class="workspace-grid workspace-grid--balanced">
           <article class="panel">
             <div class="panel-head">
@@ -180,6 +204,7 @@
             </form>
           </article>
         </section>
+        {% endif %}
       </main>
     </div>
   </body>
