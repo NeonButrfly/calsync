@@ -1,3 +1,4 @@
+import json
 import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -794,6 +795,71 @@ def test_connections_page_can_save_desired_alexa_settings_without_manageable_wor
         "enable_alexa": True,
         "allowed_skill_ids": ["amzn1.ask.skill.saved"],
     }
+
+
+def test_connections_page_can_download_encrypted_settings_backup(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_apple_calendar_settings(
+        account_label="Family",
+        username="family@example.com",
+        app_specific_password="secret",
+        primary_calendar_url="https://caldav.icloud.com/family/",
+        primary_calendar_name="Family",
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/connections/settings-backup")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/json")
+    payload = json.loads(response.text)
+    assert payload["kind"] == "calsync_operator_settings_backup"
+    assert payload["setting_count"] >= 5
+    assert "encrypted_payload" in payload
+    assert "family@example.com" not in response.text
+
+
+def test_connections_page_can_restore_encrypted_settings_backup(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_apple_calendar_settings(
+        account_label="Family",
+        username="family@example.com",
+        app_specific_password="secret",
+        primary_calendar_url="https://caldav.icloud.com/family/",
+        primary_calendar_name="Family",
+    )
+    backup_payload = service.export_operator_settings_backup()["backup_json"].encode(
+        "utf-8"
+    )
+    for key in (
+        "apple_account_label",
+        "apple_username",
+        "apple_app_specific_password",
+        "apple_primary_calendar_url",
+        "apple_primary_calendar_name",
+    ):
+        service.delete_value(key)
+
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/connections/settings-restore",
+        files={
+            "backup_file": (
+                "calsync-operator-settings-backup.json",
+                backup_payload,
+                "application/json",
+            )
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Operator settings restored from encrypted backup." in response.text
+    assert service.get_apple_calendar_settings()["username"] == "family@example.com"
 
 
 def test_connections_google_refresh_updates_live_calendar_catalog(monkeypatch) -> None:

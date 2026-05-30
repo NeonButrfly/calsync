@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current CalSync service, family scheduling UX, the planner-style day/week/month schedule board, a first public booking page, public booking invitee contact capture, in-product booking setup, public booking availability rules, multiple public booking types with shareable links, a public booking catalog chooser, in-product booking type management actions, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, Alexa setup flow, persisted desired Alexa edge settings, in-product writable target verification, the checklist-style Connections verification center, direct provider actions from that shared surface, and truthful workspace capability messaging tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, and `#63`.
+This guide covers the current CalSync service, family scheduling UX, the planner-style day/week/month schedule board, a first public booking page, public booking invitee contact capture, in-product booking setup, public booking availability rules, multiple public booking types with shareable links, a public booking catalog chooser, in-product booking type management actions, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, Alexa setup flow, persisted desired Alexa edge settings, in-product writable target verification, encrypted operator-settings backup and restore from `/connections`, the checklist-style Connections verification center, direct provider actions from that shared surface, and truthful workspace capability messaging tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, and `#64`.
 
 ## What This Service Does
 
@@ -20,6 +20,7 @@ This guide covers the current CalSync service, family scheduling UX, the planner
 - exposes a checklist-style verification center at `/connections` so provider readiness and last write proof can be reviewed together
 - exposes direct Google and Microsoft refresh/disconnect actions from `/connections` so the shared control surface is not just read-only
 - exposes Alexa launch state and quick edge-setting controls from `/connections` so the shared control surface can drive the last-mile voice setup too
+- exposes encrypted operator-settings backup and restore from `/connections` so the product-vault setup can be exported and recovered with the same deployment encryption key
 - stores normalized appointment records locally
 - syncs existing Apple calendar events and connected Google or Microsoft calendar events into the local scheduling brain for requested date windows
 - writes calendar mutations to one selected connected calendar target through CalDAV, Google Calendar, or Microsoft Graph
@@ -124,10 +125,12 @@ Root experience:
 - `GET /book`
 - `GET /book/{slug}`
 - `GET /connections`
+- `GET /connections/settings-backup`
 - `POST /booking/setup/types/default`
 - `POST /booking/setup/types/delete`
 - `POST /connections/test`
 - `POST /connections/alexa`
+- `POST /connections/settings-restore`
 - `POST /connections/google/refresh`
 - `POST /connections/google/disconnect`
 - `POST /connections/microsoft/refresh`

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, date, datetime, timedelta
 from importlib.resources import files
 from io import BytesIO
@@ -9,7 +10,7 @@ from uuid import uuid4
 from zoneinfo import ZoneInfo
 from zipfile import ZipFile
 
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.exc import SQLAlchemyError
@@ -799,6 +800,49 @@ def connections_page(request: Request):
             flash_message=None,
             error_message=None,
         ),
+    )
+
+
+@router.get("/connections/settings-backup")
+def connections_download_settings_backup() -> StreamingResponse:
+    backup = OperatorSettingsService().export_operator_settings_backup()
+    payload = BytesIO(str(backup["backup_json"]).encode("utf-8"))
+    return StreamingResponse(
+        payload,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="{backup["filename"]}"'
+        },
+    )
+
+
+@router.post("/connections/settings-restore")
+async def connections_restore_settings_backup(
+    request: Request,
+    backup_file: UploadFile = File(...),
+):
+    operator_settings = OperatorSettingsService()
+    try:
+        raw_bytes = await backup_file.read()
+        backup_document = json.loads(raw_bytes.decode("utf-8"))
+        restored_count = operator_settings.restore_operator_settings_backup(backup_document)
+        flash_message = (
+            f"Operator settings restored from encrypted backup. {restored_count} settings loaded."
+        )
+        error_message = None
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        flash_message = None
+        error_message = str(exc)
+
+    return _templates.TemplateResponse(
+        request,
+        "connections.html",
+        _build_connections_context(
+            request,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
+        status_code=200 if error_message is None else 400,
     )
 
 

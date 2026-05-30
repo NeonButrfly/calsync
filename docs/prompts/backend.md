@@ -294,6 +294,25 @@ Expected behavior:
 - the resulting appointment context should preserve the requester name and contact details for operators, even if the appointment schema stays lightweight
 - this slice may reuse the existing appointment notes field for that preserved contact context instead of requiring a brand new database model
 
+## Operator Settings Backup And Restore Requirement
+
+- GitHub issue: `#64`
+- interpreted requirement: the product-managed Apple, Google, Microsoft, Alexa, and booking setup should be recoverable after database loss or environment drift instead of forcing the operator to rebuild everything manually
+
+Expected behavior:
+
+- `GET /connections/settings-backup` should download an encrypted export of the current operator settings
+- `POST /connections/settings-restore` should accept that encrypted backup and restore the saved operator settings into the product vault
+- the product should provide an encrypted export and restore path for operator settings from the shared `/connections` surface
+- the exported backup should not expose plaintext Apple credentials, OAuth client secrets, refresh tokens, or Alexa linking secrets
+- the restore flow should validate the backup shape and fail with a clear operator-facing message when the file is malformed or uses the wrong encryption context
+- the backup and restore flow should cover the product-managed provider, booking, and Alexa configuration that CalSync stores in operator settings
+
+Behavioral boundary:
+
+- this slice is about resilient export and restore of encrypted operator settings, not a generic full-database backup system
+- restore is expected to work with the same CalSync deployment encryption key that created the backup
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

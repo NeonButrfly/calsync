@@ -107,6 +107,32 @@
                 </article>
               </div>
             </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Settings resilience</p>
+                  <h3>Encrypted backup and restore</h3>
+                </div>
+              </div>
+              <p class="appointment-detail">
+                Export the current product-vault setup as an encrypted backup,
+                then restore it later if the database-backed operator settings
+                ever need to be recovered on this same CalSync deployment key.
+              </p>
+              <div class="action-row">
+                <a class="button-link" href="/connections/settings-backup">Download encrypted backup</a>
+              </div>
+              <form class="form-grid" method="post" action="/connections/settings-restore" enctype="multipart/form-data">
+                <label>
+                  <span>Restore backup file</span>
+                  <input name="backup_file" type="file" accept="application/json,.json" required />
+                </label>
+                <div class="action-row">
+                  <button type="submit">Restore encrypted backup</button>
+                </div>
+              </form>
+            </article>
           </div>
         </section>
 

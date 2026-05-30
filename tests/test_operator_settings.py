@@ -1,3 +1,4 @@
+import json
 import tempfile
 from pathlib import Path
 from uuid import uuid4
@@ -125,6 +126,53 @@ def test_operator_settings_can_store_alexa_account_linking_settings() -> None:
     assert described["authorization_url"].endswith(
         "/alexa/account-linking/authorize"
     )
+
+
+def test_operator_settings_can_export_and_restore_encrypted_backup() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.set_apple_calendar_settings(
+        account_label="Family",
+        username="family@example.com",
+        app_specific_password="apple-secret-123",
+        primary_calendar_url="https://caldav.icloud.com/family/",
+        primary_calendar_name="Family",
+    )
+    service.set_desired_alexa_settings(
+        enable_alexa=True,
+        allowed_skill_ids=["amzn1.ask.skill.one"],
+    )
+    service.set_alexa_account_linking_settings(link_code="Family123")
+
+    backup_document = json.loads(service.export_operator_settings_backup()["backup_json"])
+
+    for key in (
+        "apple_account_label",
+        "apple_username",
+        "apple_app_specific_password",
+        "apple_primary_calendar_url",
+        "apple_primary_calendar_name",
+        "desired_alexa_enable",
+        "desired_alexa_allowed_skill_ids",
+        "alexa_account_linking_client_id",
+        "alexa_account_linking_link_code",
+        "alexa_account_linking_access_token",
+    ):
+        service.delete_value(key)
+
+    service.restore_operator_settings_backup(backup_document)
+
+    assert service.get_apple_calendar_settings()["username"] == "family@example.com"
+    assert service.get_desired_alexa_settings() == {
+        "enable_alexa": True,
+        "allowed_skill_ids": ["amzn1.ask.skill.one"],
+    }
+    restored_linking = service.get_alexa_account_linking_settings()
+    assert restored_linking["client_id"] == "calsync-alexa-household"
+    assert restored_linking["link_code"] == "FAMILY123"
+    assert isinstance(restored_linking["access_token"], str)
+    assert restored_linking["access_token"]
 
 
 def test_operator_settings_encrypts_apple_calendar_values_at_rest() -> None:

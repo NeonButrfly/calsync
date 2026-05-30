@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, and `#63` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, and `#64` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -43,6 +43,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - a checklist-style connections workspace at `/connections` that also shows persisted write verification and direct run-test actions
 - a stronger Connections control center that can also trigger shared Google and Microsoft connect, refresh, and disconnect actions without leaving the page
 - Alexa turn-on controls in `/connections`, so the shared operator surface now shows live-vs-desired voice state and can save or apply edge settings without leaving the control center
+- encrypted operator-settings backup and restore from `/connections`, so Apple, Google, Microsoft, Alexa, and booking setup can be exported and recovered without hand-rebuilding the product vault
 - Local audit entries and appointment-to-provider event mapping
 - A dedicated Cloudflare Worker in `workers/edge-calsync`
 - Live ChatGPT-first edge hostname: `https://edge-calsync.neonbutterfly.net`
@@ -82,9 +83,11 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - `POST /booking/setup/types/default`
 - `POST /booking/setup/types/delete`
 - `GET /connections`
+- `GET /connections/settings-backup`
 - `GET /book`
 - `POST /connections/test`
 - `POST /connections/alexa`
+- `POST /connections/settings-restore`
 - `POST /connections/google/refresh`
 - `POST /connections/google/disconnect`
 - `POST /connections/microsoft/refresh`

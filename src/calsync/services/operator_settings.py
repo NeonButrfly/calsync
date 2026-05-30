@@ -5,7 +5,7 @@ import hashlib
 import json
 import re
 import secrets
-from datetime import datetime
+from datetime import UTC, datetime
 
 from cryptography.fernet import Fernet
 
@@ -66,6 +66,85 @@ class OperatorSettingsService:
             if record is not None:
                 session.delete(record)
                 session.commit()
+
+    def export_operator_settings_backup(self) -> dict[str, object]:
+        settings_map = self._read_all_settings_plaintext()
+        exported_at = datetime.now(UTC).isoformat(timespec="seconds").replace(
+            "+00:00", "Z"
+        )
+        encrypted_payload = self._fernet.encrypt(
+            json.dumps(
+                {
+                    "version": 1,
+                    "settings": settings_map,
+                },
+                sort_keys=True,
+            ).encode("utf-8")
+        ).decode("utf-8")
+        backup_document = {
+            "kind": "calsync_operator_settings_backup",
+            "version": 1,
+            "exported_at": exported_at,
+            "setting_count": len(settings_map),
+            "encrypted_payload": encrypted_payload,
+        }
+        return {
+            "filename": f"calsync-operator-settings-backup-{exported_at.replace(':', '').replace('-', '')}.json",
+            "backup_json": json.dumps(backup_document, indent=2, sort_keys=True),
+            "setting_count": len(settings_map),
+        }
+
+    def restore_operator_settings_backup(self, backup_document: dict[str, object]) -> int:
+        if str(backup_document.get("kind") or "") != "calsync_operator_settings_backup":
+            raise ValueError("Backup file is not a CalSync operator settings export.")
+        if int(backup_document.get("version") or 0) != 1:
+            raise ValueError("Backup version is not supported.")
+        encrypted_payload = str(backup_document.get("encrypted_payload") or "").strip()
+        if not encrypted_payload:
+            raise ValueError("Backup file is missing the encrypted payload.")
+        try:
+            payload = json.loads(
+                self._fernet.decrypt(encrypted_payload.encode("utf-8")).decode("utf-8")
+            )
+        except Exception as exc:
+            raise ValueError(
+                "Backup file could not be decrypted with this CalSync encryption key."
+            ) from exc
+        settings_map = payload.get("settings")
+        if not isinstance(settings_map, dict):
+            raise ValueError("Backup payload does not contain operator settings.")
+
+        normalized_settings: dict[str, str] = {}
+        for key, value in settings_map.items():
+            normalized_key = str(key or "").strip()
+            normalized_value = str(value or "").strip()
+            if not normalized_key or not normalized_value:
+                continue
+            normalized_settings[normalized_key] = normalized_value
+
+        with self.session_factory() as session:
+            self._ensure_table(session)
+            existing_records = {
+                record.key: record
+                for record in session.query(OperatorSetting).all()
+            }
+            for key in list(existing_records):
+                if key not in normalized_settings:
+                    session.delete(existing_records[key])
+            for key, value in normalized_settings.items():
+                encrypted_value = self._fernet.encrypt(value.encode("utf-8")).decode("utf-8")
+                record = existing_records.get(key)
+                if record is None:
+                    session.add(
+                        OperatorSetting(
+                            key=key,
+                            value_encrypted=encrypted_value,
+                        )
+                    )
+                else:
+                    record.value_encrypted = encrypted_value
+            session.commit()
+        return len(normalized_settings)
 
     def set_desired_alexa_settings(
         self,
@@ -1940,6 +2019,17 @@ class OperatorSettingsService:
             if values["account_id"] or values["api_token"]
             else "missing",
         }
+
+    def _read_all_settings_plaintext(self) -> dict[str, str]:
+        with self.session_factory() as session:
+            self._ensure_table(session)
+            records = session.query(OperatorSetting).all()
+            return {
+                record.key: self._fernet.decrypt(
+                    record.value_encrypted.encode("utf-8")
+                ).decode("utf-8")
+                for record in records
+            }
 
     @staticmethod
     def _ensure_table(session) -> None:
