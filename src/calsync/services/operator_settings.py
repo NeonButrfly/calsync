@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+from datetime import datetime
 
 from cryptography.fernet import Fernet
 
@@ -73,11 +74,23 @@ class OperatorSettingsService:
         search_window_days: int,
         success_message: str,
         target_calendar_url: str,
+        booking_weekdays: list[int] | None = None,
+        day_start_time: str = "08:00",
+        day_end_time: str = "18:00",
     ) -> None:
         normalized_title = page_title.strip()
         normalized_description = page_description.strip()
         normalized_success = success_message.strip()
         normalized_target = target_calendar_url.strip()
+        normalized_weekdays = self._normalize_booking_weekdays(booking_weekdays)
+        normalized_day_start_time = self._normalize_time_value(
+            day_start_time,
+            field_label="Public booking day start time",
+        )
+        normalized_day_end_time = self._normalize_time_value(
+            day_end_time,
+            field_label="Public booking day end time",
+        )
         if not normalized_title:
             raise ValueError("Public booking title is required.")
         if not normalized_description:
@@ -90,12 +103,22 @@ class OperatorSettingsService:
             raise ValueError("Public booking duration must use 15-minute increments.")
         if search_window_days < 7:
             raise ValueError("Public booking search window must be at least 7 days.")
+        if normalized_day_end_time <= normalized_day_start_time:
+            raise ValueError(
+                "Public booking day end time must be after the day start time."
+            )
 
         self.set_value("public_booking_page_title", normalized_title)
         self.set_value("public_booking_page_description", normalized_description)
         self.set_value("public_booking_duration_minutes", str(duration_minutes))
         self.set_value("public_booking_search_window_days", str(search_window_days))
         self.set_value("public_booking_success_message", normalized_success)
+        self.set_value(
+            "public_booking_weekdays",
+            json.dumps(normalized_weekdays),
+        )
+        self.set_value("public_booking_day_start_time", normalized_day_start_time)
+        self.set_value("public_booking_day_end_time", normalized_day_end_time)
         if normalized_target:
             self.set_value("public_booking_target_calendar_url", normalized_target)
         else:
@@ -104,6 +127,12 @@ class OperatorSettingsService:
     def get_public_booking_settings(self) -> dict[str, object]:
         duration_value = self.get_value("public_booking_duration_minutes")
         search_window_value = self.get_value("public_booking_search_window_days")
+        weekday_value = self.get_value("public_booking_weekdays")
+        weekdays = self._coerce_booking_weekdays(
+            json.loads(weekday_value) if weekday_value else None
+        )
+        day_start_time = self.get_value("public_booking_day_start_time") or "08:00"
+        day_end_time = self.get_value("public_booking_day_end_time") or "18:00"
         return {
             "page_title": self.get_value("public_booking_page_title"),
             "page_description": self.get_value("public_booking_page_description"),
@@ -111,10 +140,15 @@ class OperatorSettingsService:
             "search_window_days": int(search_window_value) if search_window_value else 7,
             "success_message": self.get_value("public_booking_success_message"),
             "target_calendar_url": self.get_value("public_booking_target_calendar_url"),
+            "booking_weekdays": weekdays,
+            "day_start_time": day_start_time,
+            "day_end_time": day_end_time,
         }
 
     def describe_public_booking_settings(self) -> dict[str, object]:
         values = self.get_public_booking_settings()
+        booking_weekdays = self._coerce_booking_weekdays(values["booking_weekdays"])
+        weekday_options = self._weekday_options(booking_weekdays)
         return {
             "page_title": str(values["page_title"] or "Book time with CalSync"),
             "page_description": str(
@@ -125,6 +159,15 @@ class OperatorSettingsService:
             "search_window_days": int(values["search_window_days"] or 7),
             "success_message": str(values["success_message"] or "Booking confirmed."),
             "target_calendar_url": str(values["target_calendar_url"] or ""),
+            "booking_weekdays": booking_weekdays,
+            "weekday_options": weekday_options,
+            "weekday_summary": self._weekday_summary(booking_weekdays),
+            "day_start_time": str(values["day_start_time"] or "08:00"),
+            "day_end_time": str(values["day_end_time"] or "18:00"),
+            "time_window_summary": self._time_window_summary(
+                day_start_time=str(values["day_start_time"] or "08:00"),
+                day_end_time=str(values["day_end_time"] or "18:00"),
+            ),
             "source": "product_vault"
             if any(
                 [
@@ -132,6 +175,9 @@ class OperatorSettingsService:
                     values["page_description"],
                     values["success_message"],
                     values["target_calendar_url"],
+                    values["booking_weekdays"] != list(range(7)),
+                    str(values["day_start_time"] or "08:00") != "08:00",
+                    str(values["day_end_time"] or "18:00") != "18:00",
                 ]
             )
             else "defaults",
@@ -1402,6 +1448,80 @@ class OperatorSettingsService:
             default_index = 0
         normalized[default_index]["is_default"] = True
         return normalized
+
+    def _coerce_booking_weekdays(self, payload: object) -> list[int]:
+        if not isinstance(payload, list):
+            return list(range(7))
+        normalized: list[int] = []
+        seen: set[int] = set()
+        for item in payload:
+            try:
+                value = int(item)
+            except (TypeError, ValueError):
+                continue
+            if value < 0 or value > 6 or value in seen:
+                continue
+            seen.add(value)
+            normalized.append(value)
+        return normalized or list(range(7))
+
+    def _normalize_booking_weekdays(self, payload: list[int] | None) -> list[int]:
+        normalized = self._coerce_booking_weekdays(payload if payload is not None else list(range(7)))
+        if not normalized:
+            raise ValueError("Choose at least one public booking weekday.")
+        return normalized
+
+    def _normalize_time_value(self, value: str, *, field_label: str) -> str:
+        normalized = value.strip()
+        try:
+            parsed = datetime.strptime(normalized, "%H:%M")
+        except ValueError as exc:
+            raise ValueError(f"{field_label} must use HH:MM format.") from exc
+        return parsed.strftime("%H:%M")
+
+    def _weekday_options(self, selected_weekdays: list[int]) -> list[dict[str, object]]:
+        labels = [
+            ("Mon", "Monday"),
+            ("Tue", "Tuesday"),
+            ("Wed", "Wednesday"),
+            ("Thu", "Thursday"),
+            ("Fri", "Friday"),
+            ("Sat", "Saturday"),
+            ("Sun", "Sunday"),
+        ]
+        return [
+            {
+                "value": index,
+                "short_label": short_label,
+                "label": label,
+                "is_selected": index in selected_weekdays,
+            }
+            for index, (short_label, label) in enumerate(labels)
+        ]
+
+    def _weekday_summary(self, selected_weekdays: list[int]) -> str:
+        if selected_weekdays == [0, 1, 2, 3, 4, 5, 6]:
+            return "Every day"
+        if selected_weekdays == [0, 1, 2, 3, 4]:
+            return "Monday to Friday"
+        labels = [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+        ]
+        return ", ".join(labels[index] for index in selected_weekdays)
+
+    def _time_window_summary(self, *, day_start_time: str, day_end_time: str) -> str:
+        start = datetime.strptime(day_start_time, "%H:%M")
+        end = datetime.strptime(day_end_time, "%H:%M")
+        return (
+            f"{start.strftime('%I:%M %p').lstrip('0')} to "
+            f"{end.strftime('%I:%M %p').lstrip('0')}"
+        )
 
     def describe_cloudflare_worker_credentials(self) -> dict[str, object]:
         values = self.get_cloudflare_worker_credentials()

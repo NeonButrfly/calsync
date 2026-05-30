@@ -244,6 +244,9 @@ def booking_setup_update(
     search_window_days: int = Form(7),
     success_message: str = Form(""),
     target_calendar_url: str = Form(""),
+    booking_weekdays: list[str] = Form([]),
+    day_start_time: str = Form("08:00"),
+    day_end_time: str = Form("18:00"),
 ):
     operator_settings = OperatorSettingsService()
     service = AppointmentService()
@@ -255,10 +258,13 @@ def booking_setup_update(
             search_window_days=search_window_days,
             success_message=success_message,
             target_calendar_url=target_calendar_url,
+            booking_weekdays=[int(item) for item in booking_weekdays],
+            day_start_time=day_start_time,
+            day_end_time=day_end_time,
         )
         flash_message = "Public booking settings saved securely."
         error_message = None
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         flash_message = None
         error_message = str(exc)
     booking_settings = operator_settings.describe_public_booking_settings()
@@ -1975,6 +1981,11 @@ def _build_booking_context(
                 date_from=str(form_values["date_from"]),
                 date_to=str(form_values["date_to"]),
                 duration_minutes=int(form_values["duration_minutes"]),
+                allowed_weekdays=[
+                    int(value) for value in booking_settings.get("booking_weekdays", [])
+                ],
+                day_start_time=str(booking_settings.get("day_start_time") or "08:00"),
+                day_end_time=str(booking_settings.get("day_end_time") or "18:00"),
             ).items
         except (ValueError, AppleCalDAVError, GoogleCalendarError, MicrosoftCalendarError) as exc:
             availability_error = str(exc)

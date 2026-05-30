@@ -85,6 +85,30 @@
                   <span>Search window days</span>
                   <input name="search_window_days" type="number" min="7" step="1" value="{{ booking_settings.search_window_days }}" required />
                 </label>
+                <fieldset class="field-group">
+                  <legend>Bookable weekdays</legend>
+                  <div class="checkbox-row">
+                    {% for option in booking_settings.weekday_options %}
+                    <label class="checkbox-chip">
+                      <input
+                        name="booking_weekdays"
+                        type="checkbox"
+                        value="{{ option.value }}"
+                        {% if option.is_selected %}checked{% endif %}
+                      />
+                      <span>{{ option.short_label }}</span>
+                    </label>
+                    {% endfor %}
+                  </div>
+                </fieldset>
+                <label>
+                  <span>Bookable day start</span>
+                  <input name="day_start_time" type="time" value="{{ booking_settings.day_start_time }}" required />
+                </label>
+                <label>
+                  <span>Bookable day end</span>
+                  <input name="day_end_time" type="time" value="{{ booking_settings.day_end_time }}" required />
+                </label>
                 <label>
                   <span>Success message</span>
                   <input name="success_message" type="text" value="{{ booking_settings.success_message }}" required />
@@ -123,6 +147,16 @@
                   <p class="eyebrow">Search window</p>
                   <strong>{{ booking_settings.search_window_days }} days</strong>
                   <span>Controls how far forward the invitee page looks for openings.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Bookable days</p>
+                  <strong>{{ booking_settings.weekday_summary }}</strong>
+                  <span>Only these days appear as invitee-facing openings.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Bookable hours</p>
+                  <strong>{{ booking_settings.time_window_summary }}</strong>
+                  <span>Invitees only see slots inside this daily window.</span>
                 </article>
                 <article class="detail-card">
                   <p class="eyebrow">Target behavior</p>

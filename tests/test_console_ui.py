@@ -139,18 +139,61 @@ def test_booking_setup_page_round_trips_public_booking_settings(monkeypatch) -> 
             "search_window_days": "28",
             "success_message": "You're booked.",
             "target_calendar_url": "https://caldav.icloud.com/calendar/",
+            "booking_weekdays": ["0", "1", "2", "3", "4"],
+            "day_start_time": "09:00",
+            "day_end_time": "15:00",
         },
     )
 
     assert response.status_code == 200
     assert "Public booking settings saved securely." in response.text
     assert "Book time with Kayra" in response.text
+    assert "Monday to Friday" in response.text
+    assert "9:00 AM to 3:00 PM" in response.text
 
     booking_page = client.get("/book")
     assert booking_page.status_code == 200
     assert "Book time with Kayra" in booking_page.text
     assert "Choose a calm household scheduling slot." in booking_page.text
     assert 'value="45"' in booking_page.text
+    assert 'value="09:00"' in response.text
+    assert 'value="15:00"' in response.text
+
+
+def test_booking_page_respects_saved_public_availability_rules(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_public_booking_settings(
+        page_title="Book time with Kayra",
+        page_description="Choose a calm household scheduling slot.",
+        duration_minutes=60,
+        search_window_days=14,
+        success_message="You're booked.",
+        target_calendar_url="https://caldav.icloud.com/calendar/",
+        booking_weekdays=[0],
+        day_start_time="09:00",
+        day_end_time="12:00",
+    )
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get(
+        "/book?availability_date_from=2026-06-01&availability_date_to=2026-06-02&availability_duration_minutes=60"
+    )
+
+    assert response.status_code == 200
+    assert "Monday, Jun 1" in response.text
+    assert "Tuesday, Jun 2" not in response.text
+    assert "9:00 AM - 10:00 AM" in response.text
+    assert "10:00 AM - 11:00 AM" in response.text
+    assert "11:00 AM - 12:00 PM" in response.text
+    assert "8:00 AM - 9:00 AM" not in response.text
+    assert "12:00 PM - 1:00 PM" not in response.text
 
 
 def test_connections_page_renders_provider_summary(monkeypatch) -> None:

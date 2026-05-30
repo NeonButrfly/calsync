@@ -212,6 +212,19 @@ Expected behavior:
 - `GET /book` should render from those saved booking settings
 - the public booking flow should use the configured writable target when it is still available
 
+## Public Booking Availability Rules Requirement
+
+- GitHub issue: `#57`
+- interpreted requirement: the public booking page should behave like a real scheduling surface, so operators should be able to define which weekdays and hours are actually bookable
+
+Expected behavior:
+
+- `/booking/setup` should let operators choose the public booking weekdays
+- `/booking/setup` should let operators choose the public booking day start and end times
+- those public booking availability rules should be stored securely in the product vault
+- `/book` should only show open slots that fall inside the saved public booking weekdays and daily time window
+- the internal root workspace availability finder can keep its broader shared defaults; this slice only tightens the invitee-facing booking surface
+
 Expected API/edge support:
 
 - `GET /api/appointments/{appointment_id}` should return the richer appointment detail payload

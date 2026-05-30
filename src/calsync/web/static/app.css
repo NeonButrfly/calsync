@@ -634,6 +634,39 @@ button:hover,
   gap: 0.65rem;
 }
 
+.field-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 1rem;
+}
+
+.field-group legend {
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0 0.35rem;
+}
+
+.field-group .checkbox-row {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.checkbox-chip {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 0.45rem;
+  padding: 0.5rem 0.85rem;
+}
+
 .slot-list {
   display: grid;
   gap: 0.85rem;

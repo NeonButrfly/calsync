@@ -293,6 +293,9 @@ class AppointmentService:
         date_to: str,
         duration_minutes: int,
         max_results: int = 5,
+        allowed_weekdays: list[int] | set[int] | None = None,
+        day_start_time: str | None = None,
+        day_end_time: str | None = None,
     ) -> AvailabilityResponse:
         if duration_minutes <= 0:
             raise ValueError("duration_minutes must be greater than zero.")
@@ -307,8 +310,19 @@ class AppointmentService:
         sync_start = datetime.combine(start_day, time.min, tzinfo=UTC)
         sync_end = datetime.combine(end_day, time.max, tzinfo=UTC)
         timezone = ZoneInfo(self.settings.default_timezone)
-        workday_start = time(hour=8, minute=0)
-        workday_end = time(hour=18, minute=0)
+        workday_start = self._parse_availability_time(day_start_time or "08:00")
+        workday_end = self._parse_availability_time(day_end_time or "18:00")
+        if workday_end <= workday_start:
+            raise ValueError("Availability end time must be after the start time.")
+        weekday_values = (
+            {int(value) for value in allowed_weekdays}
+            if allowed_weekdays is not None
+            else set(range(7))
+        )
+        if not weekday_values:
+            raise ValueError("At least one availability weekday is required.")
+        if any(value < 0 or value > 6 for value in weekday_values):
+            raise ValueError("Availability weekdays must be between 0 and 6.")
         duration = timedelta(minutes=duration_minutes)
 
         with self._get_session_factory()() as session:
@@ -340,6 +354,9 @@ class AppointmentService:
         items: list[AvailabilitySlot] = []
         current_day = start_day
         while current_day <= end_day and len(items) < max_results:
+            if current_day.weekday() not in weekday_values:
+                current_day += timedelta(days=1)
+                continue
             day_start = datetime.combine(current_day, workday_start, tzinfo=timezone)
             day_end = datetime.combine(current_day, workday_end, tzinfo=timezone)
             busy_ranges = self._merge_busy_ranges(
@@ -377,6 +394,12 @@ class AppointmentService:
             current_day += timedelta(days=1)
 
         return AvailabilityResponse(items=items)
+
+    def _parse_availability_time(self, value: str) -> time:
+        try:
+            return time.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("Availability times must use HH:MM format.") from exc
 
     def cancel(self, appointment_id: str, actor: str = "api") -> AppointmentResponse:
         with self._get_session_factory()() as session:

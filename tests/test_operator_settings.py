@@ -527,6 +527,9 @@ def test_operator_settings_can_store_public_booking_settings() -> None:
         search_window_days=28,
         success_message="You're booked.",
         target_calendar_url="https://caldav.icloud.com/family/",
+        booking_weekdays=[0, 1, 2, 3, 4],
+        day_start_time="09:00",
+        day_end_time="15:00",
     )
 
     assert service.get_public_booking_settings() == {
@@ -536,6 +539,9 @@ def test_operator_settings_can_store_public_booking_settings() -> None:
         "search_window_days": 28,
         "success_message": "You're booked.",
         "target_calendar_url": "https://caldav.icloud.com/family/",
+        "booking_weekdays": [0, 1, 2, 3, 4],
+        "day_start_time": "09:00",
+        "day_end_time": "15:00",
     }
 
     described = service.describe_public_booking_settings()
@@ -543,3 +549,6 @@ def test_operator_settings_can_store_public_booking_settings() -> None:
     assert described["duration_minutes"] == 45
     assert described["search_window_days"] == 28
     assert described["target_calendar_url"] == "https://caldav.icloud.com/family/"
+    assert described["booking_weekdays"] == [0, 1, 2, 3, 4]
+    assert described["day_start_time"] == "09:00"
+    assert described["day_end_time"] == "15:00"

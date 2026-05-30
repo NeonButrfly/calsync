@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, and `#56` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, and `#57` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -34,6 +34,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - a planner-style scheduling board at `/` that now renders distinct day, week, and month planning states instead of only one stacked agenda layout
 - a first public booking page at `/book` that lets an invitee claim an open time and create a real appointment through the same shared scheduling brain
 - an in-product booking setup page at `/booking/setup` that lets operators control the public booking title, description, duration defaults, search window, success copy, and target calendar
+- public booking availability rules that let operators choose the invitee-facing bookable weekdays and daily booking hours instead of relying on one hard-coded slot window
 - a dedicated connections workspace at `/connections` that summarizes Apple, Google, and Microsoft setup in one product surface
 - a checklist-style connections workspace at `/connections` that also shows persisted write verification and direct run-test actions
 - a stronger Connections control center that can also trigger shared Google and Microsoft connect, refresh, and disconnect actions without leaving the page
@@ -134,6 +135,7 @@ The root page now acts as the first family scheduling UX:
 - the main schedule workspace now adapts the planner board for day, week, and month browsing so the selected horizon changes the visual planning surface instead of only the query range
 - a first public booking page that uses the same availability search and writable appointment path as the internal workspace
 - that public booking flow is now configurable from `/booking/setup`, including invitee-facing copy, default duration, search horizon, success message, and the writable target used for new bookings
+- that public booking flow now also respects operator-managed booking weekdays plus daily start and end hours
 - a first in-product Alexa setup page that links the live endpoint, policy URLs, and skill package download
 - a first in-product Cloudflare access form that stores Worker-management credentials securely in the product vault
 - a first in-product Alexa edge-settings form that can read and update Worker Alexa flags when Cloudflare worker-management permission is configured
@@ -316,6 +318,7 @@ If you prefer not to keep a Worker-management API token in the host `.env`, the 
 - Provider-aware Alexa calendar targeting across Apple, Google, and Microsoft: issue `#50`
 - In-product writable calendar smoke tests: issue `#51`
 - In-product public booking setup: issue `#56`
+- Public booking availability rules: issue `#57`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`
 - Apple live calendar sync into the shared workspace and Alexa: issue `#41`

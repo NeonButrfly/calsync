@@ -29,11 +29,17 @@
           <p class="eyebrow">Calendar target</p>
           {% if calendar_target %}
           <strong>{{ calendar_target.label }}</strong>
-          <span>This first public booking flow writes into the default connected calendar target.</span>
+          <span>This public booking flow writes into the selected connected calendar target.</span>
           {% else %}
           <strong>Not ready yet</strong>
           <span>CalSync needs at least one writable calendar before public booking can go live.</span>
           {% endif %}
+        </div>
+
+        <div class="sidebar-card">
+          <p class="eyebrow">Bookable window</p>
+          <strong>{{ booking_settings.weekday_summary }}</strong>
+          <span>{{ booking_settings.time_window_summary }}</span>
         </div>
       </aside>
 
