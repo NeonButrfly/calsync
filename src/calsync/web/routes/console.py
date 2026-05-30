@@ -33,6 +33,7 @@ from calsync.services.google_calendar import (
     GoogleOAuthConfig,
 )
 from calsync.services.google_runtime_config import GoogleRuntimeConfigService
+from calsync.services.legacy_backup_recovery import LegacyBackupRecoveryService
 from calsync.services.microsoft_calendar import (
     MicrosoftCalendarClient,
     MicrosoftCalendarError,
@@ -814,6 +815,7 @@ async def alexa_account_linking_validate(request: Request):
 def calendar_setup_page(request: Request):
     operator_settings = OperatorSettingsService()
     apple_settings = operator_settings.describe_apple_calendar_settings()
+    legacy_recovery_hints = operator_settings.describe_legacy_apple_recovery_hints()
     runtime_service = AppleRuntimeConfigService(operator_settings=operator_settings)
     runtime_config = runtime_service.resolve()
     return _templates.TemplateResponse(
@@ -822,6 +824,7 @@ def calendar_setup_page(request: Request):
         {
             "request": request,
             "apple_settings": apple_settings,
+            "legacy_recovery_hints": legacy_recovery_hints,
             "runtime_config": runtime_config,
             "apple_accounts": runtime_service.list_accounts(),
             "calendar_catalog": runtime_service.list_calendars(),
@@ -872,6 +875,37 @@ async def connections_restore_settings_backup(
         )
         error_message = None
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        flash_message = None
+        error_message = str(exc)
+
+    return _templates.TemplateResponse(
+        request,
+        "connections.html",
+        _build_connections_context(
+            request,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
+        status_code=200 if error_message is None else 400,
+    )
+
+
+@router.post("/connections/legacy-backup/import")
+async def connections_import_legacy_backup(
+    request: Request,
+    backup_file: UploadFile = File(...),
+):
+    operator_settings = OperatorSettingsService()
+    try:
+        raw_bytes = await backup_file.read()
+        hints = LegacyBackupRecoveryService().extract_apple_hints(
+            backup_bytes=raw_bytes,
+            filename=backup_file.filename or "legacy-backup",
+        )
+        operator_settings.set_legacy_apple_recovery_hints(hints)
+        flash_message = "Legacy Apple recovery hints imported from backup."
+        error_message = None
+    except ValueError as exc:
         flash_message = None
         error_message = str(exc)
 

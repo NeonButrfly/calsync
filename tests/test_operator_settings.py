@@ -175,6 +175,39 @@ def test_operator_settings_can_export_and_restore_encrypted_backup() -> None:
     assert restored_linking["access_token"]
 
 
+def test_operator_settings_can_store_legacy_apple_recovery_hints() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "recommended_calendar_name": "Calendar",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Calendar",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+
+    described = service.describe_legacy_apple_recovery_hints()
+    assert described["source"] == "product_vault"
+    assert described["account_username"] == "kaymayers9@gmail.com"
+    assert described["recommended_calendar_name"] == "Calendar"
+    assert described["calendars"][0]["is_writable_hint"] is True
+
+
 def test_operator_settings_encrypts_apple_calendar_values_at_rest() -> None:
     settings = _settings()
     service = OperatorSettingsService(settings=settings)

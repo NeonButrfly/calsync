@@ -1,9 +1,11 @@
 import json
 import tempfile
 from datetime import UTC, datetime, timedelta
+from io import BytesIO
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
+from zipfile import ZipFile
 from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
@@ -87,6 +89,22 @@ def _configure_test_env(monkeypatch) -> None:
     _get_engine_for_url.cache_clear()
     _get_session_factory_for_url.cache_clear()
     Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+
+
+def _legacy_backup_payload() -> bytes:
+    sql = (
+        "COPY public.provider_accounts (id, provider_type, provider_account_id, display_name, access_token_encrypted, refresh_token_encrypted, provider_metadata, created_at, updated_at, credential_secret_encrypted, auth_mode, can_read, can_write, requires_reconnect) FROM stdin;\n"
+        "apple-account\ticloud_caldav\tkaymayers9@gmail.com\tkaymayers9@gmail.com\t\\\\N\t\\\\N\t{\"auth_status\": \"connected\", \"principal_url\": \"https://caldav.icloud.com/112135872/principal/\", \"calendar_home_url\": \"https://p52-caldav.icloud.com:443/112135872/calendars/\"}\t2026-05-14 19:47:44.895745+00\t2026-05-26 05:02:56.813761+00\tsecret\tcaldav\tt\tt\tf\n"
+        "\\.\n"
+        "COPY public.provider_calendars (id, provider_account_pk, provider_calendar_id, name, timezone, enabled, provider_metadata, created_at, updated_at, calendar_role) FROM stdin;\n"
+        "family-cal\tapple-account\thttps://p52-caldav.icloud.com:443/112135872/calendars/06810ae4-a07b-49d9-9541-98123e74c806/\tFamily\t\\\\N\tf\t{\"href\": \"https://p52-caldav.icloud.com:443/112135872/calendars/06810ae4-a07b-49d9-9541-98123e74c806/\"}\t2026-05-14 19:47:45.997212+00\t2026-05-14 20:03:09.020352+00\tpersonal_reference\n"
+        "calendar-cal\tapple-account\thttps://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/\tCalendar\t\\\\N\tt\t{\"href\": \"https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/\"}\t2026-05-14 19:47:45.997212+00\t2026-05-14 20:03:09.020352+00\twritable_booking_target\n"
+        "\\.\n"
+    ).encode("utf-8")
+    payload = BytesIO()
+    with ZipFile(payload, "w") as archive:
+        archive.writestr("calsync-db-backup.sql", sql)
+    return payload.getvalue()
 
 
 def test_console_root_renders_scheduler_surface(monkeypatch) -> None:
@@ -1177,6 +1195,31 @@ def test_connections_page_can_restore_encrypted_settings_backup(monkeypatch) -> 
     assert response.status_code == 200
     assert "Operator settings restored from encrypted backup." in response.text
     assert service.get_apple_calendar_settings()["username"] == "family@example.com"
+
+
+def test_connections_page_can_import_legacy_backup_apple_hints(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/connections/legacy-backup/import",
+        files={
+            "backup_file": (
+                "calsync-db-backup.zip",
+                _legacy_backup_payload(),
+                "application/zip",
+            )
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Legacy Apple recovery hints imported from backup." in response.text
+
+    service = OperatorSettingsService(settings=get_settings())
+    described = service.describe_legacy_apple_recovery_hints()
+    assert described["account_username"] == "kaymayers9@gmail.com"
+    assert described["recommended_calendar_name"] == "Calendar"
 
 
 def test_connections_google_refresh_updates_live_calendar_catalog(monkeypatch) -> None:
@@ -2521,6 +2564,64 @@ def test_calendar_setup_page_explains_no_connected_apple_account_truthfully(
     assert "<strong>Family</strong>" not in response.text
     assert "Used across the workspace and audit detail." not in response.text
     assert "Add another calendar" not in response.text
+
+
+def test_calendar_setup_page_shows_recovered_legacy_apple_hints(monkeypatch) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "recommended_calendar_name": "Calendar",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+            "calendar_count": 2,
+            "calendars": [
+                {
+                    "calendar_name": "Calendar",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                },
+                    {
+                        "calendar_name": "Family",
+                        "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/06810ae4-a07b-49d9-9541-98123e74c806/",
+                        "calendar_role": "writable_booking_target",
+                        "enabled": False,
+                        "is_writable_hint": True,
+                    },
+                ],
+            }
+        )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/calendar/setup")
+
+    assert response.status_code == 200
+    assert "Recovered from legacy backup" in response.text
+    assert "kaymayers9@gmail.com" in response.text
+    assert "Use these recovered Apple details to finish setup with a fresh app-specific password." in response.text
+    assert "Calendar" in response.text
+    assert "Recommended writable hint" in response.text
+    assert "Recovered writable hint" in response.text
 
 
 def test_calendar_setup_page_saves_apple_settings(monkeypatch) -> None:

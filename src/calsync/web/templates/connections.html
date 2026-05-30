@@ -132,6 +132,16 @@
                   <button type="submit">Restore encrypted backup</button>
                 </div>
               </form>
+              <form class="form-grid" method="post" action="/connections/legacy-backup/import" enctype="multipart/form-data">
+                <label>
+                  <span>Import legacy Pi backup</span>
+                  <input name="backup_file" type="file" accept=".zip,.sql,application/zip,text/plain" required />
+                </label>
+                <div class="action-row">
+                  <button type="submit">Import legacy Apple hints</button>
+                  <a class="button-link" href="/calendar/setup">Open Apple setup</a>
+                </div>
+              </form>
             </article>
           </div>
         </section>

@@ -673,6 +673,19 @@ Expected behavior:
 - in that recovery-shaped state, the shared next-action guidance on `/` and `/connections` should mention restoring an encrypted backup from Connections before or alongside re-entering provider setup
 - if saved provider setup still exists, the product does not need to force restore-first guidance; this requirement is specifically about likely settings-loss recovery cases
 
+## Legacy Apple Backup Recovery Requirement
+
+- GitHub issue: `#76`
+- interpreted requirement: the preserved old Pi SQL backup should help recover the Apple path inside the current product instead of forcing operators to inspect a legacy dump by hand
+
+Expected behavior:
+
+- `/connections` should accept a legacy SQL dump or zip from the old Pi backup path and extract Apple recovery hints from it
+- those hints should include the recovered Apple account identity plus the old calendar URLs and a recommended writable calendar hint when the dump contains one
+- `/calendar/setup` should surface those recovered hints clearly when no Apple account is connected yet
+- the recovered hints should help the operator finish Apple setup with a fresh app-specific password, but they must not falsely mark Apple as connected or ready on their own
+- this feature may stay focused on Apple legacy recovery; it does not need to complete Google or Microsoft legacy import in this slice
+
 ## Alexa Save-Only Action Truthfulness Requirement
 
 - GitHub issue: `#74`

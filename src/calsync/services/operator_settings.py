@@ -146,6 +146,89 @@ class OperatorSettingsService:
             session.commit()
         return len(normalized_settings)
 
+    def set_legacy_apple_recovery_hints(self, hints: dict[str, object]) -> None:
+        normalized = {
+            "source_filename": str(hints.get("source_filename") or "").strip(),
+            "account_label": str(hints.get("account_label") or "").strip(),
+            "account_username": str(hints.get("account_username") or "").strip(),
+            "principal_url": str(hints.get("principal_url") or "").strip(),
+            "calendar_home_url": str(hints.get("calendar_home_url") or "").strip(),
+            "recommended_calendar_name": str(
+                hints.get("recommended_calendar_name") or ""
+            ).strip(),
+            "recommended_calendar_url": str(
+                hints.get("recommended_calendar_url") or ""
+            ).strip(),
+            "calendar_count": int(hints.get("calendar_count") or 0),
+            "calendars": [
+                {
+                    "calendar_name": str(item.get("calendar_name") or "").strip(),
+                    "calendar_url": str(item.get("calendar_url") or "").strip(),
+                    "calendar_role": str(item.get("calendar_role") or "").strip(),
+                    "enabled": bool(item.get("enabled")),
+                    "is_writable_hint": bool(item.get("is_writable_hint")),
+                }
+                for item in (hints.get("calendars") or [])
+                if isinstance(item, dict)
+                and str(item.get("calendar_name") or "").strip()
+                and str(item.get("calendar_url") or "").strip()
+            ],
+        }
+        if not normalized["account_username"]:
+            raise ValueError("Legacy Apple recovery hints need an Apple username.")
+        if not normalized["calendars"]:
+            raise ValueError("Legacy Apple recovery hints need at least one Apple calendar.")
+        self.set_value("legacy_apple_recovery_hints", json.dumps(normalized))
+
+    def get_legacy_apple_recovery_hints(self) -> dict[str, object]:
+        raw = self.get_value("legacy_apple_recovery_hints")
+        if not raw:
+            return {}
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+        return payload if isinstance(payload, dict) else {}
+
+    def describe_legacy_apple_recovery_hints(self) -> dict[str, object]:
+        payload = self.get_legacy_apple_recovery_hints()
+        if not payload:
+            return {
+                "source": "missing",
+                "source_filename": "",
+                "account_label": "",
+                "account_username": "",
+                "principal_url": "",
+                "calendar_home_url": "",
+                "recommended_calendar_name": "",
+                "recommended_calendar_url": "",
+                "calendar_count": 0,
+                "calendars": [],
+            }
+        calendars = [
+            {
+                "calendar_name": str(item.get("calendar_name") or ""),
+                "calendar_url": str(item.get("calendar_url") or ""),
+                "calendar_role": str(item.get("calendar_role") or ""),
+                "enabled": bool(item.get("enabled")),
+                "is_writable_hint": bool(item.get("is_writable_hint")),
+            }
+            for item in payload.get("calendars", [])
+            if isinstance(item, dict)
+        ]
+        return {
+            "source": "product_vault",
+            "source_filename": str(payload.get("source_filename") or ""),
+            "account_label": str(payload.get("account_label") or ""),
+            "account_username": str(payload.get("account_username") or ""),
+            "principal_url": str(payload.get("principal_url") or ""),
+            "calendar_home_url": str(payload.get("calendar_home_url") or ""),
+            "recommended_calendar_name": str(payload.get("recommended_calendar_name") or ""),
+            "recommended_calendar_url": str(payload.get("recommended_calendar_url") or ""),
+            "calendar_count": int(payload.get("calendar_count") or len(calendars)),
+            "calendars": calendars,
+        }
+
     def set_desired_alexa_settings(
         self,
         *,
