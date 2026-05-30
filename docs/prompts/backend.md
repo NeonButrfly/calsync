@@ -457,6 +457,17 @@ Expected behavior:
 - that row should show whether CalSync currently has any writable connected calendar path
 - the Step 4 checklist should agree with the next-action guidance instead of hiding the current first blocker in voice turn-on
 
+## Alexa Step 4 Cloudflare Access Requirement
+
+- GitHub issue: `#87`
+- interpreted requirement: the final Alexa turn-on summary should show whether Cloudflare Worker access is configured, because the live next-action guidance already treats product-managed Worker access as a prerequisite for live edge turn-on
+
+Expected behavior:
+
+- `GET /alexa/setup` Step 4 should include an explicit Cloudflare-access readiness row
+- that row should show whether CalSync currently has saved Cloudflare Worker-management credentials
+- the Step 4 checklist should agree with the live helper and next-action guidance instead of hiding the Worker-access blocker outside the final summary
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

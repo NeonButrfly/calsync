@@ -2243,6 +2243,7 @@ def test_alexa_setup_page_renders_operator_steps(monkeypatch) -> None:
     assert "Pending edge changes" in response.text
     assert "amzn1.ask.skill.saved" in response.text
     assert "Writable calendar connected:" in response.text
+    assert "Cloudflare Worker access configured:" in response.text
     assert ">No<" in response.text
     assert "Account linking configured:" in response.text
     assert ">No<" in response.text
@@ -2450,9 +2451,17 @@ def test_alexa_setup_page_shows_account_linking_controls(monkeypatch) -> None:
     assert "Save account linking setup" in response.text
     assert "Link code saved" in response.text
     assert "Writable calendar connected:" in response.text
-    assert ">Yes<" in response.text
+    assert "Cloudflare Worker access configured:" in response.text
+    assert (
+        "Writable calendar connected:</strong>\n                  Yes"
+        in response.text
+    )
+    assert (
+        "Cloudflare Worker access configured:</strong>\n                  No"
+        in response.text
+    )
     assert "Account linking configured:" in response.text
-    assert ">Yes<" in response.text
+    assert "Account linking configured:</strong>\n                  Yes" in response.text
 
 
 def test_alexa_setup_page_shows_no_writable_calendar_in_step_four(monkeypatch) -> None:
@@ -2477,7 +2486,44 @@ def test_alexa_setup_page_shows_no_writable_calendar_in_step_four(monkeypatch) -
 
     assert response.status_code == 200
     assert "Writable calendar connected:" in response.text
+    assert "Cloudflare Worker access configured:" in response.text
     assert ">No<" in response.text
+
+
+def test_alexa_setup_page_shows_cloudflare_access_in_step_four(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_cloudflare_worker_credentials(
+        account_id="acct-123",
+        api_token="token-123",
+    )
+
+    class FakeCloudflareWorkerConfigService:
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": True,
+                "credential_source": "product_vault",
+                "message": "Ready to configure the edge Worker from the product.",
+            }
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        FakeCloudflareWorkerConfigService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/alexa/setup")
+
+    assert response.status_code == 200
+    assert "Cloudflare Worker access configured:" in response.text
+    assert (
+        "Cloudflare Worker access configured:</strong>\n                  Yes"
+        in response.text
+    )
 
 
 def test_alexa_setup_page_can_save_account_linking_settings(monkeypatch) -> None:

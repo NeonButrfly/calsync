@@ -283,6 +283,10 @@
                   {% if readiness.origin.any_calendar_ready %}Yes{% else %}No{% endif %}
                 </p>
                 <p class="appointment-detail">
+                  <strong>Cloudflare Worker access configured:</strong>
+                  {% if cloudflare_credentials.api_token_saved %}Yes{% else %}No{% endif %}
+                </p>
+                <p class="appointment-detail">
                   <strong>Edge reachable:</strong>
                   {% if readiness.edge.reachable %}Yes{% else %}No{% endif %}
                 </p>
