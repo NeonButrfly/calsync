@@ -665,6 +665,137 @@ def test_connections_page_shows_direct_provider_control_actions(monkeypatch) -> 
     assert "Disconnect Microsoft account" in response.text
 
 
+def test_connections_page_shows_alexa_turn_on_controls(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_desired_alexa_settings(
+        enable_alexa=True,
+        allowed_skill_ids=["amzn1.ask.skill.saved"],
+    )
+
+    class FakeCloudflareWorkerConfigService:
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": True,
+                "credential_source": "product_vault",
+                "message": "Ready to configure the edge Worker from the product.",
+            }
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        FakeCloudflareWorkerConfigService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/connections")
+
+    assert response.status_code == 200
+    assert "Last-mile turn-on" in response.text
+    assert "Apply Alexa settings" in response.text
+    assert "Open Alexa setup" in response.text
+    assert "Open Alexa simulator" in response.text
+    assert "amzn1.ask.skill.saved" in response.text
+    assert "Desired Alexa settings differ from the live Worker and still need to be applied." in response.text
+
+
+def test_connections_page_can_save_desired_alexa_settings(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+
+    class FakeCloudflareWorkerConfigService:
+        def __init__(self):
+            self.called = False
+
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": True,
+                "credential_source": "product_vault",
+                "message": "Ready to configure the edge Worker from the product.",
+            }
+
+        def update_alexa_settings(self, *, enable_alexa: bool, allowed_skill_ids: list[str]):
+            assert enable_alexa is True
+            assert allowed_skill_ids == ["amzn1.ask.skill.real"]
+            self.called = True
+
+    fake_service = FakeCloudflareWorkerConfigService()
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        lambda: fake_service,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/connections/alexa",
+        data={
+            "enable_alexa": "true",
+            "allowed_skill_ids": "amzn1.ask.skill.real",
+        },
+    )
+
+    assert response.status_code == 200
+    assert fake_service.called is True
+    assert "Desired Alexa settings saved and edge Worker updated." in response.text
+    assert service.get_desired_alexa_settings() == {
+        "enable_alexa": True,
+        "allowed_skill_ids": ["amzn1.ask.skill.real"],
+    }
+
+
+def test_connections_page_can_save_desired_alexa_settings_without_manageable_worker(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+
+    class FakeCloudflareWorkerConfigService:
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": False,
+                "credential_source": "missing",
+                "message": "Cloudflare worker management is not configured for this deployment.",
+            }
+
+        def update_alexa_settings(self, *, enable_alexa: bool, allowed_skill_ids: list[str]):
+            raise ValueError(
+                "Cloudflare worker management is not configured for this deployment."
+            )
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        FakeCloudflareWorkerConfigService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/connections/alexa",
+        data={
+            "enable_alexa": "true",
+            "allowed_skill_ids": "amzn1.ask.skill.saved",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Desired Alexa settings saved securely." in response.text
+    assert "Cloudflare worker management is not configured for this deployment." in response.text
+    assert service.get_desired_alexa_settings() == {
+        "enable_alexa": True,
+        "allowed_skill_ids": ["amzn1.ask.skill.saved"],
+    }
+
+
 def test_connections_google_refresh_updates_live_calendar_catalog(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     service = OperatorSettingsService(settings=get_settings())

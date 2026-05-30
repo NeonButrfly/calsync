@@ -19,6 +19,7 @@ This guide covers the current CalSync service, family scheduling UX, the planner
 - exposes a connections workspace at `/connections` so Apple, Google, and Microsoft setup can be reviewed together
 - exposes a checklist-style verification center at `/connections` so provider readiness and last write proof can be reviewed together
 - exposes direct Google and Microsoft refresh/disconnect actions from `/connections` so the shared control surface is not just read-only
+- exposes Alexa launch state and quick edge-setting controls from `/connections` so the shared control surface can drive the last-mile voice setup too
 - stores normalized appointment records locally
 - syncs existing Apple calendar events and connected Google or Microsoft calendar events into the local scheduling brain for requested date windows
 - writes calendar mutations to one selected connected calendar target through CalDAV, Google Calendar, or Microsoft Graph
@@ -126,6 +127,7 @@ Root experience:
 - `POST /booking/setup/types/default`
 - `POST /booking/setup/types/delete`
 - `POST /connections/test`
+- `POST /connections/alexa`
 - `POST /connections/google/refresh`
 - `POST /connections/google/disconnect`
 - `POST /connections/microsoft/refresh`
@@ -163,6 +165,7 @@ Behavior:
 - exposes a dedicated Connections page that summarizes Apple, Google, and Microsoft setup in one place before the operator dives into provider-specific forms
 - exposes a checklist-driven Connections page that persists last write proof for each writable target and can rerun that proof directly from one place
 - exposes shared Google and Microsoft account actions from that same Connections page so operators can connect, refresh, or disconnect without bouncing into a different workflow for routine tasks
+- exposes Alexa desired-vs-live edge state plus a quick apply form from that same Connections page so operators can save or push voice turn-on settings without leaving the shared control surface
 - exposes a root schedule board that now renders distinct day, week, and month planning states instead of only a single agenda layout
 - exposes a root workspace capability summary that now reflects the actual connected readiness state instead of static broad capability copy
 - exposes a first public booking page that searches open time and creates a real appointment on the default writable connected calendar target

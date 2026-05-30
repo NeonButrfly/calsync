@@ -327,6 +327,53 @@
             <article class="panel">
               <div class="panel-head">
                 <div>
+                  <p class="eyebrow">Alexa voice path</p>
+                  <h3>Last-mile turn-on</h3>
+                </div>
+              </div>
+              <div class="detail-grid">
+                <article class="detail-card">
+                  <p class="eyebrow">Live route</p>
+                  <strong>{% if readiness.edge.alexa.enabled %}Enabled{% else %}Not live yet{% endif %}</strong>
+                  <span>{% if readiness.edge.alexa.enabled %}The edge Worker is accepting Alexa traffic.{% else %}The edge Worker still needs Alexa enabled before real device traffic can flow.{% endif %}</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Desired state</p>
+                  <strong>{% if desired_alexa_settings.enable_alexa %}Enable Alexa{% else %}Keep Alexa off{% endif %}</strong>
+                  <span>{{ alexa_drift.message }}</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Allowed skill IDs</p>
+                  <strong>{{ readiness.edge.alexa.allowed_skill_id_count or alexa_drift.live_skill_id_count }}</strong>
+                  <span>{% if readiness.edge.alexa.skill_ids_configured %}The live Worker already has allowed skill IDs configured.{% else %}No live skill allowlist is configured yet.{% endif %}</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Cloudflare access</p>
+                  <strong>{{ cloudflare_credentials.source.replace("_", " ").title() }}</strong>
+                  <span>{% if cloudflare_credentials.api_token_saved %}Cloudflare Worker credentials are saved for live edge updates.{% else %}Save Cloudflare Worker credentials in Alexa setup to apply live edge changes from CalSync.{% endif %}</span>
+                </article>
+              </div>
+              <p class="appointment-detail"><strong>Next action:</strong> {{ readiness.next_action }}</p>
+              <form class="form-grid" method="post" action="/connections/alexa">
+                <label class="checkbox-row">
+                  <input name="enable_alexa" type="checkbox" value="true"{% if desired_alexa_settings.enable_alexa %} checked{% endif %} />
+                  <span>Enable Alexa on the edge Worker</span>
+                </label>
+                <label>
+                  <span>Allowed skill IDs</span>
+                  <textarea name="allowed_skill_ids" rows="3">{{ desired_alexa_settings.allowed_skill_ids | join(", ") }}</textarea>
+                </label>
+                <div class="action-row">
+                  <button type="submit">Apply Alexa settings</button>
+                  <a class="button-link" href="/alexa/setup">Open Alexa setup</a>
+                  <a class="button-link" href="/alexa/simulator">Open Alexa simulator</a>
+                </div>
+              </form>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div>
                   <p class="eyebrow">What this unlocks</p>
                   <h3>Shared scheduling brain</h3>
                 </div>

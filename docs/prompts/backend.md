@@ -459,6 +459,7 @@ Expected voice behavior:
   - cancel a matching appointment
   - reschedule a matching appointment
 - all actual calendar mutation must still happen in the origin service
+- the shared `/connections` surface should show the current Alexa launch state and allow operators to save or apply desired edge settings without leaving the primary control center
 
 Expected auth shape:
 

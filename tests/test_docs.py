@@ -43,6 +43,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /api/availability" in readme_content
     assert "get /connections" in readme_content
     assert "post /connections/test" in readme_content
+    assert "post /connections/alexa" in readme_content
     assert "post /connections/google/refresh" in readme_content
     assert "post /connections/google/disconnect" in readme_content
     assert "post /connections/microsoft/refresh" in readme_content
@@ -80,6 +81,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "checklist-style connections workspace" in readme_content
     assert "persisted connection verification summaries" in readme_content
     assert "stronger connections control center" in readme_content
+    assert "alexa turn-on controls in `/connections`" in readme_content
     assert "planner-style scheduling board" in readme_content
     assert "public booking page at `/book`" in readme_content
     assert "invitee contact capture in the public booking flow" in readme_content
@@ -159,6 +161,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "post /calendar/setup/calendars" in ops_content
     assert "get /connections" in ops_content
     assert "post /connections/test" in ops_content
+    assert "post /connections/alexa" in ops_content
     assert "post /connections/google/refresh" in ops_content
     assert "post /connections/google/disconnect" in ops_content
     assert "post /connections/microsoft/refresh" in ops_content
@@ -193,6 +196,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "run an in-product write smoke test" in ops_content
     assert "checklist-style verification center at `/connections`" in ops_content
     assert "direct google and microsoft refresh/disconnect actions from `/connections`" in ops_content
+    assert "alexa launch state and quick edge-setting controls from `/connections`" in ops_content
     assert "planner-style day/week/month board at `/`" in ops_content
     assert "first public booking page at `/book`" in ops_content
     assert "public booking requester contact capture" in ops_content
@@ -271,6 +275,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "full-stack readiness requirement" in prompt_content
     assert "api container must mount that same host `.runtime` directory" in prompt_content
     assert "in-product alexa setup requirement" in prompt_content
+    assert "shared `/connections` surface should show the current alexa launch state" in prompt_content
     assert "get /alexa/setup" in prompt_content
     assert "get /alexa/skill-package.zip" in prompt_content
     assert "get /alexa/simulator" in prompt_content

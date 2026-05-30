@@ -42,6 +42,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - a dedicated connections workspace at `/connections` that summarizes Apple, Google, and Microsoft setup in one product surface
 - a checklist-style connections workspace at `/connections` that also shows persisted write verification and direct run-test actions
 - a stronger Connections control center that can also trigger shared Google and Microsoft connect, refresh, and disconnect actions without leaving the page
+- Alexa turn-on controls in `/connections`, so the shared operator surface now shows live-vs-desired voice state and can save or apply edge settings without leaving the control center
 - Local audit entries and appointment-to-provider event mapping
 - A dedicated Cloudflare Worker in `workers/edge-calsync`
 - Live ChatGPT-first edge hostname: `https://edge-calsync.neonbutterfly.net`
@@ -83,6 +84,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - `GET /connections`
 - `GET /book`
 - `POST /connections/test`
+- `POST /connections/alexa`
 - `POST /connections/google/refresh`
 - `POST /connections/google/disconnect`
 - `POST /connections/microsoft/refresh`
@@ -139,6 +141,7 @@ The root page now acts as the first family scheduling UX:
 - a first in-product Connections page that pulls Apple, Google, and Microsoft readiness into one calmer operator view
 - that Connections workspace now also acts as a checklist and verification center with persisted last-write proof per target
 - that Connections workspace now also acts as the primary day-to-day provider control surface for Google and Microsoft account actions
+- that Connections workspace now also surfaces the Alexa last-mile launch state, desired-vs-live drift, and a quick apply form for edge settings
 - the main schedule workspace now adapts the planner board for day, week, and month browsing so the selected horizon changes the visual planning surface instead of only the query range
 - the workspace capability summary now reflects the actual connected readiness state, so Apple, Google, Microsoft, and Alexa copy stays truthful while setup is still in progress
 - a first public booking page that uses the same availability search and writable appointment path as the internal workspace

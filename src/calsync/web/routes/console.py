@@ -838,6 +838,44 @@ def connections_microsoft_disconnect(request: Request):
     )
 
 
+@router.post("/connections/alexa")
+def connections_alexa_update(
+    request: Request,
+    allowed_skill_ids: str = Form(""),
+    enable_alexa: str | None = Form(None),
+):
+    operator_settings = OperatorSettingsService()
+    normalized_skill_ids = [
+        value.strip() for value in allowed_skill_ids.split(",") if value.strip()
+    ]
+    operator_settings.set_desired_alexa_settings(
+        enable_alexa=enable_alexa == "true",
+        allowed_skill_ids=normalized_skill_ids,
+    )
+    service = CloudflareWorkerConfigService()
+    try:
+        service.update_alexa_settings(
+            enable_alexa=enable_alexa == "true",
+            allowed_skill_ids=normalized_skill_ids,
+        )
+        flash_message = "Desired Alexa settings saved and edge Worker updated."
+        error_message = None
+    except ValueError as exc:
+        flash_message = "Desired Alexa settings saved securely."
+        error_message = str(exc)
+
+    return _templates.TemplateResponse(
+        request,
+        "connections.html",
+        _build_connections_context(
+            request,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
+        status_code=200,
+    )
+
+
 @router.post("/calendar/setup")
 def calendar_setup_update(
     request: Request,
@@ -2672,6 +2710,7 @@ def _build_connections_context(
     error_message: str | None,
 ) -> dict[str, object]:
     operator_settings = OperatorSettingsService()
+    cloudflare_worker_service = CloudflareWorkerConfigService()
     apple_runtime_service = AppleRuntimeConfigService(operator_settings=operator_settings)
     google_runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
     microsoft_runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
@@ -2682,6 +2721,13 @@ def _build_connections_context(
     google_runtime = google_runtime_service.resolve()
     microsoft_runtime = microsoft_runtime_service.resolve()
     readiness = ReadinessService().build()
+    edge_settings = cloudflare_worker_service.get_alexa_settings()
+    desired_alexa_settings = operator_settings.describe_desired_alexa_settings()
+    alexa_drift = _describe_alexa_settings_drift(
+        desired_settings=desired_alexa_settings,
+        edge_settings=edge_settings,
+    )
+    cloudflare_credentials = operator_settings.describe_cloudflare_worker_credentials()
     verification_map = {
         str(item["target_value"]): item
         for item in operator_settings.get_calendar_write_verifications()
@@ -2771,6 +2817,10 @@ def _build_connections_context(
         "microsoft_accounts": microsoft_runtime_service.list_accounts(),
         "microsoft_calendar_catalog": microsoft_runtime_service.list_calendars(),
         "readiness": readiness,
+        "edge_settings": edge_settings,
+        "desired_alexa_settings": desired_alexa_settings,
+        "alexa_drift": alexa_drift,
+        "cloudflare_credentials": cloudflare_credentials,
         "flash_message": flash_message,
         "error_message": error_message,
         "setup_checklist": setup_checklist,
