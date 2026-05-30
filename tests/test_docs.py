@@ -31,6 +31,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#61" in readme_content
     assert "#62" in readme_content
     assert "#63" in readme_content
+    assert "#65" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -111,6 +112,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "alexa simulator page" in readme_content
     assert "downloadable skill package" in readme_content
     assert "persisted desired alexa edge settings" in readme_content
+    assert "voice-specific next guidance on alexa-focused setup surfaces" in readme_content
     assert "live-vs-desired drift visibility" in readme_content
     assert "workspace capability summary now reflects the actual connected readiness state" in readme_content
     assert "named apple calendar targeting through alexa and the simulator" in readme_content
@@ -147,6 +149,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#61" in ops_content
     assert "#62" in ops_content
     assert "#63" in ops_content
+    assert "#65" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -203,6 +206,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "direct google and microsoft refresh/disconnect actions from `/connections`" in ops_content
     assert "alexa launch state and quick edge-setting controls from `/connections`" in ops_content
     assert "encrypted operator-settings backup and restore from `/connections`" in ops_content
+    assert "voice-specific next guidance for alexa setup and connections voice panels" in ops_content
     assert "planner-style day/week/month board at `/`" in ops_content
     assert "first public booking page at `/book`" in ops_content
     assert "public booking requester contact capture" in ops_content
@@ -269,6 +273,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#61" in prompt_content
     assert "#62" in prompt_content
     assert "#63" in prompt_content
+    assert "#65" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -283,6 +288,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "in-product alexa setup requirement" in prompt_content
     assert "shared `/connections` surface should show the current alexa launch state" in prompt_content
     assert "encrypted export and restore path for operator settings" in prompt_content
+    assert "alexa-focused surfaces should show voice-specific next steps" in prompt_content
     assert "get /alexa/setup" in prompt_content
     assert "get /alexa/skill-package.zip" in prompt_content
     assert "get /alexa/simulator" in prompt_content

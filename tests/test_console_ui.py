@@ -797,6 +797,65 @@ def test_connections_page_can_save_desired_alexa_settings_without_manageable_wor
     }
 
 
+def test_alexa_setup_page_shows_voice_specific_next_guidance(monkeypatch) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/alexa/setup")
+
+    assert response.status_code == 200
+    assert (
+        "Connect at least one writable calendar, then save Cloudflare Worker access so you can turn on the live Alexa route from CalSync."
+        in response.text
+    )
+    assert (
+        "Add an Apple calendar or finish Google or Microsoft setup so CalSync can read and write a real connected calendar."
+        not in response.text
+    )
+
+
+def test_connections_page_shows_voice_specific_alexa_guidance(monkeypatch) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/connections")
+
+    assert response.status_code == 200
+    assert "Alexa voice path" in response.text
+    assert (
+        "Connect at least one writable calendar, then save Cloudflare Worker access so you can turn on the live Alexa route from CalSync."
+        in response.text
+    )
+
+
 def test_connections_page_can_download_encrypted_settings_backup(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     service = OperatorSettingsService(settings=get_settings())

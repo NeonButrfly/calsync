@@ -607,6 +607,8 @@ def _render_alexa_setup_page(
     status_code: int,
 ):
     desired_settings = operator_settings.describe_desired_alexa_settings()
+    account_linking_settings = operator_settings.describe_alexa_account_linking_settings()
+    cloudflare_credentials = operator_settings.describe_cloudflare_worker_credentials()
     return _templates.TemplateResponse(
         request,
         "alexa_setup.html",
@@ -619,8 +621,14 @@ def _render_alexa_setup_page(
                 desired_settings=desired_settings,
                 edge_settings=edge_settings,
             ),
-            "account_linking_settings": operator_settings.describe_alexa_account_linking_settings(),
-            "cloudflare_credentials": operator_settings.describe_cloudflare_worker_credentials(),
+            "alexa_next_action": _describe_alexa_next_action(
+                readiness=readiness,
+                desired_settings=desired_settings,
+                account_linking_settings=account_linking_settings,
+                cloudflare_credentials=cloudflare_credentials,
+            ),
+            "account_linking_settings": account_linking_settings,
+            "cloudflare_credentials": cloudflare_credentials,
             "alexa_endpoint": "https://edge-calsync.neonbutterfly.net/alexa",
             "alexa_account_linking_authorization_url": "https://calsync.neonbutterfly.net/alexa/account-linking/authorize",
             "privacy_url": "https://calsync.neonbutterfly.net/privacy",
@@ -2911,6 +2919,7 @@ def _build_connections_context(
         edge_settings=edge_settings,
     )
     cloudflare_credentials = operator_settings.describe_cloudflare_worker_credentials()
+    account_linking_settings = operator_settings.describe_alexa_account_linking_settings()
     verification_map = {
         str(item["target_value"]): item
         for item in operator_settings.get_calendar_write_verifications()
@@ -3003,6 +3012,12 @@ def _build_connections_context(
         "edge_settings": edge_settings,
         "desired_alexa_settings": desired_alexa_settings,
         "alexa_drift": alexa_drift,
+        "alexa_next_action": _describe_alexa_next_action(
+            readiness=readiness,
+            desired_settings=desired_alexa_settings,
+            account_linking_settings=account_linking_settings,
+            cloudflare_credentials=cloudflare_credentials,
+        ),
         "cloudflare_credentials": cloudflare_credentials,
         "flash_message": flash_message,
         "error_message": error_message,
@@ -3390,6 +3405,45 @@ def _describe_alexa_settings_drift(
         "live_skill_id_count": len(live_skill_ids),
         "desired_skill_id_count": len(desired_skill_ids),
     }
+
+
+def _describe_alexa_next_action(
+    *,
+    readiness: dict[str, object],
+    desired_settings: dict[str, object],
+    account_linking_settings: dict[str, object],
+    cloudflare_credentials: dict[str, object],
+) -> str:
+    origin = readiness.get("origin", {})
+    edge = readiness.get("edge", {})
+    channel_tokens = readiness.get("channel_tokens", {})
+    edge_alexa = edge.get("alexa", {})
+    desired_skill_ids = [
+        str(value).strip()
+        for value in desired_settings.get("allowed_skill_ids", [])
+        if str(value).strip()
+    ]
+    if not origin.get("any_calendar_ready") and not cloudflare_credentials.get(
+        "api_token_saved"
+    ):
+        return "Connect at least one writable calendar, then save Cloudflare Worker access so you can turn on the live Alexa route from CalSync."
+    if not origin.get("any_calendar_ready"):
+        return "Connect at least one writable calendar so Alexa has a real schedule to read and write once voice traffic goes live."
+    if not cloudflare_credentials.get("api_token_saved"):
+        return "Save Cloudflare Worker access so CalSync can turn on the live Alexa route and skill allowlist from the product."
+    if not account_linking_settings.get("configured"):
+        return "Save a household link code so Alexa account linking can hand the live skill a bearer token."
+    if not desired_settings.get("saved"):
+        return "Save the Alexa plan and your real skill ID so CalSync knows what the live Worker should allow."
+    if not edge.get("reachable", False):
+        return "Check the edge Worker deployment so Alexa route status can be verified and updated live."
+    if not edge_alexa.get("enabled", False):
+        return "Apply the saved Alexa settings so the live edge Worker enables the voice route."
+    if not edge_alexa.get("skill_ids_configured", False) or not desired_skill_ids:
+        return "Add the real Alexa skill ID to the live allowlist before turning voice access on."
+    if not channel_tokens.get("alexa", False):
+        return "Bootstrap the Alexa channel token on the origin so voice-origin calls can be authenticated."
+    return "Alexa is ready for real signed Amazon skill verification."
 
 
 def _calendar_name_options(

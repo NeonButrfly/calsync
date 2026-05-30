@@ -42,7 +42,7 @@
             Alexa not live yet
             {% endif %}
           </strong>
-          <span>{{ readiness.next_action }}</span>
+          <span>{{ alexa_next_action }}</span>
         </div>
       </aside>
 
@@ -293,7 +293,7 @@
                   <strong>Allowed skill IDs configured:</strong>
                   {% if readiness.edge.alexa.skill_ids_configured %}Yes{% else %}No{% endif %}
                 </p>
-                <p class="appointment-detail"><strong>Next action:</strong> {{ readiness.next_action }}</p>
+                <p class="appointment-detail"><strong>Next action:</strong> {{ alexa_next_action }}</p>
               </div>
             </article>
           </div>

@@ -313,6 +313,18 @@ Behavioral boundary:
 - this slice is about resilient export and restore of encrypted operator settings, not a generic full-database backup system
 - restore is expected to work with the same CalSync deployment encryption key that created the backup
 
+## Alexa Contextual Next Guidance Requirement
+
+- GitHub issue: `#65`
+- interpreted requirement: Alexa-focused surfaces should show voice-specific next steps instead of reusing the broad provider-readiness guidance that is useful on the general workspace
+
+Expected behavior:
+
+- `/alexa/setup` should show voice-specific next guidance in the status card and turn-on summary
+- the Alexa voice panel on `/connections` should show that same voice-specific guidance
+- the guidance should explain the real next Alexa work, such as connecting a writable calendar, saving Cloudflare Worker access, saving account linking, or applying the saved edge plan
+- generic workspace and provider-readiness copy may still exist elsewhere in the product, but Alexa-focused surfaces should not fall back to the broad `Add an Apple calendar or finish Google or Microsoft setup...` message as their primary next step
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

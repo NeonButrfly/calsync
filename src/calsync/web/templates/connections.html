@@ -379,7 +379,7 @@
                   <span>{% if cloudflare_credentials.api_token_saved %}Cloudflare Worker credentials are saved for live edge updates.{% else %}Save Cloudflare Worker credentials in Alexa setup to apply live edge changes from CalSync.{% endif %}</span>
                 </article>
               </div>
-              <p class="appointment-detail"><strong>Next action:</strong> {{ readiness.next_action }}</p>
+              <p class="appointment-detail"><strong>Next action:</strong> {{ alexa_next_action }}</p>
               <form class="form-grid" method="post" action="/connections/alexa">
                 <label class="checkbox-row">
                   <input name="enable_alexa" type="checkbox" value="true"{% if desired_alexa_settings.enable_alexa %} checked{% endif %} />
