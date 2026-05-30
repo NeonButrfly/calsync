@@ -31,6 +31,7 @@ class ReadinessService:
         google = self.google_runtime_config.resolve()
         microsoft = self.microsoft_runtime_config.resolve()
         desired_alexa = self._load_desired_alexa_settings()
+        operator_settings_footprint = self._load_operator_settings_footprint()
         primary_account_label = (
             apple["account_label"]
             if apple["ready"]
@@ -64,6 +65,7 @@ class ReadinessService:
                 channel_tokens,
                 edge,
                 desired_alexa,
+                operator_settings_footprint,
             ),
         }
 
@@ -81,6 +83,49 @@ class ReadinessService:
                 "saved": False,
                 "source": "defaults",
             }
+
+    def _load_operator_settings_footprint(self) -> dict[str, bool]:
+        try:
+            from calsync.services.operator_settings import OperatorSettingsService
+
+            service = OperatorSettingsService(settings=self.settings)
+            apple = service.describe_apple_calendar_settings()
+            google = service.describe_google_oauth_settings()
+            microsoft = service.describe_microsoft_oauth_settings()
+            booking = service.describe_public_booking_settings()
+            booking_types = service.describe_public_booking_types()
+            cloudflare = service.describe_cloudflare_worker_credentials()
+            write_verifications = service.get_calendar_write_verifications()
+            desired_alexa = service.describe_desired_alexa_settings()
+            account_linking = service.describe_alexa_account_linking_settings()
+        except Exception:
+            return {
+                "has_saved_provider_state": False,
+                "has_saved_non_provider_state": False,
+            }
+
+        has_saved_provider_state = any(
+            [
+                apple.get("source") != "missing",
+                google.get("source") != "missing",
+                microsoft.get("source") != "missing",
+            ]
+        )
+        has_saved_non_provider_state = any(
+            [
+                booking.get("source") != "defaults",
+                bool(booking_types),
+                cloudflare.get("source") != "missing",
+                bool(write_verifications),
+                bool(desired_alexa.get("saved")),
+                bool(account_linking.get("link_code_saved")),
+                bool(account_linking.get("access_token_saved")),
+            ]
+        )
+        return {
+            "has_saved_provider_state": bool(has_saved_provider_state),
+            "has_saved_non_provider_state": bool(has_saved_non_provider_state),
+        }
 
     def _fetch_edge_status(self) -> dict[str, Any]:
         default_status = {
@@ -120,8 +165,15 @@ class ReadinessService:
         channel_tokens: dict[str, bool],
         edge: dict[str, Any],
         desired_alexa: dict[str, Any],
+        operator_settings_footprint: dict[str, bool],
     ) -> str:
         if not origin["any_calendar_ready"]:
+            if operator_settings_footprint.get(
+                "has_saved_non_provider_state", False
+            ) and not operator_settings_footprint.get(
+                "has_saved_provider_state", False
+            ):
+                return "Restore an encrypted backup from Connections or add an Apple calendar so CalSync can read and write a real connected calendar."
             return "Add an Apple calendar or finish Google or Microsoft setup so CalSync can read and write a real connected calendar."
         desired_enabled = bool(desired_alexa.get("enable_alexa"))
         desired_skill_ids = [

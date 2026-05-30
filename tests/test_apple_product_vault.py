@@ -109,6 +109,30 @@ def test_readiness_service_mentions_saved_desired_alexa_drift() -> None:
     assert "Desired Alexa settings are saved" in readiness["next_action"]
 
 
+def test_readiness_service_points_to_restore_when_non_provider_settings_exist() -> None:
+    settings = _settings()
+    operator_settings = OperatorSettingsService(settings=settings)
+    operator_settings.set_public_booking_settings(
+        page_title="Book time with CalSync",
+        page_description="Claim an open slot.",
+        duration_minutes=45,
+        search_window_days=21,
+        success_message="Booking confirmed.",
+        target_calendar_url="",
+        booking_weekdays=[0, 1, 2, 3, 4],
+        day_start_time="09:00",
+        day_end_time="15:00",
+    )
+
+    readiness = ReadinessService(settings=settings).build()
+
+    assert readiness["origin"]["any_calendar_ready"] is False
+    assert (
+        readiness["next_action"]
+        == "Restore an encrypted backup from Connections or add an Apple calendar so CalSync can read and write a real connected calendar."
+    )
+
+
 def test_appointment_service_uses_matching_apple_account_for_selected_calendar(
     monkeypatch,
 ) -> None:

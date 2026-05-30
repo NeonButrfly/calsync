@@ -662,6 +662,17 @@ Expected behavior:
 - the product should call out drift clearly when the saved desired Alexa state and live Worker do not match yet
 - `GET /api/readiness` should surface that saved desired Alexa state so the next-action guidance can reflect a saved-but-not-yet-applied Alexa turn-on plan
 
+## Restore-Aware Readiness Requirement
+
+- GitHub issue: `#75`
+- interpreted requirement: when CalSync has non-provider operator settings saved but no connected Apple, Google, or Microsoft provider setup left, the shared readiness guidance should treat that state as a likely recovery case and point operators toward encrypted restore from Connections
+
+Expected behavior:
+
+- `GET /api/readiness` should no longer act like fresh provider onboarding is the only next move when the deployment still has non-provider product-vault state such as booking setup, Alexa state, Cloudflare worker credentials, or persisted write-verification history
+- in that recovery-shaped state, the shared next-action guidance on `/` and `/connections` should mention restoring an encrypted backup from Connections before or alongside re-entering provider setup
+- if saved provider setup still exists, the product does not need to force restore-first guidance; this requirement is specifically about likely settings-loss recovery cases
+
 ## Alexa Save-Only Action Truthfulness Requirement
 
 - GitHub issue: `#74`

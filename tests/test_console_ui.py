@@ -146,6 +146,47 @@ def test_console_root_explains_blocked_create_state_when_no_calendar_is_connecte
     assert "Open Connections" in response.text
 
 
+def test_console_root_points_to_restore_when_non_provider_settings_exist(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_public_booking_settings(
+        page_title="Book time with CalSync",
+        page_description="Claim an open slot.",
+        duration_minutes=45,
+        search_window_days=21,
+        success_message="Booking confirmed.",
+        target_calendar_url="",
+        booking_weekdays=[0, 1, 2, 3, 4],
+        day_start_time="09:00",
+        day_end_time="15:00",
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert (
+        "Restore an encrypted backup from Connections or add an Apple calendar so CalSync can read and write a real connected calendar."
+        in response.text
+    )
+
+
 def test_console_root_explains_blocked_schedule_state_when_no_calendar_is_connected(
     monkeypatch,
 ) -> None:

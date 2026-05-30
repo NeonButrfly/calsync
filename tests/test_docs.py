@@ -41,6 +41,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#72" in readme_content
     assert "#73" in readme_content
     assert "#74" in readme_content
+    assert "#75" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -124,6 +125,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "downloadable skill package" in readme_content
     assert "persisted desired alexa edge settings" in readme_content
     assert "truthful save-only alexa action labels on `/alexa/setup` and `/connections`" in readme_content
+    assert "restore-aware readiness guidance" in readme_content
     assert "voice-specific next guidance on alexa-focused setup surfaces" in readme_content
     assert "simulator readiness summary for no-calendar voice testing states" in readme_content
     assert "live-vs-desired drift visibility" in readme_content
@@ -177,6 +179,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#72" in ops_content
     assert "#73" in ops_content
     assert "#74" in ops_content
+    assert "#75" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -232,6 +235,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "checklist-style verification center at `/connections`" in ops_content
     assert "direct google and microsoft refresh/disconnect actions from `/connections`" in ops_content
     assert "alexa launch state and quick edge-setting controls from `/connections`" in ops_content
+    assert "uses restore-aware readiness guidance when only non-provider settings remain" in ops_content
     assert "encrypted operator-settings backup and restore from `/connections`" in ops_content
     assert "voice-specific next guidance for alexa setup and connections voice panels" in ops_content
     assert "simulator readiness guidance for missing connected calendar states" in ops_content
@@ -319,6 +323,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#72" in prompt_content
     assert "#73" in prompt_content
     assert "#74" in prompt_content
+    assert "#75" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -406,6 +411,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "save cloudflare worker-management credentials inside the product" in prompt_content
     assert "stored encrypted at rest with `encryption_key`" in prompt_content
     assert "desired alexa edge settings requirement" in prompt_content
+    assert "restore-aware readiness requirement" in prompt_content
     assert "alexa save-only action truthfulness requirement" in prompt_content
     assert "should always save the desired `enable_alexa` and `alexa_allowed_skill_ids` values" in prompt_content
     assert "workspace truthfulness requirement" in prompt_content
@@ -426,6 +432,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "disconnected `post /booking/setup/types` requests should fail clearly instead of creating shareable booking links that cannot schedule anywhere" in prompt_content
     assert "`get /google/setup` should keep `connect google account` blocked until both the shared google client id and client secret are saved" in prompt_content
     assert "`get /connections` should reflect the same blocked browser-connect state for google and microsoft until their shared oauth apps exist" in prompt_content
+    assert "shared next-action guidance on `/` and `/connections` should mention restoring an encrypted backup from connections" in prompt_content
     assert "both surfaces should switch to truthful save-only labels instead of promising a live apply" in prompt_content
     assert "enable_alexa" in prompt_content
     assert "alexa_allowed_skill_ids" in prompt_content
