@@ -223,6 +223,17 @@ Expected behavior:
 - disconnected availability requests should not fall back to `No open windows found`
 - the root workspace should point the operator toward setup instead of making the no-calendar state look like a normal empty-schedule result
 
+## Public Booking No-Calendar Availability Requirement
+
+- GitHub issue: `#69`
+- interpreted requirement: when the live runtime has no writable Apple, Google, or Microsoft calendar connected, the public booking page should not make invitees or operators think open-time refresh is already live
+
+Expected behavior:
+
+- the public booking page should clearly explain that writable calendar setup still blocks meaningful booking availability search
+- the invitee-facing availability refresh controls should look blocked in the UI until at least one writable calendar target is connected
+- the page should keep the existing `not ready yet` message, but the blocked availability state should reinforce it instead of contradicting it
+
 ## Public Booking Page Requirement
 
 - GitHub issue: `#55`

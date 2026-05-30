@@ -166,6 +166,35 @@ def test_booking_page_renders_public_surface_with_open_slots(monkeypatch) -> Non
     assert "Request this time" in response.text
 
 
+def test_booking_page_blocks_availability_refresh_when_no_calendar_is_connected(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/book")
+
+    assert response.status_code == 200
+    assert "Public booking is not ready yet" in response.text
+    assert "Connect a writable calendar before public booking can search for open time." in response.text
+    assert '<button type="submit" disabled>Refresh open time</button>' in response.text
+    assert "No writable calendar is connected yet." in response.text
+
+
 def test_booking_setup_page_round_trips_public_booking_settings(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     app = create_app()

@@ -115,29 +115,36 @@
         </section>
         {% else %}
         <section class="workspace-grid workspace-grid--balanced">
-          <article class="panel">
-            <div class="panel-head">
-              <div>
-                <p class="eyebrow">Availability</p>
-                <h3>Available times</h3>
-                <p class="panel-copy">Adjust the search window if you need a different day range or appointment length.</p>
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Availability</p>
+                  <h3>Available times</h3>
+                  <p class="panel-copy">Adjust the search window if you need a different day range or appointment length.</p>
+                </div>
               </div>
-            </div>
+              {% if not availability_ready %}
+              <div class="empty-state">
+                <h4>Booking availability is not ready yet</h4>
+                <p>{{ availability_block_message }}</p>
+                <p>No writable calendar is connected yet.</p>
+              </div>
+              {% endif %}
 
             <form class="form-grid" method="get" action="{{ public_booking_url }}">
               <label>
                 <span>From</span>
-                <input name="availability_date_from" type="date" value="{{ availability_form_values.date_from }}" required />
+                <input name="availability_date_from" type="date" value="{{ availability_form_values.date_from }}" required{% if not availability_ready %} disabled{% endif %} />
               </label>
               <label>
                 <span>To</span>
-                <input name="availability_date_to" type="date" value="{{ availability_form_values.date_to }}" required />
+                <input name="availability_date_to" type="date" value="{{ availability_form_values.date_to }}" required{% if not availability_ready %} disabled{% endif %} />
               </label>
               <label>
                 <span>Duration minutes</span>
-                <input name="availability_duration_minutes" type="number" min="15" step="15" value="{{ availability_form_values.duration_minutes }}" required />
+                <input name="availability_duration_minutes" type="number" min="15" step="15" value="{{ availability_form_values.duration_minutes }}" required{% if not availability_ready %} disabled{% endif %} />
               </label>
-              <button type="submit">Refresh open time</button>
+              <button type="submit"{% if not availability_ready %} disabled{% endif %}>Refresh open time</button>
             </form>
 
             {% if calendar_ready %}

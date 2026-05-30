@@ -2568,6 +2568,12 @@ def _build_booking_context(
         "booking_catalog_mode": False,
         "booking_types": booking_types or [],
         "availability_form_values": form_values,
+        "availability_ready": target is not None,
+        "availability_block_message": (
+            None
+            if target is not None
+            else "Connect a writable calendar before public booking can search for open time."
+        ),
         "availability_results": _serialize_booking_slots(availability_results),
         "calendar_target": target,
         "calendar_ready": target is not None,
