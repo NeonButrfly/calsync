@@ -403,12 +403,17 @@ def _build_booking_setup_context(
     error_message: str | None,
 ) -> dict[str, object]:
     service = AppointmentService()
+    legacy_apple_recovery_hints = operator_settings.describe_legacy_apple_recovery_hints()
     calendar_options = _calendar_options(
         service,
         selected_calendar_url=str(booking_settings.get("target_calendar_url") or "")
         or None,
     )
     booking_setup_ready = bool(calendar_options)
+    booking_setup_recovery_mode = (
+        not booking_setup_ready
+        and str(legacy_apple_recovery_hints.get("source") or "missing") != "missing"
+    )
     return {
         "request": request,
         "booking_settings": booking_settings,
@@ -418,10 +423,15 @@ def _build_booking_setup_context(
         "error_message": error_message,
         "public_booking_url": str(booking_settings.get("public_url") or "/book"),
         "booking_setup_ready": booking_setup_ready,
+        "booking_setup_recovery_mode": booking_setup_recovery_mode,
         "booking_setup_block_message": (
             None
             if booking_setup_ready
-            else "Connect a writable calendar before configuring public booking settings or creating shareable booking types."
+            else (
+                "Apple reconnect still blocks booking setup. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before configuring public booking."
+                if booking_setup_recovery_mode
+                else "Connect a writable calendar before configuring public booking settings or creating shareable booking types."
+            )
         ),
     }
 

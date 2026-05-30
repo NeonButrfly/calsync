@@ -44,6 +44,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - a stronger Connections control center that can also trigger shared Google and Microsoft connect, refresh, and disconnect actions without leaving the page
 - Alexa turn-on controls in `/connections`, so the shared operator surface now shows live-vs-desired voice state and can save or apply edge settings without leaving the control center
 - encrypted operator-settings backup and restore from `/connections`, so Apple, Google, Microsoft, Alexa, and booking setup can be exported and recovered without hand-rebuilding the product vault
+- recovery-aware Apple reconnect actions on `/` and `/booking/setup`, so blocked operator surfaces now point straight at the loaded Apple recovery path instead of only saying a writable calendar is missing
 - Local audit entries and appointment-to-provider event mapping
 - A dedicated Cloudflare Worker in `workers/edge-calsync`
 - Live ChatGPT-first edge hostname: `https://edge-calsync.neonbutterfly.net`
@@ -401,6 +402,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Keep Connections Alexa panel aligned with desired Alexa state readiness: issue `#89`
 - Keep Connections Alexa panel aligned with writable-calendar readiness: issue `#90`
 - Keep Connections provider next actions truthful before OAuth setup exists: issue `#91`
+- Align blocked operator surfaces with Apple reconnect path: issue `#92`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

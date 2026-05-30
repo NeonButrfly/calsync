@@ -41,6 +41,12 @@
           <p class="eyebrow">Setup blocker</p>
           <strong>Booking setup still needs a calendar</strong>
           <span>{{ booking_setup_block_message }}</span>
+          {% if booking_setup_recovery_mode %}
+          <div class="stack-actions">
+            <a class="text-action" href="/calendar/setup">Open Apple setup</a>
+            <a class="text-action" href="/connections">Open Connections</a>
+          </div>
+          {% endif %}
           {% endif %}
         </div>
       </aside>

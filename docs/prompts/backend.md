@@ -512,6 +512,18 @@ Expected behavior:
 - when the shared OAuth app is missing, the summary should say to save the shared OAuth app before browser account connect is available
 - only once the shared OAuth app is saved should the summary advance to telling operators to connect the account through the browser
 
+## Blocked Operator Apple Reconnect Requirement
+
+- GitHub issue: `#92`
+- interpreted requirement: when the current live deployment is blocked on reconnecting the recovered Apple household calendar, the main operator-facing blocked surfaces should point directly at that Apple reconnect path instead of only saying that a writable calendar is missing
+
+Expected behavior:
+
+- when shared readiness already says Apple reconnect is the next step, the root workspace action stack on `/` should include a direct Apple setup action alongside the other operator links
+- when `/booking/setup` is blocked only because no writable calendar is connected and recovered Apple hints already exist, the blocker copy should tell operators to open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before configuring public booking
+- `/booking/setup` should also expose direct operator actions into Apple setup and Connections in that recovery-shaped blocked state
+- invitee-facing `/book` copy can remain generic, because it should not expose operator-only Apple recovery details to the public booking surface
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`
