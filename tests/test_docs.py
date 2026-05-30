@@ -46,6 +46,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#77" in readme_content
     assert "#78" in readme_content
     assert "#79" in readme_content
+    assert "#80" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -137,6 +138,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "make apple recovery messaging point to the reconnect step" in readme_content
     assert "recovery-aware apple messaging across readiness, connections, and apple setup" in readme_content
     assert "safe apple setup validation before reconnect save" in readme_content
+    assert "legacy apple recovery hint ranking that now prefers the real recovered writable booking target over a merely enabled personal-reference calendar" in readme_content
     assert "voice-specific next guidance on alexa-focused setup surfaces" in readme_content
     assert "simulator readiness summary for no-calendar voice testing states" in readme_content
     assert "live-vs-desired drift visibility" in readme_content
@@ -196,6 +198,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#77" in ops_content
     assert "#78" in ops_content
     assert "#79" in ops_content
+    assert "#80" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -262,6 +265,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "surfaces recovered legacy apple hints on `/calendar/setup`" in ops_content
     assert "load a recovered apple calendar hint directly into the `/calendar/setup` form" in ops_content
     assert "safe apple setup validation before reconnect save" in ops_content
+    assert "recovery-aware apple hint ranking that prefers true writable booking targets" in ops_content
     assert "voice-specific next guidance for alexa setup and connections voice panels" in ops_content
     assert "simulator readiness guidance for missing connected calendar states" in ops_content
     assert "planner-style day/week/month board at `/`" in ops_content
@@ -446,6 +450,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "legacy apple recovery form prefill requirement" in prompt_content
     assert "apple recovery guidance requirement" in prompt_content
     assert "apple setup validation requirement" in prompt_content
+    assert "legacy apple recommended target requirement" in prompt_content
     assert "alexa save-only action truthfulness requirement" in prompt_content
     assert "should always save the desired `enable_alexa` and `alexa_allowed_skill_ids` values" in prompt_content
     assert "workspace truthfulness requirement" in prompt_content
@@ -473,6 +478,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /api/readiness should tell operators to open apple setup, load a recovered apple hint, and save a fresh app-specific password" in prompt_content
     assert "`post /calendar/setup/validate` should test the entered apple username, app-specific password, and primary calendar url without persisting those values first" in prompt_content
     assert "`/calendar/setup` should expose a visible `validate apple connection` action alongside save so the reconnect flow is not blind" in prompt_content
+    assert "legacy apple recovery extraction should rank explicit `writable_booking_target` calendars ahead of generic enabled calendars when choosing the recommended reconnect hint" in prompt_content
     assert "both surfaces should switch to truthful save-only labels instead of promising a live apply" in prompt_content
     assert "enable_alexa" in prompt_content
     assert "alexa_allowed_skill_ids" in prompt_content

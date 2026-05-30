@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, `#73`, `#76`, `#77`, `#78`, and `#79` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, `#73`, `#76`, `#77`, `#78`, `#79`, and `#80` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -80,6 +80,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - one-step loading of recovered Apple backup hints into the setup form, so operators can start from the imported account and calendar values and only add a fresh app-specific password
 - recovery-aware Apple messaging across readiness, Connections, and Apple setup, so the live product points directly at the reconnect step once legacy hints have been imported
 - a safe Apple setup validation step before reconnect save, so operators can test a fresh Apple username, password, and calendar URL without persisting bad credentials first
+- legacy Apple recovery hint ranking that now prefers the real recovered writable booking target over a merely enabled personal-reference calendar
 - voice-specific next guidance on Alexa-focused setup surfaces, so the Alexa setup page and Connections voice panel explain the actual voice turn-on work instead of falling back to generic provider onboarding copy
 - a simulator readiness summary for no-calendar voice testing states, so `/alexa/simulator` explains when LaunchRequest is still useful and why scheduling-intent tests are still blocked
 - a first availability finder across the workspace, edge API, and Alexa so CalSync can suggest open appointment windows instead of only listing busy ones
@@ -375,6 +376,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Load recovered Apple backup hints into the setup form: issue `#77`
 - Make Apple recovery messaging point to the reconnect step: issue `#78`
 - Add safe Apple setup validation before reconnect save: issue `#79`
+- Prefer true writable Apple targets in legacy recovery hints: issue `#80`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

@@ -724,6 +724,17 @@ Expected behavior:
 - validation must not mutate the saved Apple account state, writable target state, or readiness state on its own
 - `/calendar/setup` should expose a visible `Validate Apple connection` action alongside save so the reconnect flow is not blind
 
+## Legacy Apple Recommended Target Requirement
+
+- GitHub issue: `#80`
+- interpreted requirement: when CalSync imports legacy Apple backup hints, the default reconnect target should prefer the actual recovered writable booking target instead of a merely enabled personal-reference calendar
+
+Expected behavior:
+
+- legacy Apple recovery extraction should rank explicit `writable_booking_target` calendars ahead of generic enabled calendars when choosing the recommended reconnect hint
+- `/calendar/setup` and `/connections` should therefore point operators at the real recovered writable booking target by default after import
+- generic enabled personal-reference calendars may still be listed as recovered hints, but they should not outrank an explicit recovered write target
+
 ## Alexa Save-Only Action Truthfulness Requirement
 
 - GitHub issue: `#74`

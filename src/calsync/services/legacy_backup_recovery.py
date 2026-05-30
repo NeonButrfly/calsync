@@ -50,7 +50,11 @@ class LegacyBackupRecoveryService:
 
         normalized_calendars.sort(
             key=lambda item: (
-                0 if bool(item["is_writable_hint"]) else 1,
+                0
+                if str(item["calendar_role"] or "") == "writable_booking_target"
+                else 1
+                if bool(item["enabled"])
+                else 2,
                 str(item["calendar_name"]).lower(),
             )
         )

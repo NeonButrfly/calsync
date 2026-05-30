@@ -97,8 +97,8 @@ def _legacy_backup_payload() -> bytes:
         "apple-account\ticloud_caldav\tkaymayers9@gmail.com\tkaymayers9@gmail.com\t\\\\N\t\\\\N\t{\"auth_status\": \"connected\", \"principal_url\": \"https://caldav.icloud.com/112135872/principal/\", \"calendar_home_url\": \"https://p52-caldav.icloud.com:443/112135872/calendars/\"}\t2026-05-14 19:47:44.895745+00\t2026-05-26 05:02:56.813761+00\tsecret\tcaldav\tt\tt\tf\n"
         "\\.\n"
         "COPY public.provider_calendars (id, provider_account_pk, provider_calendar_id, name, timezone, enabled, provider_metadata, created_at, updated_at, calendar_role) FROM stdin;\n"
-        "family-cal\tapple-account\thttps://p52-caldav.icloud.com:443/112135872/calendars/06810ae4-a07b-49d9-9541-98123e74c806/\tFamily\t\\\\N\tf\t{\"href\": \"https://p52-caldav.icloud.com:443/112135872/calendars/06810ae4-a07b-49d9-9541-98123e74c806/\"}\t2026-05-14 19:47:45.997212+00\t2026-05-14 20:03:09.020352+00\tpersonal_reference\n"
-        "calendar-cal\tapple-account\thttps://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/\tCalendar\t\\\\N\tt\t{\"href\": \"https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/\"}\t2026-05-14 19:47:45.997212+00\t2026-05-14 20:03:09.020352+00\twritable_booking_target\n"
+        "family-cal\tapple-account\thttps://p52-caldav.icloud.com:443/112135872/calendars/06810ae4-a07b-49d9-9541-98123e74c806/\tFamily\t\\\\N\tf\t{\"href\": \"https://p52-caldav.icloud.com:443/112135872/calendars/06810ae4-a07b-49d9-9541-98123e74c806/\"}\t2026-05-14 19:47:45.997212+00\t2026-05-14 20:03:09.020352+00\twritable_booking_target\n"
+        "calendar-cal\tapple-account\thttps://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/\tCalendar\t\\\\N\tt\t{\"href\": \"https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/\"}\t2026-05-14 19:47:45.997212+00\t2026-05-14 20:03:09.020352+00\tpersonal_reference\n"
         "\\.\n"
     ).encode("utf-8")
     payload = BytesIO()
@@ -1321,7 +1321,7 @@ def test_connections_page_can_import_legacy_backup_apple_hints(monkeypatch) -> N
     service = OperatorSettingsService(settings=get_settings())
     described = service.describe_legacy_apple_recovery_hints()
     assert described["account_username"] == "kaymayers9@gmail.com"
-    assert described["recommended_calendar_name"] == "Calendar"
+    assert described["recommended_calendar_name"] == "Family"
 
 
 def test_connections_google_refresh_updates_live_calendar_catalog(monkeypatch) -> None:
