@@ -152,6 +152,57 @@
             <article class="panel">
               <div class="panel-head">
                 <div>
+                  <p class="eyebrow">Step 2.5</p>
+                  <h3>Account linking</h3>
+                </div>
+              </div>
+              <p class="appointment-detail">
+                Save a household link code, then use the authorization URL below in
+                Alexa account-linking settings so the live skill can prove it is
+                linked to this CalSync household before voice requests reach the
+                shared schedule.
+              </p>
+              <div class="detail-grid">
+                <article class="detail-card">
+                  <p class="eyebrow">Authorization URL</p>
+                  <strong>{{ alexa_account_linking_authorization_url }}</strong>
+                  <span>Use this as the Alexa account-linking authorization URI.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Client ID</p>
+                  <strong>{{ account_linking_settings.client_id }}</strong>
+                  <span>Use the same client ID in Alexa account-linking settings.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Link code saved</p>
+                  <strong>{% if account_linking_settings.link_code_saved %}Yes{% else %}No{% endif %}</strong>
+                  <span>Only people with the saved household code can finish the Alexa link.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Access token ready</p>
+                  <strong>{% if account_linking_settings.access_token_ready %}Yes{% else %}No{% endif %}</strong>
+                  <span>The product will hand Alexa a bearer token after the household link code is confirmed.</span>
+                </article>
+              </div>
+              <form class="form-grid" method="post" action="/alexa/setup/account-linking">
+                <label>
+                  <span>Household link code</span>
+                  <input
+                    name="link_code"
+                    type="password"
+                    placeholder="Choose a code your household can enter during Alexa linking"
+                    required
+                  />
+                </label>
+                <div class="action-row">
+                  <button type="submit">Save account linking setup</button>
+                </div>
+              </form>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div>
                   <p class="eyebrow">Edge config</p>
                   <h3>Edge Worker controls</h3>
                 </div>

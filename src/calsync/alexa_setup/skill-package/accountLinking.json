@@ -1,0 +1,14 @@
+{
+  "accountLinkingRequest": {
+    "type": "IMPLICIT",
+    "authorizationUrl": "https://calsync.neonbutterfly.net/alexa/account-linking/authorize",
+    "domains": [
+      "calsync.neonbutterfly.net"
+    ],
+    "clientId": "calsync-alexa-household",
+    "scopes": [
+      "calendar:read",
+      "calendar:write"
+    ]
+  }
+}

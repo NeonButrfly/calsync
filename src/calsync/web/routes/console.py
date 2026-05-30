@@ -4,6 +4,7 @@ from datetime import UTC, date, datetime, timedelta
 from importlib.resources import files
 from io import BytesIO
 from pathlib import Path
+from urllib.parse import urlencode, urlparse
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 from zipfile import ZipFile
@@ -617,8 +618,10 @@ def _render_alexa_setup_page(
                 desired_settings=desired_settings,
                 edge_settings=edge_settings,
             ),
+            "account_linking_settings": operator_settings.describe_alexa_account_linking_settings(),
             "cloudflare_credentials": operator_settings.describe_cloudflare_worker_credentials(),
             "alexa_endpoint": "https://edge-calsync.neonbutterfly.net/alexa",
+            "alexa_account_linking_authorization_url": "https://calsync.neonbutterfly.net/alexa/account-linking/authorize",
             "privacy_url": "https://calsync.neonbutterfly.net/privacy",
             "terms_url": "https://calsync.neonbutterfly.net/terms",
             "simulator_url": "/alexa/simulator",
@@ -627,6 +630,142 @@ def _render_alexa_setup_page(
         },
         status_code=status_code,
     )
+
+
+@router.post("/alexa/setup/account-linking")
+def alexa_setup_update_account_linking(
+    request: Request,
+    link_code: str = Form(""),
+):
+    operator_settings = OperatorSettingsService()
+    try:
+        operator_settings.set_alexa_account_linking_settings(link_code=link_code)
+        flash_message = "Alexa account linking is ready."
+        error_message = None
+    except ValueError as exc:
+        flash_message = None
+        error_message = str(exc)
+    edge_settings = CloudflareWorkerConfigService().get_alexa_settings()
+    return _render_alexa_setup_page(
+        request,
+        readiness=ReadinessService().build(),
+        operator_settings=operator_settings,
+        edge_settings=edge_settings,
+        flash_message=flash_message,
+        error_message=error_message,
+        status_code=200 if error_message is None else 400,
+    )
+
+
+@router.get("/alexa/account-linking/authorize")
+def alexa_account_linking_authorize_page(
+    request: Request,
+    client_id: str = "",
+    redirect_uri: str = "",
+    response_type: str = "",
+    state: str = "",
+    scope: str = "",
+):
+    operator_settings = OperatorSettingsService()
+    return _render_alexa_account_linking_authorize_page(
+        request,
+        operator_settings=operator_settings,
+        form_values={
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "response_type": response_type,
+            "state": state,
+            "scope": scope,
+            "link_code": "",
+        },
+        error_message=None,
+        status_code=200,
+    )
+
+
+@router.post("/alexa/account-linking/authorize")
+def alexa_account_linking_authorize(
+    request: Request,
+    client_id: str = Form(""),
+    redirect_uri: str = Form(""),
+    response_type: str = Form(""),
+    state: str = Form(""),
+    scope: str = Form(""),
+    link_code: str = Form(""),
+):
+    operator_settings = OperatorSettingsService()
+    settings = operator_settings.get_alexa_account_linking_settings()
+    error_message: str | None = None
+    if not operator_settings.describe_alexa_account_linking_settings()["configured"]:
+        error_message = "Alexa account linking has not been configured in CalSync yet."
+    elif response_type != "token":
+        error_message = "Alexa account linking only supports the implicit token response right now."
+    elif not state.strip():
+        error_message = "Alexa account linking requires a state value."
+    elif not _is_allowed_alexa_redirect_uri(redirect_uri):
+        error_message = "Alexa redirect URI is not allowed."
+    elif client_id.strip() != str(settings["client_id"] or "").strip():
+        error_message = "Client ID does not match the saved Alexa account-linking client."
+    elif not operator_settings.validate_alexa_account_linking_code(link_code):
+        error_message = "Link code did not match the saved Alexa household code."
+
+    if error_message:
+        return _render_alexa_account_linking_authorize_page(
+            request,
+            operator_settings=operator_settings,
+            form_values={
+                "client_id": client_id,
+                "redirect_uri": redirect_uri,
+                "response_type": response_type,
+                "state": state,
+                "scope": scope,
+                "link_code": "",
+            },
+            error_message=error_message,
+            status_code=400,
+        )
+
+    fragment = urlencode(
+        {
+            "state": state,
+            "access_token": str(settings["access_token"] or ""),
+            "token_type": "Bearer",
+        }
+    )
+    return RedirectResponse(
+        url=f"{redirect_uri}#{fragment}",
+        status_code=302,
+    )
+
+
+@router.post("/api/alexa/account-linking/validate")
+async def alexa_account_linking_validate(request: Request):
+    operator_settings = OperatorSettingsService()
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    access_token = (
+        str(payload.get("access_token") or "").strip()
+        if isinstance(payload, dict)
+        else ""
+    )
+    configured = bool(
+        operator_settings.describe_alexa_account_linking_settings()["configured"]
+    )
+    linked = (
+        operator_settings.validate_alexa_account_linking_access_token(access_token)
+        if configured
+        else False
+    )
+    return {
+        "ok": True,
+        "message": "Alexa account-linking status retrieved.",
+        "data": {
+            "account_linking_configured": configured,
+            "linked": linked,
+        },
+    }
 
 
 @router.get("/calendar/setup")
@@ -3131,6 +3270,46 @@ def _default_alexa_simulator_values() -> dict[str, str]:
         "new_end_time": "14:00",
         "new_calendar_name": "",
     }
+
+
+def _render_alexa_account_linking_authorize_page(
+    request: Request,
+    *,
+    operator_settings: OperatorSettingsService,
+    form_values: dict[str, str],
+    error_message: str | None,
+    status_code: int,
+):
+    return _templates.TemplateResponse(
+        request,
+        "alexa_account_linking_authorize.html",
+        {
+            "request": request,
+            "form_values": form_values,
+            "account_linking_settings": operator_settings.describe_alexa_account_linking_settings(),
+            "error_message": error_message,
+        },
+        status_code=status_code,
+    )
+
+
+def _is_allowed_alexa_redirect_uri(redirect_uri: str) -> bool:
+    try:
+        parsed = urlparse(redirect_uri)
+    except ValueError:
+        return False
+    host = str(parsed.hostname or "").lower()
+    if parsed.scheme != "https" or not host:
+        return False
+    if not (
+        host.endswith(".amazon.com")
+        or host == "amazon.com"
+        or host.endswith(".amazon.co.jp")
+    ):
+        return False
+    return parsed.path == "/spa/skill/account-linking-status.html" or parsed.path.startswith(
+        "/api/skill/link/"
+    )
 
 
 def _describe_alexa_settings_drift(

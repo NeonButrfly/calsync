@@ -466,6 +466,7 @@ Expected auth shape:
 - the Alexa route should verify signed Alexa web-service requests using Amazon's certificate and request-signature flow
 - the Worker should only accept configured Alexa skill IDs from `ALEXA_ALLOWED_SKILL_IDS`
 - the route should remain disabled until `ENABLE_ALEXA=true`
+- the first household account-linking flow may use an implicit grant, but the live Worker should still require the linked Alexa access token whenever account linking has been configured in CalSync
 
 Current repo artifacts:
 
@@ -513,6 +514,7 @@ Expected behavior:
 - those product-managed Worker credentials should be stored encrypted at rest with `ENCRYPTION_KEY`
 - the setup page should read the current edge Worker Alexa flags when Cloudflare worker-management settings are available
 - the setup page should let the operator update `ENABLE_ALEXA` and `ALEXA_ALLOWED_SKILL_IDS` from the product when the Cloudflare token has `Workers Scripts Write`
+- the setup page should let the operator save a household Alexa link code and should surface the CalSync-hosted authorization URL for Alexa account linking
 - the root scheduling workspace should link operators into the Alexa setup flow
 
 ## Desired Alexa Edge Settings Requirement

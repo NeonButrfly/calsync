@@ -372,6 +372,11 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
             encoding="utf-8"
         )
     )
+    account_linking_manifest = json.loads(
+        Path("workers/edge-calsync/alexa/skill-package/accountLinking.json").read_text(
+            encoding="utf-8"
+        )
+    )
     packaged_interaction_model = json.loads(
         Path(
             "workers/edge-calsync/alexa/skill-package/interactionModels/custom/en-US.json"
@@ -384,6 +389,8 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "#38" in readme_content
     assert "post /alexa" in readme_content
     assert "post /alexa/simulate" in readme_content
+    assert "get /alexa/account-linking/authorize" in readme_content
+    assert "post /api/alexa/account-linking/validate" in readme_content
     assert "alexa_allowed_skill_ids" in readme_content
     assert "/privacy" in readme_content
     assert "/terms" in readme_content
@@ -392,6 +399,7 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "findavailabilityintent" in readme_content
     assert "next upcoming appointment" in readme_content
     assert "provider-aware named calendar target across apple, google, and microsoft" in readme_content
+    assert "household alexa account linking" in readme_content
 
     assert "#38" in ops_content
     assert "createappointmentintent" in ops_content
@@ -406,6 +414,8 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "spoken response" in ops_content
     assert "token-hash presence flags" in ops_content
     assert "provider-aware named calendar target across apple, google, and microsoft" in ops_content
+    assert "authorization url: `https://calsync.neonbutterfly.net/alexa/account-linking/authorize`" in ops_content
+    assert "grant type: implicit" in ops_content
 
     assert "#38" in prompt_content
     assert "post /alexa" in prompt_content
@@ -414,6 +424,7 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "request-signature flow" in prompt_content
     assert "get /privacy" in prompt_content
     assert "get /alexa/simulator" in prompt_content
+    assert "implicit grant" in prompt_content
     assert "cancel a matching appointment" in prompt_content
     assert "reschedule a matching appointment" in prompt_content
     assert "read the next upcoming appointment" in prompt_content
@@ -448,8 +459,18 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
         packaged_interaction_model["interactionModel"]["languageModel"]["invocationName"]
         == "cal sync family"
     )
+    assert (
+        account_linking_manifest["accountLinkingRequest"]["authorizationUrl"]
+        == "https://calsync.neonbutterfly.net/alexa/account-linking/authorize"
+    )
+    assert account_linking_manifest["accountLinkingRequest"]["type"] == "IMPLICIT"
+    assert (
+        account_linking_manifest["accountLinkingRequest"]["clientId"]
+        == "calsync-alexa-household"
+    )
     assert "create or import the custom skill package" in alexa_readme_content
     assert "next upcoming appointment" in alexa_readme_content
     assert "find open time" in alexa_readme_content
     assert "named calendar routing" in alexa_readme_content
     assert "provider-aware named calendar target across apple, google, and microsoft" in alexa_readme_content
+    assert "household link code" in alexa_readme_content

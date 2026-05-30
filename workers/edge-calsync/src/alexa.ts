@@ -115,7 +115,9 @@ export async function handleAlexaRequest(
     return alexaErrorResponse(400, `Alexa request verification failed: ${message}`, requestId);
   }
 
-  return dispatchAlexaPayload(payload, env, requestId);
+  return dispatchAlexaPayload(payload, env, requestId, {
+    skipAccountLinking: false,
+  });
 }
 
 export async function simulateAlexaRequest(
@@ -143,15 +145,26 @@ export async function simulateAlexaRequest(
           : undefined,
     },
   };
-  return dispatchAlexaPayload(payload, env, requestId);
+  return dispatchAlexaPayload(payload, env, requestId, {
+    skipAccountLinking: true,
+  });
 }
 
 async function dispatchAlexaPayload(
   payload: AlexaEnvelope,
   env: WorkerEnv,
   requestId: string,
+  options: {
+    skipAccountLinking: boolean;
+  },
 ): Promise<Response> {
   const requestType = payload.request.type;
+  if (!options.skipAccountLinking && requestType !== "SessionEndedRequest") {
+    const accountLinkResponse = await ensureLinkedAccount(payload, env, requestId);
+    if (accountLinkResponse) {
+      return accountLinkResponse;
+    }
+  }
   if (requestType === "LaunchRequest") {
     return alexaResponse({
       speech:
@@ -215,6 +228,56 @@ async function dispatchAlexaPayload(
         speech: "I do not support that request yet.",
         shouldEndSession: false,
       });
+  }
+}
+
+async function ensureLinkedAccount(
+  payload: AlexaEnvelope,
+  env: WorkerEnv,
+  requestId: string,
+): Promise<Response | null> {
+  try {
+    const originResponse = await callOriginJson(env, {
+      method: "POST",
+      path: "/api/alexa/account-linking/validate",
+      channel: "alexa",
+      requestId,
+      body: {
+        access_token: extractAccessToken(payload),
+      },
+    });
+    const originBody = (await originResponse.json()) as {
+      data?: {
+        account_linking_configured?: boolean;
+        linked?: boolean;
+      };
+      message?: string;
+      detail?: string;
+    };
+    if (!originResponse.ok) {
+      return alexaResponse({
+        speech:
+          originBody.message ??
+          originBody.detail ??
+          "CalSync could not verify account linking right now.",
+        shouldEndSession: true,
+      });
+    }
+
+    if (originBody.data?.account_linking_configured && !originBody.data?.linked) {
+      return alexaResponse({
+        speech:
+          "Please link your CalSync account in the Alexa app before using this skill.",
+        shouldEndSession: true,
+        linkAccount: true,
+      });
+    }
+    return null;
+  } catch {
+    return alexaResponse({
+      speech: "CalSync could not verify account linking right now.",
+      shouldEndSession: true,
+    });
   }
 }
 
@@ -727,6 +790,14 @@ function extractSkillId(payload: AlexaEnvelope): string | null {
   return (
     payload.context?.System?.application?.applicationId ??
     payload.session?.application?.applicationId ??
+    null
+  );
+}
+
+function extractAccessToken(payload: AlexaEnvelope): string | null {
+  return (
+    payload.context?.System?.user?.accessToken ??
+    payload.session?.user?.accessToken ??
     null
   );
 }

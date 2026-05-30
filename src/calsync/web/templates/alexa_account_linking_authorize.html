@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Link Alexa to CalSync</title>
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <main class="workspace">
+        <section class="hero panel hero-panel">
+          <div>
+            <p class="eyebrow">Alexa account linking</p>
+            <h2>Link this Alexa skill to the CalSync household</h2>
+            <p class="hero-copy">
+              Enter the saved household link code so Alexa can finish linking to
+              this CalSync schedule.
+            </p>
+          </div>
+        </section>
+
+        {% if error_message %}
+        <section class="flash flash--error">{{ error_message }}</section>
+        {% endif %}
+
+        <section class="workspace-grid">
+          <div class="workspace-column">
+            <article class="panel">
+              <div class="detail-grid">
+                <article class="detail-card">
+                  <p class="eyebrow">Client ID</p>
+                  <strong>{{ form_values.client_id or account_linking_settings.client_id }}</strong>
+                  <span>This should match the Alexa account-linking client ID.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Scopes</p>
+                  <strong>{{ form_values.scope or (account_linking_settings.scopes | join(", ")) }}</strong>
+                  <span>CalSync links this skill for shared calendar read and write access.</span>
+                </article>
+              </div>
+              <form class="form-grid" method="post" action="/alexa/account-linking/authorize">
+                <input type="hidden" name="client_id" value="{{ form_values.client_id }}" />
+                <input type="hidden" name="redirect_uri" value="{{ form_values.redirect_uri }}" />
+                <input type="hidden" name="response_type" value="{{ form_values.response_type }}" />
+                <input type="hidden" name="state" value="{{ form_values.state }}" />
+                <input type="hidden" name="scope" value="{{ form_values.scope }}" />
+                <label>
+                  <span>Household link code</span>
+                  <input
+                    name="link_code"
+                    type="password"
+                    value=""
+                    placeholder="Enter the code saved in CalSync Alexa setup"
+                    required
+                  />
+                </label>
+                <div class="action-row">
+                  <button type="submit">Link Alexa to CalSync</button>
+                </div>
+              </form>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

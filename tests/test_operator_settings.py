@@ -103,6 +103,30 @@ def test_operator_settings_can_store_desired_alexa_settings() -> None:
     assert described["source"] == "product_vault"
 
 
+def test_operator_settings_can_store_alexa_account_linking_settings() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.set_alexa_account_linking_settings(
+        link_code="Household-123",
+    )
+
+    stored = service.get_alexa_account_linking_settings()
+    assert stored["client_id"] == "calsync-alexa-household"
+    assert stored["link_code"] == "HOUSEHOLD123"
+    assert isinstance(stored["access_token"], str)
+    assert len(stored["access_token"]) >= 24
+
+    described = service.describe_alexa_account_linking_settings()
+    assert described["configured"] is True
+    assert described["client_id"] == "calsync-alexa-household"
+    assert described["link_code_saved"] is True
+    assert described["access_token_ready"] is True
+    assert described["authorization_url"].endswith(
+        "/alexa/account-linking/authorize"
+    )
+
+
 def test_operator_settings_encrypts_apple_calendar_values_at_rest() -> None:
     settings = _settings()
     service = OperatorSettingsService(settings=settings)

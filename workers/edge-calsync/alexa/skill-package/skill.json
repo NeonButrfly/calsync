@@ -20,7 +20,7 @@
         }
       },
       "isAvailableWorldwide": false,
-      "testingInstructions": "1) Import this skill package. 2) Set the custom skill endpoint to https://edge-calsync.neonbutterfly.net/alexa with a trusted certificate. 3) Copy the generated skill ID into the Worker's ALEXA_ALLOWED_SKILL_IDS setting. 4) Set ENABLE_ALEXA=true and redeploy the Worker. 5) Test launch, list, and create utterances in the Alexa developer console.",
+      "testingInstructions": "1) Import this skill package. 2) Set the custom skill endpoint to https://edge-calsync.neonbutterfly.net/alexa with a trusted certificate. 3) Configure Alexa account linking with authorization URL https://calsync.neonbutterfly.net/alexa/account-linking/authorize, client ID calsync-alexa-household, scopes calendar:read and calendar:write, and implicit grant. 4) Save a household link code on the CalSync Alexa setup page. 5) Copy the generated skill ID into the Worker's ALEXA_ALLOWED_SKILL_IDS setting. 6) Set ENABLE_ALEXA=true and redeploy the Worker. 7) Test launch, next-up, list, create, cancel, and reschedule utterances in the Alexa developer console.",
       "category": "PRODUCTIVITY",
       "distributionCountries": [
         "US"

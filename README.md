@@ -104,11 +104,15 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - `GET /auth/microsoft/callback`
 - `GET /alexa/setup`
 - `POST /alexa/setup`
+- `POST /alexa/setup/account-linking`
+- `GET /alexa/account-linking/authorize`
+- `POST /alexa/account-linking/authorize`
 - `GET /alexa/simulator`
 - `POST /alexa/simulator`
 - `GET /api/info`
 - `GET /healthz`
 - `GET /api/readiness`
+- `POST /api/alexa/account-linking/validate`
 - `GET /api/appointments`
 - `GET /api/appointments/{appointment_id}`
 - `GET /api/availability`
@@ -230,6 +234,8 @@ Current auth shape:
 - the Worker verifies incoming Alexa web-service requests using the Amazon certificate and request-signature flow
 - the Worker also checks the configured Alexa skill ID allowlist in `ALEXA_ALLOWED_SKILL_IDS`
 - the voice route stays disabled until `ENABLE_ALEXA=true`
+- the setup flow now also supports first-household Alexa account linking through a saved link code plus a CalSync-hosted implicit-grant authorization page at `/alexa/account-linking/authorize`
+- the live Worker now checks that linked Alexa access token before handling signed voice requests when account linking is configured
 - public policy pages for the skill package now live at:
   - `https://calsync.neonbutterfly.net/privacy`
   - `https://calsync.neonbutterfly.net/terms`

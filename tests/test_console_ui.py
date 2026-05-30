@@ -1751,6 +1751,131 @@ def test_alexa_setup_page_saves_cloudflare_credentials(monkeypatch) -> None:
     }
 
 
+def test_alexa_setup_page_shows_account_linking_controls(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_alexa_account_linking_settings(link_code="Family123")
+
+    class FakeCloudflareWorkerConfigService:
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": True,
+                "credential_source": "product_vault",
+                "message": "Ready to configure the edge Worker from the product.",
+            }
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        FakeCloudflareWorkerConfigService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/alexa/setup")
+
+    assert response.status_code == 200
+    assert "Account linking" in response.text
+    assert "/alexa/account-linking/authorize" in response.text
+    assert "calsync-alexa-household" in response.text
+    assert "Save account linking setup" in response.text
+    assert "Link code saved" in response.text
+
+
+def test_alexa_setup_page_can_save_account_linking_settings(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+
+    class FakeCloudflareWorkerConfigService:
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": True,
+                "credential_source": "product_vault",
+                "message": "Ready to configure the edge Worker from the product.",
+            }
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        FakeCloudflareWorkerConfigService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/alexa/setup/account-linking",
+        data={
+            "link_code": "Family123",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Alexa account linking is ready." in response.text
+    service = OperatorSettingsService(settings=get_settings())
+    assert service.get_alexa_account_linking_settings()["link_code"] == "FAMILY123"
+
+
+def test_alexa_account_linking_authorize_redirects_with_access_token(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_alexa_account_linking_settings(link_code="Family123")
+    app = create_app()
+    client = TestClient(app)
+
+    authorize_response = client.post(
+        "/alexa/account-linking/authorize",
+        data={
+            "client_id": "calsync-alexa-household",
+            "redirect_uri": "https://pitangui.amazon.com/spa/skill/account-linking-status.html?vendorId=test",
+            "response_type": "token",
+            "state": "abc123",
+            "scope": "calendar:read calendar:write",
+            "link_code": "Family123",
+        },
+        follow_redirects=False,
+    )
+
+    assert authorize_response.status_code == 302
+    location = authorize_response.headers["location"]
+    assert location.startswith(
+        "https://pitangui.amazon.com/spa/skill/account-linking-status.html"
+    )
+    parsed = urlparse(location)
+    fragment = parse_qs(parsed.fragment)
+    assert fragment["state"] == ["abc123"]
+    assert fragment["token_type"] == ["Bearer"]
+    assert fragment["access_token"] == [
+        service.get_alexa_account_linking_settings()["access_token"]
+    ]
+
+
+def test_alexa_account_linking_validate_endpoint_reports_linked_status(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_alexa_account_linking_settings(link_code="Family123")
+    access_token = service.get_alexa_account_linking_settings()["access_token"]
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/alexa/account-linking/validate",
+        json={"access_token": access_token},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["data"] == {
+        "account_linking_configured": True,
+        "linked": True,
+    }
+
+
 def test_calendar_setup_page_can_run_write_test(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     service = OperatorSettingsService(settings=get_settings())

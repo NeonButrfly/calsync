@@ -147,8 +147,12 @@ Root experience:
 - `GET /auth/microsoft/callback`
 - `GET /alexa/setup`
 - `POST /alexa/setup`
+- `POST /alexa/setup/account-linking`
+- `GET /alexa/account-linking/authorize`
+- `POST /alexa/account-linking/authorize`
 - `GET /alexa/simulator`
 - `POST /alexa/simulator`
+- `POST /api/alexa/account-linking/validate`
 - `POST /appointments`
 - `GET /appointments/{appointment_id}/edit`
 - `POST /appointments/{appointment_id}/edit`
@@ -462,6 +466,7 @@ Current auth shape:
 - the Worker verifies incoming Alexa web-service requests using the Amazon certificate and request-signature flow
 - the Worker only accepts configured skill IDs from `ALEXA_ALLOWED_SKILL_IDS`
 - the route stays disabled until `ENABLE_ALEXA=true`
+- when account linking is configured, the Worker also checks the linked Alexa access token against the origin before it handles the voice request
 
 Current readiness support:
 
@@ -485,10 +490,16 @@ Current scope:
 Operator setup:
 
 1. Create or import the custom skill package from `workers/edge-calsync/alexa/skill-package`.
-2. After Alexa generates the real skill ID, set that ID in `ALEXA_ALLOWED_SKILL_IDS`.
-3. Set `ENABLE_ALEXA=true`.
-4. Redeploy the Worker.
-5. Confirm the public policy URLs are reachable:
+2. Configure Alexa account linking with:
+   - authorization URL: `https://calsync.neonbutterfly.net/alexa/account-linking/authorize`
+   - client ID: `calsync-alexa-household`
+   - scopes: `calendar:read`, `calendar:write`
+   - grant type: implicit
+3. Save a household link code on `GET /alexa/setup` so the authorization page can finish the Alexa link safely.
+4. After Alexa generates the real skill ID, set that ID in `ALEXA_ALLOWED_SKILL_IDS`.
+5. Set `ENABLE_ALEXA=true`.
+6. Redeploy the Worker.
+7. Confirm the public policy URLs are reachable:
    - `https://calsync.neonbutterfly.net/privacy`
    - `https://calsync.neonbutterfly.net/terms`
 

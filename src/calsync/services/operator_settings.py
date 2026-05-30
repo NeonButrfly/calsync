@@ -4,6 +4,7 @@ import base64
 import hashlib
 import json
 import re
+import secrets
 from datetime import datetime
 
 from cryptography.fernet import Fernet
@@ -111,6 +112,62 @@ class OperatorSettingsService:
             "saved": saved,
             "source": "product_vault" if saved else "defaults",
         }
+
+    def set_alexa_account_linking_settings(
+        self,
+        *,
+        link_code: str,
+        client_id: str = "calsync-alexa-household",
+        regenerate_access_token: bool = False,
+    ) -> None:
+        normalized_link_code = re.sub(r"[^A-Za-z0-9]+", "", link_code or "").upper()
+        normalized_client_id = str(client_id or "").strip() or "calsync-alexa-household"
+        if len(normalized_link_code) < 6:
+            raise ValueError("Alexa link code must be at least 6 letters or numbers.")
+
+        existing = self.get_alexa_account_linking_settings()
+        access_token = str(existing["access_token"] or "").strip()
+        if regenerate_access_token or not access_token:
+            access_token = secrets.token_urlsafe(32)
+
+        self.set_value("alexa_account_linking_client_id", normalized_client_id)
+        self.set_value("alexa_account_linking_link_code", normalized_link_code)
+        self.set_value("alexa_account_linking_access_token", access_token)
+
+    def get_alexa_account_linking_settings(self) -> dict[str, str | None]:
+        return {
+            "client_id": self.get_value("alexa_account_linking_client_id")
+            or "calsync-alexa-household",
+            "link_code": self.get_value("alexa_account_linking_link_code"),
+            "access_token": self.get_value("alexa_account_linking_access_token"),
+        }
+
+    def describe_alexa_account_linking_settings(self) -> dict[str, object]:
+        values = self.get_alexa_account_linking_settings()
+        configured = bool(values["link_code"] and values["access_token"])
+        return {
+            "client_id": str(values["client_id"] or "calsync-alexa-household"),
+            "configured": configured,
+            "link_code_saved": bool(values["link_code"]),
+            "access_token_ready": bool(values["access_token"]),
+            "authorization_url": "/alexa/account-linking/authorize",
+            "scopes": ["calendar:read", "calendar:write"],
+            "source": "product_vault" if configured else "defaults",
+        }
+
+    def validate_alexa_account_linking_code(self, link_code: str) -> bool:
+        stored = str(
+            self.get_alexa_account_linking_settings()["link_code"] or ""
+        ).strip()
+        candidate = re.sub(r"[^A-Za-z0-9]+", "", link_code or "").upper()
+        return bool(stored) and secrets.compare_digest(stored, candidate)
+
+    def validate_alexa_account_linking_access_token(self, access_token: str) -> bool:
+        stored = str(
+            self.get_alexa_account_linking_settings()["access_token"] or ""
+        ).strip()
+        candidate = str(access_token or "").strip()
+        return bool(stored) and bool(candidate) and secrets.compare_digest(stored, candidate)
 
     def set_public_booking_settings(
         self,

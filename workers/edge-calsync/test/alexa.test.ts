@@ -51,6 +51,28 @@ function buildAlexaRequest(
   });
 }
 
+function buildAccountLinkingValidationResponse(
+  options?: {
+    configured?: boolean;
+    linked?: boolean;
+  },
+): Response {
+  return new Response(
+    JSON.stringify({
+      data: {
+        account_linking_configured: options?.configured ?? false,
+        linked: options?.linked ?? false,
+      },
+    }),
+    {
+      status: 200,
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+      },
+    },
+  );
+}
+
 describe("alexa worker adapter", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -58,6 +80,12 @@ describe("alexa worker adapter", () => {
   });
 
   it("returns a welcome response for launch requests", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      expect(String(input)).toBe(
+        "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate",
+      );
+      return buildAccountLinkingValidationResponse();
+    });
     const request = buildAlexaRequest({
       session: {
         application: {
@@ -75,6 +103,7 @@ describe("alexa worker adapter", () => {
     await waitOnExecutionContext(ctx);
 
     expect(alexaVerifierMock).toHaveBeenCalledOnce();
+    expect(fetchSpy).toHaveBeenCalledOnce();
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       version: "1.0",
@@ -83,6 +112,47 @@ describe("alexa worker adapter", () => {
           text: expect.stringContaining("Welcome to CalSync"),
         },
         shouldEndSession: false,
+      },
+    });
+  });
+
+  it("returns a link account card when the origin says account linking is required", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      expect(String(input)).toBe(
+        "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate",
+      );
+      return buildAccountLinkingValidationResponse({
+        configured: true,
+        linked: false,
+      });
+    });
+    const request = buildAlexaRequest({
+      session: {
+        application: {
+          applicationId: "amzn1.ask.skill.test",
+        },
+      },
+      request: {
+        type: "LaunchRequest",
+        timestamp: new Date().toISOString(),
+      },
+    });
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, alexaEnv(), ctx);
+
+    await waitOnExecutionContext(ctx);
+
+    expect(alexaVerifierMock).toHaveBeenCalledOnce();
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      response: {
+        outputSpeech: {
+          text: expect.stringContaining("link your CalSync account"),
+        },
+        card: {
+          type: "LinkAccount",
+        },
       },
     });
   });
@@ -115,9 +185,14 @@ describe("alexa worker adapter", () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockImplementation(async (input, init) => {
-        expect(String(input)).toBe(
-          "https://calsync.neonbutterfly.net/api/appointments",
-        );
+        if (
+          String(input) ===
+          "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate"
+        ) {
+          return buildAccountLinkingValidationResponse();
+        }
+
+        expect(String(input)).toBe("https://calsync.neonbutterfly.net/api/appointments");
         const headers = init?.headers as Headers;
         expect(headers.get("X-CalSync-Channel")).toBe("alexa");
         const bodyText = String(init?.body);
@@ -168,7 +243,7 @@ describe("alexa worker adapter", () => {
     await waitOnExecutionContext(ctx);
 
     expect(alexaVerifierMock).toHaveBeenCalledOnce();
-    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       response: {
@@ -183,6 +258,13 @@ describe("alexa worker adapter", () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockImplementation(async (input, init) => {
+        if (
+          String(input) ===
+          "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate"
+        ) {
+          return buildAccountLinkingValidationResponse();
+        }
+
         expect(String(input)).toBe(
           "https://calsync.neonbutterfly.net/api/appointments?date_from=2026-06-02&date_to=2026-06-02",
         );
@@ -235,7 +317,7 @@ describe("alexa worker adapter", () => {
     await waitOnExecutionContext(ctx);
 
     expect(alexaVerifierMock).toHaveBeenCalledOnce();
-    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       response: {
@@ -250,6 +332,13 @@ describe("alexa worker adapter", () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockImplementation(async (input, init) => {
+        if (
+          String(input) ===
+          "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate"
+        ) {
+          return buildAccountLinkingValidationResponse();
+        }
+
         expect(String(input)).toBe(
           "https://calsync.neonbutterfly.net/api/appointments?date_from=2026-06-02&date_to=2026-07-02",
         );
@@ -307,7 +396,7 @@ describe("alexa worker adapter", () => {
     await waitOnExecutionContext(ctx);
 
     expect(alexaVerifierMock).toHaveBeenCalledOnce();
-    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       response: {
@@ -324,6 +413,13 @@ describe("alexa worker adapter", () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockImplementation(async (input, init) => {
+        if (
+          String(input) ===
+          "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate"
+        ) {
+          return buildAccountLinkingValidationResponse();
+        }
+
         expect(String(input)).toBe(
           "https://calsync.neonbutterfly.net/api/availability?date_from=2026-06-02&date_to=2026-06-02&duration_minutes=60&max_results=3",
         );
@@ -379,7 +475,7 @@ describe("alexa worker adapter", () => {
     await waitOnExecutionContext(ctx);
 
     expect(alexaVerifierMock).toHaveBeenCalledOnce();
-    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       response: {
@@ -397,6 +493,12 @@ describe("alexa worker adapter", () => {
       .spyOn(globalThis, "fetch")
       .mockImplementation(async (input, init) => {
         const url = String(input);
+        if (
+          url ===
+          "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate"
+        ) {
+          return buildAccountLinkingValidationResponse();
+        }
         if (
           url ===
           "https://calsync.neonbutterfly.net/api/appointments?date_from=2026-06-02&date_to=2026-06-02"
@@ -474,7 +576,7 @@ describe("alexa worker adapter", () => {
     await waitOnExecutionContext(ctx);
 
     expect(alexaVerifierMock).toHaveBeenCalledOnce();
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       response: {
@@ -490,6 +592,12 @@ describe("alexa worker adapter", () => {
       .spyOn(globalThis, "fetch")
       .mockImplementation(async (input, init) => {
         const url = String(input);
+        if (
+          url ===
+          "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate"
+        ) {
+          return buildAccountLinkingValidationResponse();
+        }
         if (
           url ===
           "https://calsync.neonbutterfly.net/api/appointments?date_from=2026-06-02&date_to=2026-06-02"
@@ -592,7 +700,7 @@ describe("alexa worker adapter", () => {
     await waitOnExecutionContext(ctx);
 
     expect(alexaVerifierMock).toHaveBeenCalledOnce();
-    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    expect(fetchSpy).toHaveBeenCalledTimes(4);
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       response: {
