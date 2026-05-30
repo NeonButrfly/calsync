@@ -864,11 +864,16 @@ def _build_calendar_setup_context(
     flash_message: str | None,
     error_message: str | None,
 ) -> dict[str, object]:
+    source_card = _describe_calendar_setup_source_card(
+        runtime_config=runtime_config,
+        legacy_recovery_hints=legacy_recovery_hints,
+    )
     return {
         "request": request,
         "apple_settings": apple_settings,
         "legacy_recovery_hints": legacy_recovery_hints,
         "runtime_config": runtime_config,
+        "source_card": source_card,
         "apple_accounts": runtime_service.list_accounts(),
         "calendar_catalog": runtime_service.list_calendars(),
         "flash_message": flash_message,
@@ -911,6 +916,27 @@ def _prefill_apple_settings_from_legacy_hints(
         "primary_calendar_name": str(selected_hint.get("calendar_name") or ""),
         "password_saved": False,
         "source": "legacy_recovery_hints",
+    }
+
+
+def _describe_calendar_setup_source_card(
+    *,
+    runtime_config: dict[str, object],
+    legacy_recovery_hints: dict[str, object],
+) -> dict[str, str]:
+    if bool(runtime_config.get("ready")):
+        return {
+            "label": str(runtime_config.get("source") or "").replace("_", " ").title(),
+            "detail": "Apple calendar setup is ready for the live scheduling brain.",
+        }
+    if str(legacy_recovery_hints.get("source") or "") != "missing":
+        return {
+            "label": "Recovered hint available",
+            "detail": "Legacy Apple backup hints are ready. Load the right calendar into setup and save a fresh app-specific password to reconnect.",
+        }
+    return {
+        "label": str(runtime_config.get("source") or "").replace("_", " ").title(),
+        "detail": "Apple calendar setup is still incomplete.",
     }
 
 
@@ -1371,15 +1397,15 @@ def calendar_setup_run_write_test(
     return _templates.TemplateResponse(
         request,
         "calendar_setup.html",
-        {
-            "request": request,
-            "apple_settings": operator_settings.describe_apple_calendar_settings(),
-            "runtime_config": runtime_config,
-            "apple_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": flash_message,
-            "error_message": error_message,
-        },
+        _build_calendar_setup_context(
+            request,
+            apple_settings=operator_settings.describe_apple_calendar_settings(),
+            legacy_recovery_hints=operator_settings.describe_legacy_apple_recovery_hints(),
+            runtime_service=runtime_service,
+            runtime_config=runtime_config,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
         status_code=200 if error_message is None else 400,
     )
 
@@ -3141,6 +3167,7 @@ def _build_connections_context(
     google_runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
     microsoft_runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
     apple_settings = operator_settings.describe_apple_calendar_settings()
+    legacy_apple_recovery_hints = operator_settings.describe_legacy_apple_recovery_hints()
     google_settings = operator_settings.describe_google_oauth_settings()
     microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
     apple_runtime = apple_runtime_service.resolve()
@@ -3192,7 +3219,11 @@ def _build_connections_context(
             "detail": (
                 "Apple credentials and a writable target are available."
                 if apple_runtime["ready"]
-                else "Save the household Apple connection to unlock the first live calendar path."
+                else (
+                    "Recovered Apple hints are ready. Open Apple setup, load the right calendar, and save a fresh app-specific password."
+                    if legacy_apple_recovery_hints.get("source") != "missing"
+                    else "Save the household Apple connection to unlock the first live calendar path."
+                )
             ),
         },
         {
@@ -3232,6 +3263,7 @@ def _build_connections_context(
     return {
         "request": request,
         "apple_settings": apple_settings,
+        "legacy_apple_recovery_hints": legacy_apple_recovery_hints,
         "apple_runtime": apple_runtime,
         "apple_accounts": apple_runtime_service.list_accounts(),
         "apple_calendar_catalog": apple_runtime_service.list_calendars(),

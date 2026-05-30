@@ -698,6 +698,19 @@ Expected behavior:
 - operators should be able to load either the recommended writable hint or another recovered calendar hint from the imported legacy data
 - loading recovered values into the form must not falsely mark Apple connected or ready before a real save succeeds
 
+## Apple Recovery Guidance Requirement
+
+- GitHub issue: `#78`
+- interpreted requirement: once legacy Apple hints exist, the shared readiness and Apple provider surfaces should point to the concrete reconnect step instead of still reading like a generic missing-provider state
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no Apple account is connected yet, GET /api/readiness should tell operators to open Apple setup, load a recovered Apple hint, and save a fresh app-specific password
+- `/` and `/connections` should reflect that more specific Apple reconnect guidance through their existing readiness surfaces
+- `/connections` should acknowledge that a recovered Apple hint is available inside the Apple provider summary
+- `/calendar/setup` should show a source-card state like recovered-hint availability instead of generic `Missing`
+- these guidance improvements must not falsely mark Apple connected or ready before a real save succeeds
+
 ## Alexa Save-Only Action Truthfulness Requirement
 
 - GitHub issue: `#74`

@@ -35,14 +35,8 @@
 
         <div class="sidebar-card">
           <p class="eyebrow">Current source</p>
-          <strong>{{ runtime_config.source.replace("_", " ").title() }}</strong>
-          <span>
-            {% if runtime_config.ready %}
-            Apple calendar setup is ready for the live scheduling brain.
-            {% else %}
-            Apple calendar setup is still incomplete.
-            {% endif %}
-          </span>
+          <strong>{{ source_card.label }}</strong>
+          <span>{{ source_card.detail }}</span>
         </div>
       </aside>
 

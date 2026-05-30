@@ -133,6 +133,40 @@ def test_readiness_service_points_to_restore_when_non_provider_settings_exist() 
     )
 
 
+def test_readiness_service_points_to_apple_reconnect_when_legacy_hints_exist() -> None:
+    settings = _settings()
+    operator_settings = OperatorSettingsService(settings=settings)
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "recommended_calendar_name": "Calendar",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Calendar",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+
+    readiness = ReadinessService(settings=settings).build()
+
+    assert readiness["origin"]["apple_ready"] is False
+    assert (
+        readiness["next_action"]
+        == "Open Apple setup, load a recovered Apple calendar hint, and save a fresh app-specific password so CalSync can reconnect the real household calendar."
+    )
+
+
 def test_appointment_service_uses_matching_apple_account_for_selected_calendar(
     monkeypatch,
 ) -> None:

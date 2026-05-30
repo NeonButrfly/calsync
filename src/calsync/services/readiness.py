@@ -90,6 +90,7 @@ class ReadinessService:
 
             service = OperatorSettingsService(settings=self.settings)
             apple = service.describe_apple_calendar_settings()
+            legacy_apple_recovery = service.describe_legacy_apple_recovery_hints()
             google = service.describe_google_oauth_settings()
             microsoft = service.describe_microsoft_oauth_settings()
             booking = service.describe_public_booking_settings()
@@ -102,6 +103,7 @@ class ReadinessService:
             return {
                 "has_saved_provider_state": False,
                 "has_saved_non_provider_state": False,
+                "has_legacy_apple_recovery_hints": False,
             }
 
         has_saved_provider_state = any(
@@ -125,6 +127,9 @@ class ReadinessService:
         return {
             "has_saved_provider_state": bool(has_saved_provider_state),
             "has_saved_non_provider_state": bool(has_saved_non_provider_state),
+            "has_legacy_apple_recovery_hints": bool(
+                legacy_apple_recovery.get("source") != "missing"
+            ),
         }
 
     def _fetch_edge_status(self) -> dict[str, Any]:
@@ -168,6 +173,8 @@ class ReadinessService:
         operator_settings_footprint: dict[str, bool],
     ) -> str:
         if not origin["any_calendar_ready"]:
+            if operator_settings_footprint.get("has_legacy_apple_recovery_hints", False):
+                return "Open Apple setup, load a recovered Apple calendar hint, and save a fresh app-specific password so CalSync can reconnect the real household calendar."
             if operator_settings_footprint.get(
                 "has_saved_non_provider_state", False
             ) and not operator_settings_footprint.get(
