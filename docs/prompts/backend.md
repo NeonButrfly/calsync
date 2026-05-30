@@ -225,6 +225,19 @@ Expected behavior:
 - `/book` should only show open slots that fall inside the saved public booking weekdays and daily time window
 - the internal root workspace availability finder can keep its broader shared defaults; this slice only tightens the invitee-facing booking surface
 
+## Multiple Public Booking Types Requirement
+
+- GitHub issue: `#58`
+- interpreted requirement: operators should be able to publish more than one public booking flow, each with its own shareable link and invitee-facing defaults, so CalSync feels like a real scheduling product instead of one global booking form
+
+Expected behavior:
+
+- `/booking/setup` should show the currently configured booking types
+- operators should be able to create a named booking type with a stable slug
+- each booking type should have a shareable public URL like `/book/school-intake`
+- each booking type should carry its own public title, description, duration, search window, success message, writable target, and booking weekday/hour rules
+- `/book` can continue to render the default booking type, but `/book/{slug}` should render the selected booking type directly
+
 Expected API/edge support:
 
 - `GET /api/appointments/{appointment_id}` should return the richer appointment detail payload

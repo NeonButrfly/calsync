@@ -18,7 +18,7 @@
         </div>
 
         <nav class="sidebar-nav" aria-label="Booking links">
-          <a class="sidebar-nav__item sidebar-nav__item--active" href="/book">Book time</a>
+          <a class="sidebar-nav__item sidebar-nav__item--active" href="{{ public_booking_url }}">Book time</a>
           <a class="sidebar-nav__item" href="/">Schedule workspace</a>
           <a class="sidebar-nav__item" href="/connections">Connections</a>
           <a class="sidebar-nav__item" href="/privacy">Privacy policy</a>
@@ -95,7 +95,7 @@
               </div>
             </div>
 
-            <form class="form-grid" method="get" action="/book">
+            <form class="form-grid" method="get" action="{{ public_booking_url }}">
               <label>
                 <span>From</span>
                 <input name="availability_date_from" type="date" value="{{ availability_form_values.date_from }}" required />
@@ -155,7 +155,7 @@
               </div>
             </div>
 
-            <form class="form-grid" id="public-booking-form" method="post" action="/book">
+            <form class="form-grid" id="public-booking-form" method="post" action="{{ public_booking_url }}">
               <input type="hidden" name="availability_date_from" value="{{ availability_form_values.date_from }}" />
               <input type="hidden" name="availability_date_to" value="{{ availability_form_values.date_to }}" />
               <input type="hidden" name="availability_duration_minutes" value="{{ availability_form_values.duration_minutes }}" />

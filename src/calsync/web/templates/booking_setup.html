@@ -69,6 +69,7 @@
                 </div>
               </div>
               <form class="form-grid" method="post" action="/booking/setup">
+                <input name="booking_slug" type="hidden" value="{{ booking_settings.slug }}" />
                 <label>
                   <span>Public page title</span>
                   <input name="page_title" type="text" value="{{ booking_settings.page_title }}" required />
@@ -121,15 +122,60 @@
                     {% endfor %}
                   </select>
                 </label>
+                <label class="checkbox-row">
+                  <input name="set_as_default" type="checkbox" value="true"{% if booking_settings.is_default %} checked{% endif %} />
+                  <span>Use this as the default `/book` link</span>
+                </label>
                 <div class="action-row">
                   <button type="submit">Save booking settings</button>
-                  <a class="button-link button-link--secondary" href="/book">Open public booking</a>
+                  <a class="button-link button-link--secondary" href="{{ public_booking_url }}">Open public booking</a>
                 </div>
               </form>
             </article>
           </div>
 
           <div class="workspace-column workspace-column--stack">
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Booking types</p>
+                  <h3>Shareable appointment links</h3>
+                </div>
+              </div>
+              <div class="detail-stack">
+                {% for item in booking_types %}
+                <article class="detail-card">
+                  <p class="eyebrow">{% if item.is_default %}Default type{% else %}Booking type{% endif %}</p>
+                  <strong>{{ item.page_title }}</strong>
+                  <span>{{ item.public_url }} · {{ item.weekday_summary }} · {{ item.time_window_summary }}</span>
+                  <div class="action-row">
+                    <a class="button-link button-link--secondary" href="/booking/setup?booking_slug={{ item.slug }}">Edit</a>
+                    <a class="button-link button-link--secondary" href="{{ item.public_url }}">Open</a>
+                  </div>
+                </article>
+                {% else %}
+                <div class="empty-state">
+                  <h4>No extra booking types yet</h4>
+                  <p>Create separate public links for different appointment flows.</p>
+                </div>
+                {% endfor %}
+              </div>
+              <form class="form-grid" method="post" action="/booking/setup/types">
+                <input name="booking_slug" type="hidden" value="{{ booking_settings.slug }}" />
+                <label>
+                  <span>New booking type title</span>
+                  <input name="new_page_title" type="text" placeholder="School intake call" required />
+                </label>
+                <label>
+                  <span>Slug</span>
+                  <input name="new_booking_slug" type="text" placeholder="school-intake" />
+                </label>
+                <div class="action-row">
+                  <button type="submit">Create booking type</button>
+                </div>
+              </form>
+            </article>
+
             <article class="panel">
               <div class="panel-head">
                 <div>

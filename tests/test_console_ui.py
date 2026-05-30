@@ -196,6 +196,93 @@ def test_booking_page_respects_saved_public_availability_rules(monkeypatch) -> N
     assert "12:00 PM - 1:00 PM" not in response.text
 
 
+def test_booking_setup_and_public_routes_support_multiple_booking_types(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_public_booking_settings(
+        page_title="Book time with Kayra",
+        page_description="Choose a calm household scheduling slot.",
+        duration_minutes=45,
+        search_window_days=28,
+        success_message="You're booked.",
+        target_calendar_url="https://caldav.icloud.com/calendar/",
+        booking_weekdays=[0, 1, 2, 3, 4],
+        day_start_time="09:00",
+        day_end_time="15:00",
+    )
+    operator_settings.upsert_public_booking_type(
+        slug="school-intake",
+        page_title="School intake call",
+        page_description="Claim a school planning slot.",
+        duration_minutes=30,
+        search_window_days=21,
+        success_message="School intake booked.",
+        target_calendar_url="https://caldav.icloud.com/school/",
+        booking_weekdays=[0, 2, 4],
+        day_start_time="10:00",
+        day_end_time="14:00",
+        set_as_default=False,
+    )
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    setup_response = client.get("/booking/setup?booking_slug=school-intake")
+
+    assert setup_response.status_code == 200
+    assert "School intake call" in setup_response.text
+    assert "/book/school-intake" in setup_response.text
+
+    booking_response = client.get(
+        "/book/school-intake?availability_date_from=2026-06-01&availability_date_to=2026-06-02&availability_duration_minutes=30"
+    )
+
+    assert booking_response.status_code == 200
+    assert "School intake call" in booking_response.text
+    assert "Claim a school planning slot." in booking_response.text
+    assert 'value="30"' in booking_response.text
+    assert 'action="/book/school-intake"' in booking_response.text
+
+
+def test_booking_setup_can_create_a_new_booking_type_from_current_defaults(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_public_booking_settings(
+        page_title="Book time with Kayra",
+        page_description="Choose a calm household scheduling slot.",
+        duration_minutes=45,
+        search_window_days=28,
+        success_message="You're booked.",
+        target_calendar_url="https://caldav.icloud.com/calendar/",
+        booking_weekdays=[0, 1, 2, 3, 4],
+        day_start_time="09:00",
+        day_end_time="15:00",
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/booking/setup/types",
+        data={
+            "new_page_title": "Therapy intake",
+            "new_booking_slug": "therapy-intake",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Public booking type saved securely." in response.text
+    assert "Therapy intake" in response.text
+    assert "/book/therapy-intake" in response.text
+
+
 def test_connections_page_renders_provider_summary(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     service = OperatorSettingsService(settings=get_settings())

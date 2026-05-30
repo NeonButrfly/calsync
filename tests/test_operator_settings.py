@@ -552,3 +552,68 @@ def test_operator_settings_can_store_public_booking_settings() -> None:
     assert described["booking_weekdays"] == [0, 1, 2, 3, 4]
     assert described["day_start_time"] == "09:00"
     assert described["day_end_time"] == "15:00"
+
+
+def test_operator_settings_can_store_multiple_public_booking_types() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.set_public_booking_settings(
+        page_title="Book time with Kayra",
+        page_description="Choose an open time for a household appointment.",
+        duration_minutes=45,
+        search_window_days=28,
+        success_message="You're booked.",
+        target_calendar_url="https://caldav.icloud.com/family/",
+        booking_weekdays=[0, 1, 2, 3, 4],
+        day_start_time="09:00",
+        day_end_time="15:00",
+    )
+    service.upsert_public_booking_type(
+        slug="school-intake",
+        page_title="School intake call",
+        page_description="Claim a school planning slot.",
+        duration_minutes=30,
+        search_window_days=21,
+        success_message="School intake booked.",
+        target_calendar_url="https://caldav.icloud.com/school/",
+        booking_weekdays=[0, 2, 4],
+        day_start_time="10:00",
+        day_end_time="14:00",
+        set_as_default=False,
+    )
+    service.upsert_public_booking_type(
+        slug="family-follow-up",
+        page_title="Family follow-up",
+        page_description="Book a longer family follow-up.",
+        duration_minutes=60,
+        search_window_days=14,
+        success_message="Family follow-up booked.",
+        target_calendar_url="https://caldav.icloud.com/family/",
+        booking_weekdays=[1, 3],
+        day_start_time="11:00",
+        day_end_time="16:00",
+        set_as_default=True,
+    )
+
+    booking_types = service.describe_public_booking_types()
+
+    assert [item["slug"] for item in booking_types] == [
+        "family-follow-up",
+        "school-intake",
+    ]
+    assert booking_types[0]["is_default"] is True
+    assert booking_types[0]["public_url"] == "/book/family-follow-up"
+    assert booking_types[1]["weekday_summary"] == "Monday, Wednesday, Friday"
+    assert booking_types[1]["time_window_summary"] == "10:00 AM to 2:00 PM"
+
+    default_settings = service.describe_public_booking_settings()
+    follow_up_settings = service.describe_public_booking_settings(
+        slug="family-follow-up"
+    )
+    school_settings = service.describe_public_booking_settings(slug="school-intake")
+
+    assert default_settings["slug"] == "family-follow-up"
+    assert follow_up_settings["page_title"] == "Family follow-up"
+    assert school_settings["page_title"] == "School intake call"
+    assert school_settings["duration_minutes"] == 30

@@ -83,9 +83,46 @@ def public_booking_page(
     availability_date_to: str | None = None,
     availability_duration_minutes: int | None = None,
 ):
+    return _render_public_booking_page(
+        request,
+        booking_slug=None,
+        availability_date_from=availability_date_from,
+        availability_date_to=availability_date_to,
+        availability_duration_minutes=availability_duration_minutes,
+    )
+
+
+@router.get("/book/{booking_slug}")
+def public_booking_type_page(
+    request: Request,
+    booking_slug: str,
+    availability_date_from: str | None = None,
+    availability_date_to: str | None = None,
+    availability_duration_minutes: int | None = None,
+):
+    return _render_public_booking_page(
+        request,
+        booking_slug=booking_slug,
+        availability_date_from=availability_date_from,
+        availability_date_to=availability_date_to,
+        availability_duration_minutes=availability_duration_minutes,
+    )
+
+
+def _render_public_booking_page(
+    request: Request,
+    *,
+    booking_slug: str | None,
+    availability_date_from: str | None,
+    availability_date_to: str | None,
+    availability_duration_minutes: int | None,
+):
     service = AppointmentService()
     operator_settings = OperatorSettingsService()
-    booking_settings = operator_settings.describe_public_booking_settings()
+    booking_settings = _load_public_booking_settings(
+        operator_settings,
+        booking_slug=booking_slug,
+    )
     return _templates.TemplateResponse(
         request,
         "booking.html",
@@ -116,9 +153,66 @@ def public_booking_submit(
     availability_date_to: str = Form(""),
     availability_duration_minutes: int = Form(60),
 ):
+    return _handle_public_booking_submit(
+        request,
+        booking_slug=None,
+        title=title,
+        attendees_text=attendees_text,
+        location=location,
+        notes=notes,
+        slot_value=slot_value,
+        availability_date_from=availability_date_from,
+        availability_date_to=availability_date_to,
+        availability_duration_minutes=availability_duration_minutes,
+    )
+
+
+@router.post("/book/{booking_slug}")
+def public_booking_type_submit(
+    request: Request,
+    booking_slug: str,
+    title: str = Form(...),
+    attendees_text: str = Form(""),
+    location: str = Form(""),
+    notes: str = Form(""),
+    slot_value: str = Form(""),
+    availability_date_from: str = Form(""),
+    availability_date_to: str = Form(""),
+    availability_duration_minutes: int = Form(60),
+):
+    return _handle_public_booking_submit(
+        request,
+        booking_slug=booking_slug,
+        title=title,
+        attendees_text=attendees_text,
+        location=location,
+        notes=notes,
+        slot_value=slot_value,
+        availability_date_from=availability_date_from,
+        availability_date_to=availability_date_to,
+        availability_duration_minutes=availability_duration_minutes,
+    )
+
+
+def _handle_public_booking_submit(
+    request: Request,
+    *,
+    booking_slug: str | None,
+    title: str,
+    attendees_text: str,
+    location: str,
+    notes: str,
+    slot_value: str,
+    availability_date_from: str,
+    availability_date_to: str,
+    availability_duration_minutes: int,
+):
     service = AppointmentService()
     operator_settings = OperatorSettingsService()
-    booking_settings = operator_settings.describe_public_booking_settings()
+    booking_settings = _load_public_booking_settings(
+        operator_settings,
+        booking_slug=booking_slug,
+    )
     booking_form_values = {
         "title": title,
         "attendees_text": attendees_text,
@@ -211,9 +305,12 @@ def public_booking_submit(
 
 
 @router.get("/booking/setup")
-def booking_setup_page(request: Request):
+def booking_setup_page(request: Request, booking_slug: str | None = None):
     operator_settings = OperatorSettingsService()
-    booking_settings = operator_settings.describe_public_booking_settings()
+    booking_settings = _load_public_booking_settings(
+        operator_settings,
+        booking_slug=booking_slug,
+    )
     service = AppointmentService()
     return _templates.TemplateResponse(
         request,
@@ -228,9 +325,10 @@ def booking_setup_page(request: Request):
                 )
                 or None,
             ),
+            "booking_types": operator_settings.describe_public_booking_types(),
             "flash_message": None,
             "error_message": None,
-            "public_booking_url": "/book",
+            "public_booking_url": str(booking_settings.get("public_url") or "/book"),
         },
     )
 
@@ -238,6 +336,7 @@ def booking_setup_page(request: Request):
 @router.post("/booking/setup")
 def booking_setup_update(
     request: Request,
+    booking_slug: str = Form(""),
     page_title: str = Form(""),
     page_description: str = Form(""),
     duration_minutes: int = Form(60),
@@ -247,27 +346,46 @@ def booking_setup_update(
     booking_weekdays: list[str] = Form([]),
     day_start_time: str = Form("08:00"),
     day_end_time: str = Form("18:00"),
+    set_as_default: str = Form(""),
 ):
     operator_settings = OperatorSettingsService()
     service = AppointmentService()
     try:
-        operator_settings.set_public_booking_settings(
-            page_title=page_title,
-            page_description=page_description,
-            duration_minutes=duration_minutes,
-            search_window_days=search_window_days,
-            success_message=success_message,
-            target_calendar_url=target_calendar_url,
-            booking_weekdays=[int(item) for item in booking_weekdays],
-            day_start_time=day_start_time,
-            day_end_time=day_end_time,
-        )
+        if booking_slug.strip():
+            operator_settings.upsert_public_booking_type(
+                slug=booking_slug,
+                page_title=page_title,
+                page_description=page_description,
+                duration_minutes=duration_minutes,
+                search_window_days=search_window_days,
+                success_message=success_message,
+                target_calendar_url=target_calendar_url,
+                booking_weekdays=[int(item) for item in booking_weekdays],
+                day_start_time=day_start_time,
+                day_end_time=day_end_time,
+                set_as_default=bool(set_as_default),
+            )
+        else:
+            operator_settings.set_public_booking_settings(
+                page_title=page_title,
+                page_description=page_description,
+                duration_minutes=duration_minutes,
+                search_window_days=search_window_days,
+                success_message=success_message,
+                target_calendar_url=target_calendar_url,
+                booking_weekdays=[int(item) for item in booking_weekdays],
+                day_start_time=day_start_time,
+                day_end_time=day_end_time,
+            )
         flash_message = "Public booking settings saved securely."
         error_message = None
     except (TypeError, ValueError) as exc:
         flash_message = None
         error_message = str(exc)
-    booking_settings = operator_settings.describe_public_booking_settings()
+    booking_settings = _load_public_booking_settings(
+        operator_settings,
+        booking_slug=booking_slug or None,
+    )
     return _templates.TemplateResponse(
         request,
         "booking_setup.html",
@@ -281,9 +399,73 @@ def booking_setup_update(
                 )
                 or None,
             ),
+            "booking_types": operator_settings.describe_public_booking_types(),
             "flash_message": flash_message,
             "error_message": error_message,
-            "public_booking_url": "/book",
+            "public_booking_url": str(booking_settings.get("public_url") or "/book"),
+        },
+        status_code=200 if error_message is None else 400,
+    )
+
+
+@router.post("/booking/setup/types")
+def booking_type_create(
+    request: Request,
+    booking_slug: str = Form(""),
+    new_page_title: str = Form(""),
+    new_booking_slug: str = Form(""),
+):
+    operator_settings = OperatorSettingsService()
+    service = AppointmentService()
+    current_settings = _load_public_booking_settings(
+        operator_settings,
+        booking_slug=booking_slug or None,
+    )
+    requested_slug = new_booking_slug.strip() or new_page_title.strip()
+    try:
+        operator_settings.upsert_public_booking_type(
+            slug=requested_slug,
+            page_title=new_page_title.strip() or str(current_settings["page_title"]),
+            page_description=str(current_settings["page_description"]),
+            duration_minutes=int(current_settings["duration_minutes"]),
+            search_window_days=int(current_settings["search_window_days"]),
+            success_message=str(current_settings["success_message"]),
+            target_calendar_url=str(current_settings["target_calendar_url"]),
+            booking_weekdays=[
+                int(item) for item in current_settings.get("booking_weekdays", [])
+            ],
+            day_start_time=str(current_settings["day_start_time"]),
+            day_end_time=str(current_settings["day_end_time"]),
+            set_as_default=False,
+        )
+        created_settings = _load_public_booking_settings(
+            operator_settings,
+            booking_slug=requested_slug,
+        )
+        flash_message = "Public booking type saved securely."
+        error_message = None
+    except (TypeError, ValueError) as exc:
+        created_settings = current_settings
+        flash_message = None
+        error_message = str(exc)
+
+    return _templates.TemplateResponse(
+        request,
+        "booking_setup.html",
+        {
+            "request": request,
+            "booking_settings": created_settings,
+            "calendar_options": _calendar_options(
+                service,
+                selected_calendar_url=str(
+                    created_settings.get("target_calendar_url") or ""
+                )
+                or None,
+            ),
+            "booking_types": operator_settings.describe_public_booking_types(),
+            "flash_message": flash_message,
+            "error_message": error_message,
+            "public_booking_url": str(created_settings.get("public_url") or "/book"),
         },
         status_code=200 if error_message is None else 400,
     )
@@ -1996,11 +2178,29 @@ def _build_booking_context(
         "booking_confirmation": booking_confirmation,
         "booking_form_values": booking_form_values,
         "booking_settings": booking_settings,
+        "public_booking_url": str(booking_settings.get("public_url") or "/book"),
         "availability_form_values": form_values,
         "availability_results": _serialize_booking_slots(availability_results),
         "calendar_target": target,
         "calendar_ready": target is not None,
     }
+
+
+def _load_public_booking_settings(
+    operator_settings: OperatorSettingsService,
+    *,
+    booking_slug: str | None,
+) -> dict[str, object]:
+    normalized_slug = str(booking_slug or "").strip()
+    if normalized_slug:
+        available_slugs = {
+            str(item["slug"])
+            for item in operator_settings.describe_public_booking_types()
+        }
+        if normalized_slug not in available_slugs:
+            raise HTTPException(status_code=404, detail="Booking type not found.")
+        return operator_settings.describe_public_booking_settings(slug=normalized_slug)
+    return operator_settings.describe_public_booking_settings()
 
 
 def _build_schedule_board(
