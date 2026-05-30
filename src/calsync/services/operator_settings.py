@@ -64,6 +64,79 @@ class OperatorSettingsService:
                 session.delete(record)
                 session.commit()
 
+    def set_public_booking_settings(
+        self,
+        *,
+        page_title: str,
+        page_description: str,
+        duration_minutes: int,
+        search_window_days: int,
+        success_message: str,
+        target_calendar_url: str,
+    ) -> None:
+        normalized_title = page_title.strip()
+        normalized_description = page_description.strip()
+        normalized_success = success_message.strip()
+        normalized_target = target_calendar_url.strip()
+        if not normalized_title:
+            raise ValueError("Public booking title is required.")
+        if not normalized_description:
+            raise ValueError("Public booking description is required.")
+        if not normalized_success:
+            raise ValueError("Public booking success message is required.")
+        if duration_minutes < 15:
+            raise ValueError("Public booking duration must be at least 15 minutes.")
+        if duration_minutes % 15 != 0:
+            raise ValueError("Public booking duration must use 15-minute increments.")
+        if search_window_days < 7:
+            raise ValueError("Public booking search window must be at least 7 days.")
+
+        self.set_value("public_booking_page_title", normalized_title)
+        self.set_value("public_booking_page_description", normalized_description)
+        self.set_value("public_booking_duration_minutes", str(duration_minutes))
+        self.set_value("public_booking_search_window_days", str(search_window_days))
+        self.set_value("public_booking_success_message", normalized_success)
+        if normalized_target:
+            self.set_value("public_booking_target_calendar_url", normalized_target)
+        else:
+            self.delete_value("public_booking_target_calendar_url")
+
+    def get_public_booking_settings(self) -> dict[str, object]:
+        duration_value = self.get_value("public_booking_duration_minutes")
+        search_window_value = self.get_value("public_booking_search_window_days")
+        return {
+            "page_title": self.get_value("public_booking_page_title"),
+            "page_description": self.get_value("public_booking_page_description"),
+            "duration_minutes": int(duration_value) if duration_value else 60,
+            "search_window_days": int(search_window_value) if search_window_value else 7,
+            "success_message": self.get_value("public_booking_success_message"),
+            "target_calendar_url": self.get_value("public_booking_target_calendar_url"),
+        }
+
+    def describe_public_booking_settings(self) -> dict[str, object]:
+        values = self.get_public_booking_settings()
+        return {
+            "page_title": str(values["page_title"] or "Book time with CalSync"),
+            "page_description": str(
+                values["page_description"]
+                or "Claim an open slot from the live scheduling brain and let CalSync write the appointment directly into the connected calendar."
+            ),
+            "duration_minutes": int(values["duration_minutes"] or 60),
+            "search_window_days": int(values["search_window_days"] or 7),
+            "success_message": str(values["success_message"] or "Booking confirmed."),
+            "target_calendar_url": str(values["target_calendar_url"] or ""),
+            "source": "product_vault"
+            if any(
+                [
+                    values["page_title"],
+                    values["page_description"],
+                    values["success_message"],
+                    values["target_calendar_url"],
+                ]
+            )
+            else "defaults",
+        }
+
     def set_cloudflare_worker_credentials(
         self,
         *,

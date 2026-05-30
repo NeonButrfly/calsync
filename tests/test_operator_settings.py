@@ -514,3 +514,32 @@ def test_operator_settings_can_store_multiple_microsoft_accounts() -> None:
             ],
         },
     ]
+
+
+def test_operator_settings_can_store_public_booking_settings() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+
+    service.set_public_booking_settings(
+        page_title="Book time with Kayra",
+        page_description="Choose an open time for a household appointment.",
+        duration_minutes=45,
+        search_window_days=28,
+        success_message="You're booked.",
+        target_calendar_url="https://caldav.icloud.com/family/",
+    )
+
+    assert service.get_public_booking_settings() == {
+        "page_title": "Book time with Kayra",
+        "page_description": "Choose an open time for a household appointment.",
+        "duration_minutes": 45,
+        "search_window_days": 28,
+        "success_message": "You're booked.",
+        "target_calendar_url": "https://caldav.icloud.com/family/",
+    }
+
+    described = service.describe_public_booking_settings()
+    assert described["page_title"] == "Book time with Kayra"
+    assert described["duration_minutes"] == 45
+    assert described["search_window_days"] == 28
+    assert described["target_calendar_url"] == "https://caldav.icloud.com/family/"

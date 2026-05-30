@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CalSync Booking Setup</title>
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">CalSync</p>
+          <h1>Public booking that feels like a real product</h1>
+          <p>
+            Configure the invitee-facing booking page inside CalSync so the
+            shared scheduling brain has a polished public surface.
+          </p>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Workspace sections">
+          <a class="sidebar-nav__item" href="/">Schedule workspace</a>
+          <a class="sidebar-nav__item" href="/connections">Connections</a>
+          <a class="sidebar-nav__item sidebar-nav__item--active" href="/booking/setup">Booking setup</a>
+          <a class="sidebar-nav__item" href="/book">Public booking</a>
+          <a class="sidebar-nav__item" href="/calendar/setup">Apple setup</a>
+          <a class="sidebar-nav__item" href="/google/setup">Google setup</a>
+          <a class="sidebar-nav__item" href="/microsoft/setup">Microsoft setup</a>
+          <a class="sidebar-nav__item" href="/alexa/setup">Alexa setup</a>
+          <a class="sidebar-nav__item" href="/alexa/simulator">Alexa simulator</a>
+          <a class="sidebar-nav__item" href="/privacy">Privacy policy</a>
+          <a class="sidebar-nav__item" href="/terms">Terms of use</a>
+        </nav>
+
+        <div class="sidebar-card">
+          <p class="eyebrow">Public URL</p>
+          <strong>{{ public_booking_url }}</strong>
+          <span>Share this invitee-facing link after the booking surface looks right.</span>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <section class="hero panel hero-panel">
+          <div>
+            <p class="eyebrow">Booking setup</p>
+            <h2>Control the public booking experience from inside CalSync</h2>
+            <p class="hero-copy">
+              This page configures the same public booking flow that writes into
+              the connected scheduling brain.
+            </p>
+          </div>
+        </section>
+
+        {% if flash_message %}
+        <section class="flash flash--success">{{ flash_message }}</section>
+        {% endif %}
+
+        {% if error_message %}
+        <section class="flash flash--error">{{ error_message }}</section>
+        {% endif %}
+
+        <section class="workspace-grid">
+          <div class="workspace-column">
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">Invitee page</p>
+                  <h3>Public booking settings</h3>
+                </div>
+              </div>
+              <form class="form-grid" method="post" action="/booking/setup">
+                <label>
+                  <span>Public page title</span>
+                  <input name="page_title" type="text" value="{{ booking_settings.page_title }}" required />
+                </label>
+                <label>
+                  <span>Public page description</span>
+                  <textarea name="page_description" rows="4" required>{{ booking_settings.page_description }}</textarea>
+                </label>
+                <label>
+                  <span>Default duration minutes</span>
+                  <input name="duration_minutes" type="number" min="15" step="15" value="{{ booking_settings.duration_minutes }}" required />
+                </label>
+                <label>
+                  <span>Search window days</span>
+                  <input name="search_window_days" type="number" min="7" step="1" value="{{ booking_settings.search_window_days }}" required />
+                </label>
+                <label>
+                  <span>Success message</span>
+                  <input name="success_message" type="text" value="{{ booking_settings.success_message }}" required />
+                </label>
+                <label>
+                  <span>Booking target</span>
+                  <select name="target_calendar_url">
+                    {% for option in calendar_options %}
+                    <option value="{{ option.value }}"{% if option.is_selected %} selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <div class="action-row">
+                  <button type="submit">Save booking settings</button>
+                  <a class="button-link button-link--secondary" href="/book">Open public booking</a>
+                </div>
+              </form>
+            </article>
+          </div>
+
+          <div class="workspace-column workspace-column--stack">
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">What changes</p>
+                  <h3>Invitee-facing defaults</h3>
+                </div>
+              </div>
+              <div class="detail-grid">
+                <article class="detail-card">
+                  <p class="eyebrow">Duration</p>
+                  <strong>{{ booking_settings.duration_minutes }} minutes</strong>
+                  <span>Used as the default open-time search length.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Search window</p>
+                  <strong>{{ booking_settings.search_window_days }} days</strong>
+                  <span>Controls how far forward the invitee page looks for openings.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Target behavior</p>
+                  <strong>Selected writable target</strong>
+                  <span>The public page writes new appointments into the chosen connected calendar target.</span>
+                </article>
+                <article class="detail-card">
+                  <p class="eyebrow">Success copy</p>
+                  <strong>{{ booking_settings.success_message }}</strong>
+                  <span>Shown immediately after the invitee claims an open slot.</span>
+                </article>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

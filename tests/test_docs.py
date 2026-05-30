@@ -23,6 +23,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#53" in readme_content
     assert "#54" in readme_content
     assert "#55" in readme_content
+    assert "#56" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -74,6 +75,9 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "stronger connections control center" in readme_content
     assert "planner-style scheduling board" in readme_content
     assert "public booking page at `/book`" in readme_content
+    assert "booking setup page at `/booking/setup`" in readme_content
+    assert "get /booking/setup" in readme_content
+    assert "public booking flow is now configurable" in readme_content
     assert "get /book" in readme_content
     assert "invitee claim an open time" in readme_content
     assert "day, week, and month planning states" in readme_content
@@ -110,6 +114,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#53" in ops_content
     assert "#54" in ops_content
     assert "#55" in ops_content
+    assert "#56" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -163,6 +168,9 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "direct google and microsoft refresh/disconnect actions from `/connections`" in ops_content
     assert "planner-style day/week/month board at `/`" in ops_content
     assert "first public booking page at `/book`" in ops_content
+    assert "in-product booking setup page at `/booking/setup`" in ops_content
+    assert "get /booking/setup" in ops_content
+    assert "invitee-facing copy, default duration, search horizon, success message, and chosen writable target" in ops_content
     assert "get /book" in ops_content
     assert "searches open time and creates a real appointment" in ops_content
     assert "distinct day, week, and month planning states" in ops_content
@@ -202,6 +210,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#53" in prompt_content
     assert "#54" in prompt_content
     assert "#55" in prompt_content
+    assert "#56" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -236,6 +245,9 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "connections provider control center requirement" in prompt_content
     assert "planner-style schedule board requirement" in prompt_content
     assert "public booking page requirement" in prompt_content
+    assert "in-product booking setup requirement" in prompt_content
+    assert "`get /booking/setup` should render an operator-facing booking setup page" in prompt_content
+    assert "booking settings should be stored securely in the product vault" in prompt_content
     assert "`get /book` should render a public booking page" in prompt_content
     assert "create a real appointment on the default writable connected calendar target" in prompt_content
     assert "get /connections" in prompt_content

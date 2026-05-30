@@ -199,6 +199,19 @@ Expected behavior:
 - the booking request should create a real appointment on the default writable connected calendar target
 - the booking page should confirm the saved appointment details after success instead of bouncing the user into the internal operator workspace
 
+## In-Product Booking Setup Requirement
+
+- GitHub issue: `#56`
+- interpreted requirement: operators should be able to control the invitee-facing booking experience from inside CalSync instead of leaving the public booking page hard-coded
+
+Expected behavior:
+
+- `GET /booking/setup` should render an operator-facing booking setup page
+- the setup page should let operators save the public booking title, description, default duration, search window, success message, and writable target
+- those booking settings should be stored securely in the product vault
+- `GET /book` should render from those saved booking settings
+- the public booking flow should use the configured writable target when it is still available
+
 Expected API/edge support:
 
 - `GET /api/appointments/{appointment_id}` should return the richer appointment detail payload

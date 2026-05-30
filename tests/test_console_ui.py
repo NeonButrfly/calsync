@@ -125,6 +125,34 @@ def test_booking_page_renders_public_surface_with_open_slots(monkeypatch) -> Non
     assert "Request this time" in response.text
 
 
+def test_booking_setup_page_round_trips_public_booking_settings(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/booking/setup",
+        data={
+            "page_title": "Book time with Kayra",
+            "page_description": "Choose a calm household scheduling slot.",
+            "duration_minutes": "45",
+            "search_window_days": "28",
+            "success_message": "You're booked.",
+            "target_calendar_url": "https://caldav.icloud.com/calendar/",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Public booking settings saved securely." in response.text
+    assert "Book time with Kayra" in response.text
+
+    booking_page = client.get("/book")
+    assert booking_page.status_code == 200
+    assert "Book time with Kayra" in booking_page.text
+    assert "Choose a calm household scheduling slot." in booking_page.text
+    assert 'value="45"' in booking_page.text
+
+
 def test_connections_page_renders_provider_summary(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     service = OperatorSettingsService(settings=get_settings())
@@ -2004,6 +2032,43 @@ def test_booking_page_can_create_appointment_from_selected_slot(monkeypatch) -> 
     api_response = client.get("/api/appointments?date_from=2026-06-01&date_to=2026-06-01")
     items = api_response.json()["items"]
     assert any(item["title"] == "School intake call" for item in items)
+
+
+def test_booking_page_uses_custom_success_message(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_public_booking_settings(
+        page_title="Book time with Kayra",
+        page_description="Choose a calm household scheduling slot.",
+        duration_minutes=30,
+        search_window_days=21,
+        success_message="You're booked.",
+        target_calendar_url="https://caldav.icloud.com/calendar/",
+    )
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/book",
+        data={
+            "title": "Therapy intake",
+            "attendees_text": "Kayra",
+            "location": "Phone",
+            "notes": "Configured success message",
+            "slot_value": "2026-06-01|10:00|10:30|America/Anchorage",
+            "availability_date_from": "2026-06-01",
+            "availability_date_to": "2026-06-21",
+            "availability_duration_minutes": "30",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "You&#39;re booked." in response.text
 
 
 def test_alexa_simulator_supports_find_availability_intent(monkeypatch) -> None:

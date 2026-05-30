@@ -81,15 +81,18 @@ def public_booking_page(
     request: Request,
     availability_date_from: str | None = None,
     availability_date_to: str | None = None,
-    availability_duration_minutes: int = 60,
+    availability_duration_minutes: int | None = None,
 ):
     service = AppointmentService()
+    operator_settings = OperatorSettingsService()
+    booking_settings = operator_settings.describe_public_booking_settings()
     return _templates.TemplateResponse(
         request,
         "booking.html",
         _build_booking_context(
             request,
             service=service,
+            booking_settings=booking_settings,
             availability_date_from=availability_date_from,
             availability_date_to=availability_date_to,
             availability_duration_minutes=availability_duration_minutes,
@@ -114,6 +117,8 @@ def public_booking_submit(
     availability_duration_minutes: int = Form(60),
 ):
     service = AppointmentService()
+    operator_settings = OperatorSettingsService()
+    booking_settings = operator_settings.describe_public_booking_settings()
     booking_form_values = {
         "title": title,
         "attendees_text": attendees_text,
@@ -121,7 +126,12 @@ def public_booking_submit(
         "notes": notes,
         "slot_value": slot_value,
     }
-    target = _default_booking_target(service)
+    target = _default_booking_target(
+        service,
+        configured_target_calendar_url=str(
+            booking_settings.get("target_calendar_url") or ""
+        ),
+    )
     if target is None:
         return _templates.TemplateResponse(
             request,
@@ -129,6 +139,7 @@ def public_booking_submit(
             _build_booking_context(
                 request,
                 service=service,
+                booking_settings=booking_settings,
                 availability_date_from=availability_date_from or None,
                 availability_date_to=availability_date_to or None,
                 availability_duration_minutes=availability_duration_minutes,
@@ -162,11 +173,12 @@ def public_booking_submit(
             _build_booking_context(
                 request,
                 service=service,
+                booking_settings=booking_settings,
                 availability_date_from=availability_date_from or None,
                 availability_date_to=availability_date_to or None,
                 availability_duration_minutes=availability_duration_minutes,
                 booking_form_values=_empty_booking_form_values(),
-                flash_message="Booking confirmed.",
+                flash_message=str(booking_settings["success_message"]),
                 error_message=None,
                 booking_confirmation={
                     "title": detail.title,
@@ -185,6 +197,7 @@ def public_booking_submit(
             _build_booking_context(
                 request,
                 service=service,
+                booking_settings=booking_settings,
                 availability_date_from=availability_date_from or None,
                 availability_date_to=availability_date_to or None,
                 availability_duration_minutes=availability_duration_minutes,
@@ -195,6 +208,79 @@ def public_booking_submit(
             ),
             status_code=400,
         )
+
+
+@router.get("/booking/setup")
+def booking_setup_page(request: Request):
+    operator_settings = OperatorSettingsService()
+    booking_settings = operator_settings.describe_public_booking_settings()
+    service = AppointmentService()
+    return _templates.TemplateResponse(
+        request,
+        "booking_setup.html",
+        {
+            "request": request,
+            "booking_settings": booking_settings,
+            "calendar_options": _calendar_options(
+                service,
+                selected_calendar_url=str(
+                    booking_settings.get("target_calendar_url") or ""
+                )
+                or None,
+            ),
+            "flash_message": None,
+            "error_message": None,
+            "public_booking_url": "/book",
+        },
+    )
+
+
+@router.post("/booking/setup")
+def booking_setup_update(
+    request: Request,
+    page_title: str = Form(""),
+    page_description: str = Form(""),
+    duration_minutes: int = Form(60),
+    search_window_days: int = Form(7),
+    success_message: str = Form(""),
+    target_calendar_url: str = Form(""),
+):
+    operator_settings = OperatorSettingsService()
+    service = AppointmentService()
+    try:
+        operator_settings.set_public_booking_settings(
+            page_title=page_title,
+            page_description=page_description,
+            duration_minutes=duration_minutes,
+            search_window_days=search_window_days,
+            success_message=success_message,
+            target_calendar_url=target_calendar_url,
+        )
+        flash_message = "Public booking settings saved securely."
+        error_message = None
+    except ValueError as exc:
+        flash_message = None
+        error_message = str(exc)
+    booking_settings = operator_settings.describe_public_booking_settings()
+    return _templates.TemplateResponse(
+        request,
+        "booking_setup.html",
+        {
+            "request": request,
+            "booking_settings": booking_settings,
+            "calendar_options": _calendar_options(
+                service,
+                selected_calendar_url=str(
+                    booking_settings.get("target_calendar_url") or ""
+                )
+                or None,
+            ),
+            "flash_message": flash_message,
+            "error_message": error_message,
+            "public_booking_url": "/book",
+        },
+        status_code=200 if error_message is None else 400,
+    )
 
 
 @router.get("/alexa/setup")
@@ -1862,21 +1948,25 @@ def _build_booking_context(
     request: Request,
     *,
     service: AppointmentService,
+    booking_settings: dict[str, object],
     availability_date_from: str | None,
     availability_date_to: str | None,
-    availability_duration_minutes: int,
+    availability_duration_minutes: int | None,
     booking_form_values: dict[str, object],
     flash_message: str | None,
     error_message: str | None,
     booking_confirmation: dict[str, object] | None,
 ) -> dict[str, object]:
-    defaults = _default_availability_form_values()
+    defaults = _default_booking_availability_form_values(booking_settings=booking_settings)
     form_values = {
         "date_from": availability_date_from or str(defaults["date_from"]),
         "date_to": availability_date_to or str(defaults["date_to"]),
         "duration_minutes": availability_duration_minutes or int(defaults["duration_minutes"]),
     }
-    target = _default_booking_target(service)
+    target = _default_booking_target(
+        service,
+        configured_target_calendar_url=str(booking_settings.get("target_calendar_url") or ""),
+    )
     availability_results: list[AvailabilitySlot] = []
     availability_error: str | None = None
     if target is not None:
@@ -1894,6 +1984,7 @@ def _build_booking_context(
         "error_message": error_message or availability_error,
         "booking_confirmation": booking_confirmation,
         "booking_form_values": booking_form_values,
+        "booking_settings": booking_settings,
         "availability_form_values": form_values,
         "availability_results": _serialize_booking_slots(availability_results),
         "calendar_target": target,
@@ -2473,6 +2564,19 @@ def _default_availability_form_values() -> dict[str, object]:
     }
 
 
+def _default_booking_availability_form_values(
+    *,
+    booking_settings: dict[str, object],
+) -> dict[str, object]:
+    start = _today_in_alaska()
+    search_window_days = max(7, int(booking_settings.get("search_window_days") or 7))
+    return {
+        "date_from": start.isoformat(),
+        "date_to": (start + timedelta(days=search_window_days - 1)).isoformat(),
+        "duration_minutes": int(booking_settings.get("duration_minutes") or 60),
+    }
+
+
 def _empty_booking_form_values() -> dict[str, object]:
     return {
         "title": "",
@@ -2540,14 +2644,24 @@ def _calendar_options(
     return options
 
 
-def _default_booking_target(service: AppointmentService) -> dict[str, object] | None:
+def _default_booking_target(
+    service: AppointmentService,
+    *,
+    configured_target_calendar_url: str,
+) -> dict[str, object] | None:
     calendars = service.available_calendars
     if not calendars:
         return None
-    selected_value = next(
-        (str(item["calendar_url"]) for item in calendars if bool(item.get("is_default"))),
-        str(calendars[0]["calendar_url"]),
-    )
+    configured_value = str(configured_target_calendar_url or "").strip()
+    if configured_value and any(
+        str(item["calendar_url"]) == configured_value for item in calendars
+    ):
+        selected_value = configured_value
+    else:
+        selected_value = next(
+            (str(item["calendar_url"]) for item in calendars if bool(item.get("is_default"))),
+            str(calendars[0]["calendar_url"]),
+        )
     options = _calendar_options(service, selected_calendar_url=selected_value)
     selected_option = next(option for option in options if bool(option["is_selected"]))
     return {

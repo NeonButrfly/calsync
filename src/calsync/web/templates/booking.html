@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Book time with CalSync</title>
+    <title>{{ booking_settings.page_title }}</title>
     <link rel="stylesheet" href="/static/app.css" />
   </head>
   <body>
@@ -11,10 +11,9 @@
       <aside class="sidebar">
         <div class="brand">
           <p class="eyebrow">CalSync Booking</p>
-          <h1>Book time with CalSync</h1>
+          <h1>{{ booking_settings.page_title }}</h1>
           <p>
-            Claim an open slot from the live scheduling brain and let CalSync
-            write the appointment directly into the connected calendar.
+            {{ booking_settings.page_description }}
           </p>
         </div>
 
@@ -44,7 +43,7 @@
             <p class="eyebrow">Public booking</p>
             <h2>Choose an open time and request it in one step</h2>
             <p class="hero-copy">
-              This page uses the same availability search and provider write-back path as the internal workspace.
+              {{ booking_settings.page_description }}
             </p>
           </div>
         </section>
