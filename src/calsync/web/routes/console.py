@@ -2350,6 +2350,9 @@ def alexa_simulator_page(request: Request):
     service = AppointmentService()
     readiness = ReadinessService().build()
     calendar_name_options = _calendar_name_options(service)
+    legacy_apple_recovery_hints = (
+        OperatorSettingsService().describe_legacy_apple_recovery_hints()
+    )
     return _templates.TemplateResponse(
         request,
         "alexa_simulator.html",
@@ -2359,6 +2362,10 @@ def alexa_simulator_page(request: Request):
             "simulator_state": _describe_alexa_simulator_state(
                 readiness=readiness,
                 calendar_name_options=calendar_name_options,
+                recovery_mode=_alexa_recovery_mode(
+                    readiness=readiness,
+                    legacy_apple_recovery_hints=legacy_apple_recovery_hints,
+                ),
             ),
             "simulation_result": None,
             "error_message": None,
@@ -2432,6 +2439,9 @@ def alexa_simulator_run(
         error_message = str(exc)
     readiness = ReadinessService().build()
     calendar_name_options = _calendar_name_options(service)
+    legacy_apple_recovery_hints = (
+        OperatorSettingsService().describe_legacy_apple_recovery_hints()
+    )
 
     return _templates.TemplateResponse(
         request,
@@ -2442,6 +2452,10 @@ def alexa_simulator_run(
             "simulator_state": _describe_alexa_simulator_state(
                 readiness=readiness,
                 calendar_name_options=calendar_name_options,
+                recovery_mode=_alexa_recovery_mode(
+                    readiness=readiness,
+                    legacy_apple_recovery_hints=legacy_apple_recovery_hints,
+                ),
             ),
             "simulation_result": simulation_result,
             "error_message": error_message,
@@ -4052,6 +4066,7 @@ def _describe_alexa_simulator_state(
     *,
     readiness: dict[str, object],
     calendar_name_options: list[dict[str, str]],
+    recovery_mode: bool = False,
 ) -> dict[str, object]:
     origin = readiness.get("origin", {})
     edge = readiness.get("edge", {})
@@ -4059,9 +4074,17 @@ def _describe_alexa_simulator_state(
     edge_reachable = bool(edge.get("reachable", False))
     edge_enabled = bool(edge.get("alexa", {}).get("enabled", False))
     if not any_calendar_ready:
-        headline = "Calendar setup still blocks meaningful scheduling tests"
+        headline = (
+            "Apple reconnect still blocks meaningful scheduling tests"
+            if recovery_mode
+            else "Calendar setup still blocks meaningful scheduling tests"
+        )
         detail = (
-            "No writable calendar is connected yet. You can still preview LaunchRequest "
+            "Recovered Apple hints are already loaded into Apple setup. You can still preview LaunchRequest "
+            "and the general voice shape, but scheduling intents become useful after you save a fresh "
+            "app-specific password on the recovered Apple calendar."
+            if recovery_mode
+            else "No writable calendar is connected yet. You can still preview LaunchRequest "
             "and the general voice shape, but scheduling intents become useful after "
             "Apple, Google, or Microsoft setup is connected."
         )
@@ -4091,6 +4114,7 @@ def _describe_alexa_simulator_state(
         "calendar_ready": any_calendar_ready,
         "edge_reachable": edge_reachable,
         "edge_enabled": edge_enabled,
+        "recovery_mode": recovery_mode,
         "headline": headline,
         "detail": detail,
         "useful_now": useful_now,

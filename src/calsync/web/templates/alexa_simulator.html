@@ -42,7 +42,7 @@
               <article class="detail-card">
                 <p class="eyebrow">Connected calendar</p>
                 <strong>{% if simulator_state.calendar_ready %}Ready{% else %}Still needed{% endif %}</strong>
-                <span>{% if simulator_state.calendar_ready %}At least one writable calendar path is connected for scheduling tests.{% else %}Connect Apple, Google, or Microsoft before expecting meaningful scheduling-intent results.{% endif %}</span>
+                <span>{% if simulator_state.calendar_ready %}At least one writable calendar path is connected for scheduling tests.{% elif simulator_state.recovery_mode %}Recovered Apple hints are ready. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before expecting meaningful scheduling-intent results.{% else %}Connect Apple, Google, or Microsoft before expecting meaningful scheduling-intent results.{% endif %}</span>
               </article>
               <article class="detail-card">
                 <p class="eyebrow">Voice route</p>
@@ -58,6 +58,12 @@
             <div class="detail-stack">
               <p class="appointment-detail"><strong>{{ simulator_state.headline }}</strong></p>
               <p class="appointment-detail">{{ simulator_state.detail }}</p>
+              {% if simulator_state.recovery_mode and not simulator_state.calendar_ready %}
+              <div class="stack-actions">
+                <a class="text-action" href="/calendar/setup">Open Apple setup</a>
+                <a class="text-action" href="/connections">Open Connections</a>
+              </div>
+              {% endif %}
             </div>
           </article>
 

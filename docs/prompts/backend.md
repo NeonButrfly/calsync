@@ -570,6 +570,18 @@ Expected behavior:
 - when legacy Apple recovery hints exist and no writable calendar is connected, the root workspace capability summary should tell operators to open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password to unlock create, edit, and cancel appointments
 - when no recovery hint exists, the root workspace capability summary can keep the more generic writable-calendar wording used for a blank-install disconnected state
 
+## Alexa Simulator Recovery Guidance Requirement
+
+- GitHub issue: `#97`
+- interpreted requirement: when the live deployment is in Apple recovery mode, the Alexa simulator readiness panel should stop using blank-install missing-calendar wording
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no writable calendar is connected, `GET /alexa/simulator` should say Apple reconnect still blocks meaningful scheduling tests
+- in that same state, the simulator readiness copy should tell operators that recovered Apple hints are already loaded into Apple setup and that scheduling intents become useful after saving a fresh app-specific password on the recovered Apple calendar
+- the simulator readiness panel should expose direct operator actions into Apple setup and Connections in that recovery-shaped state
+- when no recovery hint exists, the simulator can keep the more generic missing-calendar wording used for a blank-install disconnected state
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`
