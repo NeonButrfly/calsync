@@ -1271,22 +1271,17 @@ def calendar_setup_run_write_test(
 @router.get("/google/setup")
 def google_setup_page(request: Request):
     operator_settings = OperatorSettingsService()
-    google_settings = operator_settings.describe_google_oauth_settings()
     runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
-    runtime_config = runtime_service.resolve()
     return _templates.TemplateResponse(
         request,
         "google_setup.html",
-        {
-            "request": request,
-            "google_settings": google_settings,
-            "runtime_config": runtime_config,
-            "google_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": None,
-            "error_message": None,
-            "connect_url": "/auth/google/start",
-        },
+        _build_google_setup_context(
+            request,
+            operator_settings=operator_settings,
+            runtime_service=runtime_service,
+            flash_message=None,
+            error_message=None,
+        ),
     )
 
 
@@ -1346,6 +1341,86 @@ def _build_microsoft_client_from_settings(
     )
 
 
+def _google_connect_ready(google_settings: dict[str, object]) -> bool:
+    return bool(str(google_settings.get("client_id") or "").strip()) and bool(
+        google_settings.get("client_secret_saved")
+    )
+
+
+def _microsoft_connect_ready(microsoft_settings: dict[str, object]) -> bool:
+    return bool(str(microsoft_settings.get("client_id") or "").strip()) and bool(
+        microsoft_settings.get("client_secret_saved")
+    )
+
+
+def _build_google_setup_context(
+    request: Request,
+    *,
+    operator_settings: OperatorSettingsService,
+    runtime_service: GoogleRuntimeConfigService,
+    flash_message: str | None,
+    error_message: str | None,
+    runtime_config: dict[str, object] | None = None,
+) -> dict[str, object]:
+    google_settings = operator_settings.describe_google_oauth_settings()
+    connect_ready = _google_connect_ready(google_settings)
+    return {
+        "request": request,
+        "google_settings": google_settings,
+        "runtime_config": runtime_config or runtime_service.resolve(),
+        "google_accounts": runtime_service.list_accounts(),
+        "calendar_catalog": runtime_service.list_calendars(),
+        "flash_message": flash_message,
+        "error_message": error_message,
+        "connect_url": "/auth/google/start",
+        "connect_ready": connect_ready,
+        "connect_label": (
+            "Connect another Google account"
+            if bool(google_settings.get("refresh_token_saved"))
+            else "Connect Google account"
+        ),
+        "connect_block_message": (
+            None
+            if connect_ready
+            else "Save the shared Google OAuth app before connecting a Google account."
+        ),
+    }
+
+
+def _build_microsoft_setup_context(
+    request: Request,
+    *,
+    operator_settings: OperatorSettingsService,
+    runtime_service: MicrosoftRuntimeConfigService,
+    flash_message: str | None,
+    error_message: str | None,
+    runtime_config: dict[str, object] | None = None,
+) -> dict[str, object]:
+    microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
+    connect_ready = _microsoft_connect_ready(microsoft_settings)
+    return {
+        "request": request,
+        "microsoft_settings": microsoft_settings,
+        "runtime_config": runtime_config or runtime_service.resolve(),
+        "microsoft_accounts": runtime_service.list_accounts(),
+        "calendar_catalog": runtime_service.list_calendars(),
+        "flash_message": flash_message,
+        "error_message": error_message,
+        "connect_url": "/auth/microsoft/start",
+        "connect_ready": connect_ready,
+        "connect_label": (
+            "Connect another Microsoft account"
+            if bool(microsoft_settings.get("refresh_token_saved"))
+            else "Connect Microsoft account"
+        ),
+        "connect_block_message": (
+            None
+            if connect_ready
+            else "Save the shared Microsoft OAuth app before connecting a Microsoft account."
+        ),
+    }
+
+
 @router.post("/google/setup")
 def google_setup_update(
     request: Request,
@@ -1365,22 +1440,17 @@ def google_setup_update(
         flash_message = None
         error_message = str(exc)
 
-    google_settings = operator_settings.describe_google_oauth_settings()
     runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
-    runtime_config = runtime_service.resolve()
     return _templates.TemplateResponse(
         request,
         "google_setup.html",
-        {
-            "request": request,
-            "google_settings": google_settings,
-            "runtime_config": runtime_config,
-            "google_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": flash_message,
-            "error_message": error_message,
-            "connect_url": "/auth/google/start",
-        },
+        _build_google_setup_context(
+            request,
+            operator_settings=operator_settings,
+            runtime_service=runtime_service,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
         status_code=200 if error_message is None else 400,
     )
 
@@ -1414,22 +1484,17 @@ def google_setup_refresh(request: Request):
         flash_message = None
         error_message = str(exc)
 
-    google_settings = operator_settings.describe_google_oauth_settings()
     runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
-    runtime_config = runtime_service.resolve()
     return _templates.TemplateResponse(
         request,
         "google_setup.html",
-        {
-            "request": request,
-            "google_settings": google_settings,
-            "runtime_config": runtime_config,
-            "google_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": flash_message,
-            "error_message": error_message,
-            "connect_url": "/auth/google/start",
-        },
+        _build_google_setup_context(
+            request,
+            operator_settings=operator_settings,
+            runtime_service=runtime_service,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
         status_code=200 if error_message is None else 400,
     )
 
@@ -1444,8 +1509,8 @@ def google_setup_disconnect(request: Request):
     else:
         operator_settings.clear_google_account_settings()
         operator_settings.clear_google_calendar_catalog()
-    google_settings = operator_settings.describe_google_oauth_settings()
     runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
+    google_settings = operator_settings.describe_google_oauth_settings()
     runtime_config = runtime_service.resolve() if runtime_service.list_accounts() else {
         "account_label": "",
         "account_email": "",
@@ -1462,16 +1527,14 @@ def google_setup_disconnect(request: Request):
     return _templates.TemplateResponse(
         request,
         "google_setup.html",
-        {
-            "request": request,
-            "google_settings": google_settings,
-            "runtime_config": runtime_config,
-            "google_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": "Google account disconnected. The shared OAuth app is still saved.",
-            "error_message": None,
-            "connect_url": "/auth/google/start",
-        },
+        _build_google_setup_context(
+            request,
+            operator_settings=operator_settings,
+            runtime_service=runtime_service,
+            flash_message="Google account disconnected. The shared OAuth app is still saved.",
+            error_message=None,
+            runtime_config=runtime_config,
+        ),
     )
 
 
@@ -1518,16 +1581,13 @@ def google_setup_run_write_test(
     return _templates.TemplateResponse(
         request,
         "google_setup.html",
-        {
-            "request": request,
-            "google_settings": operator_settings.describe_google_oauth_settings(),
-            "runtime_config": runtime_service.resolve(),
-            "google_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": flash_message,
-            "error_message": error_message,
-            "connect_url": "/auth/google/start",
-        },
+        _build_google_setup_context(
+            request,
+            operator_settings=operator_settings,
+            runtime_service=runtime_service,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
         status_code=200 if error_message is None else 400,
     )
 
@@ -1609,43 +1669,35 @@ def google_oauth_callback(
     )
 
     runtime_service = GoogleRuntimeConfigService(operator_settings=operator_settings)
-    google_settings = operator_settings.describe_google_oauth_settings()
     runtime_config = runtime_service.resolve()
     return _templates.TemplateResponse(
         request,
         "google_setup.html",
-        {
-            "request": request,
-            "google_settings": google_settings,
-            "runtime_config": runtime_config,
-            "google_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": "Google account connected and calendars discovered.",
-            "error_message": None,
-            "connect_url": "/auth/google/start",
-        },
+        _build_google_setup_context(
+            request,
+            operator_settings=operator_settings,
+            runtime_service=runtime_service,
+            flash_message="Google account connected and calendars discovered.",
+            error_message=None,
+            runtime_config=runtime_config,
+        ),
     )
 
 
 @router.get("/microsoft/setup")
 def microsoft_setup_page(request: Request):
     operator_settings = OperatorSettingsService()
-    microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
     runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
-    runtime_config = runtime_service.resolve()
     return _templates.TemplateResponse(
         request,
         "microsoft_setup.html",
-        {
-            "request": request,
-            "microsoft_settings": microsoft_settings,
-            "runtime_config": runtime_config,
-            "microsoft_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": None,
-            "error_message": None,
-            "connect_url": "/auth/microsoft/start",
-        },
+        _build_microsoft_setup_context(
+            request,
+            operator_settings=operator_settings,
+            runtime_service=runtime_service,
+            flash_message=None,
+            error_message=None,
+        ),
     )
 
 
@@ -1668,22 +1720,17 @@ def microsoft_setup_update(
         flash_message = None
         error_message = str(exc)
 
-    microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
     runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
-    runtime_config = runtime_service.resolve()
     return _templates.TemplateResponse(
         request,
         "microsoft_setup.html",
-        {
-            "request": request,
-            "microsoft_settings": microsoft_settings,
-            "runtime_config": runtime_config,
-            "microsoft_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": flash_message,
-            "error_message": error_message,
-            "connect_url": "/auth/microsoft/start",
-        },
+        _build_microsoft_setup_context(
+            request,
+            operator_settings=operator_settings,
+            runtime_service=runtime_service,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
         status_code=200 if error_message is None else 400,
     )
 
@@ -1717,22 +1764,17 @@ def microsoft_setup_refresh(request: Request):
         flash_message = None
         error_message = str(exc)
 
-    microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
     runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
-    runtime_config = runtime_service.resolve()
     return _templates.TemplateResponse(
         request,
         "microsoft_setup.html",
-        {
-            "request": request,
-            "microsoft_settings": microsoft_settings,
-            "runtime_config": runtime_config,
-            "microsoft_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": flash_message,
-            "error_message": error_message,
-            "connect_url": "/auth/microsoft/start",
-        },
+        _build_microsoft_setup_context(
+            request,
+            operator_settings=operator_settings,
+            runtime_service=runtime_service,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
         status_code=200 if error_message is None else 400,
     )
 
@@ -1747,8 +1789,8 @@ def microsoft_setup_disconnect(request: Request):
     else:
         operator_settings.clear_microsoft_account_settings()
         operator_settings.clear_microsoft_calendar_catalog()
-    microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
     runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
+    microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
     runtime_config = runtime_service.resolve() if runtime_service.list_accounts() else {
         "account_label": "",
         "account_email": "",
@@ -1765,16 +1807,14 @@ def microsoft_setup_disconnect(request: Request):
     return _templates.TemplateResponse(
         request,
         "microsoft_setup.html",
-        {
-            "request": request,
-            "microsoft_settings": microsoft_settings,
-            "runtime_config": runtime_config,
-            "microsoft_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": "Microsoft account disconnected. The shared OAuth app is still saved.",
-            "error_message": None,
-            "connect_url": "/auth/microsoft/start",
-        },
+        _build_microsoft_setup_context(
+            request,
+            operator_settings=operator_settings,
+            runtime_service=runtime_service,
+            flash_message="Microsoft account disconnected. The shared OAuth app is still saved.",
+            error_message=None,
+            runtime_config=runtime_config,
+        ),
     )
 
 
@@ -1821,16 +1861,13 @@ def microsoft_setup_run_write_test(
     return _templates.TemplateResponse(
         request,
         "microsoft_setup.html",
-        {
-            "request": request,
-            "microsoft_settings": operator_settings.describe_microsoft_oauth_settings(),
-            "runtime_config": runtime_service.resolve(),
-            "microsoft_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": flash_message,
-            "error_message": error_message,
-            "connect_url": "/auth/microsoft/start",
-        },
+        _build_microsoft_setup_context(
+            request,
+            operator_settings=operator_settings,
+            runtime_service=runtime_service,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
         status_code=200 if error_message is None else 400,
     )
 
@@ -1912,21 +1949,18 @@ def microsoft_oauth_callback(
     )
 
     runtime_service = MicrosoftRuntimeConfigService(operator_settings=operator_settings)
-    microsoft_settings = operator_settings.describe_microsoft_oauth_settings()
     runtime_config = runtime_service.resolve()
     return _templates.TemplateResponse(
         request,
         "microsoft_setup.html",
-        {
-            "request": request,
-            "microsoft_settings": microsoft_settings,
-            "runtime_config": runtime_config,
-            "microsoft_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": "Microsoft account connected and calendars discovered.",
-            "error_message": None,
-            "connect_url": "/auth/microsoft/start",
-        },
+        _build_microsoft_setup_context(
+            request,
+            operator_settings=operator_settings,
+            runtime_service=runtime_service,
+            flash_message="Microsoft account connected and calendars discovered.",
+            error_message=None,
+            runtime_config=runtime_config,
+        ),
     )
 
 
@@ -3086,10 +3120,12 @@ def _build_connections_context(
         "apple_accounts": apple_runtime_service.list_accounts(),
         "apple_calendar_catalog": apple_runtime_service.list_calendars(),
         "google_settings": google_settings,
+        "google_connect_ready": _google_connect_ready(google_settings),
         "google_runtime": google_runtime,
         "google_accounts": google_runtime_service.list_accounts(),
         "google_calendar_catalog": google_runtime_service.list_calendars(),
         "microsoft_settings": microsoft_settings,
+        "microsoft_connect_ready": _microsoft_connect_ready(microsoft_settings),
         "microsoft_runtime": microsoft_runtime,
         "microsoft_accounts": microsoft_runtime_service.list_accounts(),
         "microsoft_calendar_catalog": microsoft_runtime_service.list_calendars(),

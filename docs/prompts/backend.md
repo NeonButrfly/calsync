@@ -272,6 +272,19 @@ Expected behavior:
 - disconnected `POST /booking/setup` requests should fail clearly instead of saving disconnected public-booking defaults
 - disconnected `POST /booking/setup/types` requests should fail clearly instead of creating shareable booking links that cannot schedule anywhere
 
+## Provider Connect Action Truthfulness Requirement
+
+- GitHub issue: `#73`
+- interpreted requirement: when the shared Google or Microsoft OAuth app has not been saved yet, the product should not advertise browser account-connect actions that lead straight into known `400` failures
+
+Expected behavior:
+
+- `GET /google/setup` should keep `Connect Google account` blocked until both the shared Google client ID and client secret are saved
+- `GET /microsoft/setup` should keep `Connect Microsoft account` blocked until both the shared Microsoft client ID and client secret are saved
+- `GET /connections` should reflect the same blocked browser-connect state for Google and Microsoft until their shared OAuth apps exist
+- those blocked states should explain that the shared OAuth app must be saved first
+- once the shared OAuth app is saved, the browser account-connect actions should become available again without changing the deeper OAuth start routes
+
 ## Public Booking Page Requirement
 
 - GitHub issue: `#55`

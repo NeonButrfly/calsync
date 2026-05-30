@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, and `#72` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, and `#73` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -146,6 +146,7 @@ The root page now acts as the first family scheduling UX:
 - a first in-product Google account management flow that can connect more than one Google account, refresh discovered calendars per account, and disconnect one account without losing the saved OAuth client
 - a first in-product Microsoft setup page that stores the shared OAuth app securely and supports browser-based Microsoft connect
 - a first in-product Microsoft account management flow that can connect more than one Microsoft account, refresh discovered calendars per account, and disconnect one account without losing the saved OAuth client
+- Google and Microsoft setup surfaces that now block browser connect actions until the shared OAuth app is actually saved, so tomorrow's provider onboarding path starts from a truthful setup state
 - a first in-product write-test action on Apple, Google, and Microsoft target cards so operators can prove a writable calendar path works end to end
 - a first in-product Connections page that pulls Apple, Google, and Microsoft readiness into one calmer operator view
 - that Connections workspace now also acts as a checklist and verification center with persisted last-write proof per target

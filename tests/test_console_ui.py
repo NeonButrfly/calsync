@@ -705,6 +705,10 @@ def test_connections_page_renders_provider_summary(monkeypatch) -> None:
     assert "Browser-connected Google path" in response.text
     assert "Open Apple setup" in response.text
     assert "Open Google setup" in response.text
+    assert 'href="/auth/google/start"' in response.text
+    assert '<button type="button" disabled>Connect Microsoft account</button>' in response.text
+    assert "Save the shared Microsoft OAuth app before browser account connect is available." in response.text
+    assert 'href="/auth/microsoft/start"' not in response.text
 
 
 def test_connections_page_shows_checklist_and_verification_state(monkeypatch) -> None:
@@ -861,9 +865,11 @@ def test_connections_page_shows_direct_provider_control_actions(monkeypatch) -> 
 
     assert response.status_code == 200
     assert "Connect another Google account" in response.text
+    assert 'href="/auth/google/start"' in response.text
     assert "Refresh Google calendars" in response.text
     assert "Disconnect Google account" in response.text
     assert "Connect another Microsoft account" in response.text
+    assert 'href="/auth/microsoft/start"' in response.text
     assert "Refresh Microsoft calendars" in response.text
     assert "Disconnect Microsoft account" in response.text
 
@@ -1393,6 +1399,9 @@ def test_google_setup_page_renders_oauth_connect_surface(monkeypatch) -> None:
     assert "Google setup" in response.text
     assert "Save Google OAuth setup" in response.text
     assert "Connect Google account" in response.text
+    assert '<button type="button" disabled>Connect Google account</button>' in response.text
+    assert "Save the shared Google OAuth app before connecting a Google account." in response.text
+    assert 'href="/auth/google/start"' not in response.text
 
 
 def test_google_setup_page_shows_refresh_and_disconnect_for_connected_account(monkeypatch) -> None:
@@ -1423,6 +1432,7 @@ def test_google_setup_page_shows_refresh_and_disconnect_for_connected_account(mo
 
     assert response.status_code == 200
     assert "Connect another Google account" in response.text
+    assert 'href="/auth/google/start"' in response.text
     assert "Refresh calendars" in response.text
     assert "Disconnect this account" in response.text
 
@@ -1729,6 +1739,26 @@ def test_microsoft_setup_page_renders_oauth_connect_surface(monkeypatch) -> None
     assert "Microsoft setup" in response.text
     assert "Save Microsoft OAuth setup" in response.text
     assert "Connect Microsoft account" in response.text
+    assert '<button type="button" disabled>Connect Microsoft account</button>' in response.text
+    assert "Save the shared Microsoft OAuth app before connecting a Microsoft account." in response.text
+    assert 'href="/auth/microsoft/start"' not in response.text
+
+
+def test_microsoft_setup_page_shows_connect_link_when_oauth_app_is_saved(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_microsoft_oauth_settings(
+        client_id="microsoft-client-id",
+        client_secret="microsoft-client-secret",
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/microsoft/setup")
+
+    assert response.status_code == 200
+    assert "Connect Microsoft account" in response.text
+    assert 'href="/auth/microsoft/start"' in response.text
 
 
 def test_microsoft_oauth_start_redirects_with_saved_state(monkeypatch) -> None:

@@ -91,9 +91,16 @@
                 </label>
                 <div class="action-row">
                   <button type="submit">Save Microsoft OAuth setup</button>
-                  <a class="button-link button-link--secondary" href="{{ connect_url }}">{% if microsoft_settings.refresh_token_saved %}Connect another Microsoft account{% else %}Connect Microsoft account{% endif %}</a>
+                  {% if connect_ready %}
+                  <a class="button-link button-link--secondary" href="{{ connect_url }}">{{ connect_label }}</a>
+                  {% else %}
+                  <button type="button" disabled>{{ connect_label }}</button>
+                  {% endif %}
                 </div>
               </form>
+              {% if not connect_ready %}
+              <p class="appointment-detail"><strong>Next action:</strong> {{ connect_block_message }}</p>
+              {% endif %}
             </article>
           </div>
 
@@ -149,7 +156,7 @@
               {% else %}
               <div class="empty-state">
                 <h4>No Microsoft account connected yet</h4>
-                <p>Save the shared OAuth app, then connect one or more Outlook accounts in the browser.</p>
+                <p>{% if connect_ready %}Connect one or more Outlook accounts in the browser after saving the shared OAuth app.{% else %}{{ connect_block_message }}{% endif %}</p>
               </div>
               {% endif %}
             </article>
@@ -181,7 +188,7 @@
               {% else %}
               <div class="empty-state">
                 <h4>No Microsoft calendars discovered yet</h4>
-                <p>Save the OAuth app, then use Connect Microsoft account to pull the calendar list into CalSync.</p>
+                <p>{% if connect_ready %}Use {{ connect_label }} to pull the calendar list into CalSync.{% else %}{{ connect_block_message }}{% endif %}</p>
               </div>
               {% endif %}
             </article>

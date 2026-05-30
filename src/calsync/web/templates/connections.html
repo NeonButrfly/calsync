@@ -266,9 +266,16 @@
               </div>
               {% endif %}
               <div class="action-row">
+                {% if google_connect_ready %}
                 <a class="button-link" href="/auth/google/start">{% if google_accounts %}Connect another Google account{% else %}Connect Google account{% endif %}</a>
+                {% else %}
+                <button type="button" disabled>Connect Google account</button>
+                {% endif %}
                 <a class="button-link" href="/google/setup">Open Google setup</a>
               </div>
+              {% if not google_connect_ready %}
+              <p class="appointment-detail"><strong>Next action:</strong> Save the shared Google OAuth app before browser account connect is available.</p>
+              {% endif %}
             </article>
 
             <article class="panel">
@@ -343,9 +350,16 @@
               </div>
               {% endif %}
               <div class="action-row">
+                {% if microsoft_connect_ready %}
                 <a class="button-link" href="/auth/microsoft/start">{% if microsoft_accounts %}Connect another Microsoft account{% else %}Connect Microsoft account{% endif %}</a>
+                {% else %}
+                <button type="button" disabled>Connect Microsoft account</button>
+                {% endif %}
                 <a class="button-link" href="/microsoft/setup">Open Microsoft setup</a>
               </div>
+              {% if not microsoft_connect_ready %}
+              <p class="appointment-detail"><strong>Next action:</strong> Save the shared Microsoft OAuth app before browser account connect is available.</p>
+              {% endif %}
             </article>
           </div>
 

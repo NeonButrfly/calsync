@@ -39,6 +39,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#70" in readme_content
     assert "#71" in readme_content
     assert "#72" in readme_content
+    assert "#73" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -86,6 +87,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "microsoft calendar refresh and disconnect controls" in readme_content
     assert "multiple connected microsoft accounts under one shared oauth app" in readme_content
     assert "writable microsoft calendar targets" in readme_content
+    assert "google and microsoft setup surfaces that now block browser connect actions until the shared oauth app is actually saved" in readme_content
     assert "writable calendar smoke tests" in readme_content
     assert "connections workspace at `/connections`" in readme_content
     assert "checklist-style connections workspace" in readme_content
@@ -171,6 +173,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#70" in ops_content
     assert "#71" in ops_content
     assert "#72" in ops_content
+    assert "#73" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -269,6 +272,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "blocked root schedule-sync state when no writable calendar is connected" in ops_content
     assert "blocked public-booking availability state when no writable calendar is connected" in ops_content
     assert "blocked booking-setup state when no writable calendar is connected" in ops_content
+    assert "blocked google and microsoft browser-connect actions until the shared oauth app has been saved" in ops_content
     assert "truthful apple setup empty state when no apple account is connected" in ops_content
     assert "post /mcp" in ops_content
     assert "mcp_auth_token" in ops_content
@@ -309,6 +313,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#70" in prompt_content
     assert "#71" in prompt_content
     assert "#72" in prompt_content
+    assert "#73" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -402,6 +407,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "root no-calendar availability requirement" in prompt_content
     assert "public booking no-calendar availability requirement" in prompt_content
     assert "booking setup no-calendar truthfulness requirement" in prompt_content
+    assert "provider connect action truthfulness requirement" in prompt_content
     assert "root no-calendar schedule-sync requirement" in prompt_content
     assert "apple setup no-account truthfulness requirement" in prompt_content
     assert "should not show broken helper copy or capability language that overstates the currently connected live state" in prompt_content
@@ -412,6 +418,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "the add-calendar form should stay hidden or blocked until the first apple account exists" in prompt_content
     assert "disconnected `post /booking/setup` requests should fail clearly instead of saving disconnected public-booking defaults" in prompt_content
     assert "disconnected `post /booking/setup/types` requests should fail clearly instead of creating shareable booking links that cannot schedule anywhere" in prompt_content
+    assert "`get /google/setup` should keep `connect google account` blocked until both the shared google client id and client secret are saved" in prompt_content
+    assert "`get /connections` should reflect the same blocked browser-connect state for google and microsoft until their shared oauth apps exist" in prompt_content
     assert "enable_alexa" in prompt_content
     assert "alexa_allowed_skill_ids" in prompt_content
     assert "post /alexa/simulate" in prompt_content
