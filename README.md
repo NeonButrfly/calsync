@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, and `#61` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, and `#62` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -139,6 +139,7 @@ The root page now acts as the first family scheduling UX:
 - that Connections workspace now also acts as a checklist and verification center with persisted last-write proof per target
 - that Connections workspace now also acts as the primary day-to-day provider control surface for Google and Microsoft account actions
 - the main schedule workspace now adapts the planner board for day, week, and month browsing so the selected horizon changes the visual planning surface instead of only the query range
+- the workspace capability summary now reflects the actual connected readiness state, so Apple, Google, Microsoft, and Alexa copy stays truthful while setup is still in progress
 - a first public booking page that uses the same availability search and writable appointment path as the internal workspace
 - that public booking flow is now configurable from `/booking/setup`, including invitee-facing copy, default duration, search horizon, success message, and the writable target used for new bookings
 - that public booking flow now also respects operator-managed booking weekdays plus daily start and end hours
@@ -334,6 +335,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Public booking catalog for multiple appointment types: issue `#59`
 - In-product booking type management actions: issue `#60`
 - Persist desired Alexa edge settings and drift visibility: issue `#61`
+- Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`
 - Apple live calendar sync into the shared workspace and Alexa: issue `#41`

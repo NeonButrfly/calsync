@@ -94,13 +94,9 @@
         <div class="sidebar-card">
           <p class="eyebrow">What works today</p>
           <ul class="feature-list">
-            <li>Read existing Apple calendar events</li>
-            <li>Write to connected Apple, Google, and Microsoft calendars</li>
-            <li>Create appointments</li>
-            <li>Edit existing appointments</li>
-            <li>Cancel appointments</li>
-            <li>Browse day, week, and month windows</li>
-            <li>Share the same scheduling brain with ChatGPT and Alexa</li>
+            {% for item in workspace_capabilities %}
+            <li>{{ item }}</li>
+            {% endfor %}
           </ul>
         </div>
       </aside>
@@ -171,7 +167,7 @@
                 <div>
                   <p class="eyebrow">Upcoming</p>
                   <h3>{{ schedule_board.title }}</h3>
-                  <p class="panel-copy">{{ schedule_board.copy }}</p>
+                  <p class="panel-copy">{{ schedule_board.description }}</p>
                 </div>
               </div>
 

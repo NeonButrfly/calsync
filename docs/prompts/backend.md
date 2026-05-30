@@ -186,6 +186,18 @@ Expected behavior:
 - the selected-appointment detail pane and write actions should remain intact while the schedule board becomes more calendar-like
 - the schedule board should remain useful even when some days are empty, so the planner surface still communicates open space instead of collapsing into a blank page
 
+## Workspace Truthfulness Requirement
+
+- GitHub issue: `#62`
+- interpreted requirement: the root scheduling workspace should not show broken helper copy or capability language that overstates the currently connected live state
+
+Expected behavior:
+
+- the planner-board helper text should render the intended human-readable description instead of a Python method string
+- the root workspace capability summary should describe the actual connected readiness state for Apple, Google, Microsoft, and Alexa
+- when Google or Microsoft are not connected yet, the workspace should say those write paths are waiting for setup instead of reading like live verified capability
+- when Alexa is not live yet, the workspace should direct the operator toward setup or a saved turn-on plan instead of implying the live voice route is already active
+
 ## Public Booking Page Requirement
 
 - GitHub issue: `#55`

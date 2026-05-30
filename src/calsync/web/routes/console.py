@@ -2230,6 +2230,7 @@ def _build_console_context(
             show_cancelled=show_cancelled,
             selected_appointment_id=selected_detail.appointment_id if selected_detail else None,
         ),
+        "workspace_capabilities": _workspace_capabilities(readiness),
         "selected_appointment": _serialize_detail(selected_detail),
         "appointment_count": len(appointments),
         "active_count": len(appointments),
@@ -2378,7 +2379,7 @@ def _build_column_board(
     return {
         "mode": selected_window,
         "title": "Day board" if selected_window == "day" else "Week board",
-        "copy": (
+        "description": (
             "Focus on the immediate day with one clean planning lane."
             if selected_window == "day"
             else "See the next seven days in parallel so it feels like real calendar planning."
@@ -2420,10 +2421,37 @@ def _build_month_board(
     return {
         "mode": "month",
         "title": "Month board",
-        "copy": "See the next 30 days as a real planning board instead of a long undifferentiated list.",
+        "description": "See the next 30 days as a real planning board instead of a long undifferentiated list.",
         "has_appointments": any(day["entries"] for week in weeks for day in week["days"]),
         "weeks": weeks,
     }
+
+
+def _workspace_capabilities(readiness: dict[str, object]) -> list[str]:
+    origin = readiness.get("origin", {})
+    edge = readiness.get("edge", {})
+    desired_alexa = readiness.get("desired_alexa", {})
+    items = [
+        "Read existing Apple calendar events",
+        "Write to connected Apple calendars",
+        "Create, edit, and cancel appointments",
+        "Browse day, week, and month windows",
+    ]
+    if origin.get("google_ready"):
+        items.append("Write to connected Google calendars")
+    else:
+        items.append("Google write path is built and waiting for setup")
+    if origin.get("microsoft_ready"):
+        items.append("Write to connected Microsoft calendars")
+    else:
+        items.append("Microsoft write path is built and waiting for setup")
+    if edge.get("alexa", {}).get("enabled"):
+        items.append("Use the same scheduling brain through Alexa live")
+    elif desired_alexa.get("saved"):
+        items.append("Alexa turn-on plan is saved and waiting for edge apply")
+    else:
+        items.append("Preview Alexa through the setup flow and simulator before live turn-on")
+    return items
 
 
 def _serialize_detail(detail: AppointmentDetailResponse | None) -> dict[str, object] | None:

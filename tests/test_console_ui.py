@@ -105,6 +105,11 @@ def test_console_root_renders_scheduler_surface(monkeypatch) -> None:
     assert "Apple setup" in response.text
     assert "Google setup" in response.text
     assert "Find open time" in response.text
+    assert "See the next seven days in parallel so it feels like real calendar planning." in response.text
+    assert "built-in method copy of dict object" not in response.text
+    assert "Google write path is built and waiting for setup" in response.text
+    assert "Microsoft write path is built and waiting for setup" in response.text
+    assert "Preview Alexa through the setup flow and simulator before live turn-on" in response.text
 
 
 def test_booking_page_renders_public_surface_with_open_slots(monkeypatch) -> None:
