@@ -640,6 +640,7 @@ def _render_alexa_setup_page(
     desired_settings = operator_settings.describe_desired_alexa_settings()
     account_linking_settings = operator_settings.describe_alexa_account_linking_settings()
     cloudflare_credentials = operator_settings.describe_cloudflare_worker_credentials()
+    alexa_action_copy = _describe_alexa_action_copy(edge_settings=edge_settings)
     return _templates.TemplateResponse(
         request,
         "alexa_setup.html",
@@ -660,6 +661,7 @@ def _render_alexa_setup_page(
             ),
             "account_linking_settings": account_linking_settings,
             "cloudflare_credentials": cloudflare_credentials,
+            "alexa_action_copy": alexa_action_copy,
             "alexa_endpoint": "https://edge-calsync.neonbutterfly.net/alexa",
             "alexa_account_linking_authorization_url": "https://calsync.neonbutterfly.net/alexa/account-linking/authorize",
             "privacy_url": "https://calsync.neonbutterfly.net/privacy",
@@ -3133,6 +3135,7 @@ def _build_connections_context(
         "edge_settings": edge_settings,
         "desired_alexa_settings": desired_alexa_settings,
         "alexa_drift": alexa_drift,
+        "alexa_action_copy": _describe_alexa_action_copy(edge_settings=edge_settings),
         "alexa_next_action": _describe_alexa_next_action(
             readiness=readiness,
             desired_settings=desired_alexa_settings,
@@ -3525,6 +3528,26 @@ def _describe_alexa_settings_drift(
         "message": message,
         "live_skill_id_count": len(live_skill_ids),
         "desired_skill_id_count": len(desired_skill_ids),
+    }
+
+
+def _describe_alexa_action_copy(
+    *,
+    edge_settings: dict[str, object],
+) -> dict[str, str | bool]:
+    manageable = bool(edge_settings.get("manageable"))
+    if manageable:
+        return {
+            "manageable": True,
+            "setup_button_label": "Apply edge settings",
+            "connections_button_label": "Apply Alexa settings",
+            "helper_message": "This will save the desired Alexa plan in CalSync and update the live edge Worker now.",
+        }
+    return {
+        "manageable": False,
+        "setup_button_label": "Save desired Alexa settings",
+        "connections_button_label": "Save desired Alexa settings",
+        "helper_message": "Cloudflare Worker access is still missing, so this will save the desired Alexa plan in CalSync until live edge updates are available.",
     }
 
 

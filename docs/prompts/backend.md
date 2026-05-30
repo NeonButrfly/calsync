@@ -661,3 +661,16 @@ Expected behavior:
 - `GET /alexa/setup` should show the saved desired Alexa state beside the live Worker state
 - the product should call out drift clearly when the saved desired Alexa state and live Worker do not match yet
 - `GET /api/readiness` should surface that saved desired Alexa state so the next-action guidance can reflect a saved-but-not-yet-applied Alexa turn-on plan
+
+## Alexa Save-Only Action Truthfulness Requirement
+
+- GitHub issue: `#74`
+- interpreted requirement: Alexa setup surfaces should distinguish saving the desired voice plan from applying it live, so operators are not told they can update the edge Worker when Cloudflare Worker management is still unavailable
+
+Expected behavior:
+
+- when Cloudflare Worker management is available, `/alexa/setup` may continue to use live-apply language like `Apply edge settings`
+- when Cloudflare Worker management is available, the Alexa form on `/connections` may continue to use live-apply language like `Apply Alexa settings`
+- when Cloudflare Worker management is unavailable, both surfaces should switch to truthful save-only labels instead of promising a live apply
+- the save-only state should explain that CalSync will store the desired Alexa enablement and skill allowlist until live Worker updates are available
+- the existing save-now/apply-later behavior from `#61` should stay intact; this is a truthfulness requirement for wording and operator guidance, not a behavior rollback

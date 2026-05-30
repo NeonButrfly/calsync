@@ -905,6 +905,10 @@ def test_connections_page_shows_alexa_turn_on_controls(monkeypatch) -> None:
     assert response.status_code == 200
     assert "Last-mile turn-on" in response.text
     assert "Apply Alexa settings" in response.text
+    assert (
+        "This will save the desired Alexa plan in CalSync and update the live edge Worker now."
+        in response.text
+    )
     assert "Open Alexa setup" in response.text
     assert "Open Alexa simulator" in response.text
     assert "amzn1.ask.skill.saved" in response.text
@@ -999,6 +1003,11 @@ def test_connections_page_can_save_desired_alexa_settings_without_manageable_wor
     assert response.status_code == 200
     assert "Desired Alexa settings saved securely." in response.text
     assert "Cloudflare worker management is not configured for this deployment." in response.text
+    assert "Save desired Alexa settings" in response.text
+    assert (
+        "Cloudflare Worker access is still missing, so this will save the desired Alexa plan in CalSync until live edge updates are available."
+        in response.text
+    )
     assert service.get_desired_alexa_settings() == {
         "enable_alexa": True,
         "allowed_skill_ids": ["amzn1.ask.skill.saved"],
@@ -1943,6 +1952,10 @@ def test_alexa_setup_page_renders_operator_steps(monkeypatch) -> None:
     assert "Cloudflare worker access" in response.text
     assert 'name="allowed_skill_ids"' in response.text
     assert "Apply edge settings" in response.text
+    assert (
+        "This will save the desired Alexa plan in CalSync and update the live edge Worker now."
+        in response.text
+    )
     assert "Desired Alexa settings" in response.text
     assert "Pending edge changes" in response.text
     assert "amzn1.ask.skill.saved" in response.text
@@ -1973,6 +1986,11 @@ def test_alexa_setup_page_shows_cloudflare_permission_error(monkeypatch) -> None
 
     assert response.status_code == 200
     assert "Cloudflare API token needs Workers Scripts permission." in response.text
+    assert "Save desired Alexa settings" in response.text
+    assert (
+        "Cloudflare Worker access is still missing, so this will save the desired Alexa plan in CalSync until live edge updates are available."
+        in response.text
+    )
 
 
 def test_alexa_setup_page_updates_edge_settings(monkeypatch) -> None:
@@ -2063,6 +2081,11 @@ def test_alexa_setup_page_saves_desired_settings_even_when_worker_is_not_managea
     assert response.status_code == 200
     assert "Desired Alexa settings saved securely." in response.text
     assert "Cloudflare worker management is not configured for this deployment." in response.text
+    assert "Save desired Alexa settings" in response.text
+    assert (
+        "Cloudflare Worker access is still missing, so this will save the desired Alexa plan in CalSync until live edge updates are available."
+        in response.text
+    )
     assert service.get_desired_alexa_settings() == {
         "enable_alexa": True,
         "allowed_skill_ids": ["amzn1.ask.skill.saved"],

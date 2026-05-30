@@ -247,7 +247,8 @@
                   <span>Allowed skill IDs</span>
                   <textarea name="allowed_skill_ids" rows="3">{{ desired_alexa_settings.allowed_skill_ids | join(", ") }}</textarea>
                 </label>
-                <button type="submit">Apply edge settings</button>
+                <p class="appointment-detail">{{ alexa_action_copy.helper_message }}</p>
+                <button type="submit">{{ alexa_action_copy.setup_button_label }}</button>
               </form>
             </article>
           </div>

@@ -403,8 +403,9 @@
                   <span>Allowed skill IDs</span>
                   <textarea name="allowed_skill_ids" rows="3">{{ desired_alexa_settings.allowed_skill_ids | join(", ") }}</textarea>
                 </label>
+                <p class="appointment-detail">{{ alexa_action_copy.helper_message }}</p>
                 <div class="action-row">
-                  <button type="submit">Apply Alexa settings</button>
+                  <button type="submit">{{ alexa_action_copy.connections_button_label }}</button>
                   <a class="button-link" href="/alexa/setup">Open Alexa setup</a>
                   <a class="button-link" href="/alexa/simulator">Open Alexa simulator</a>
                 </div>
