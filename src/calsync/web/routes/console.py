@@ -167,6 +167,8 @@ def _render_public_booking_page(
 def public_booking_submit(
     request: Request,
     title: str = Form(...),
+    requester_name: str = Form(...),
+    requester_contact: str = Form(...),
     attendees_text: str = Form(""),
     location: str = Form(""),
     notes: str = Form(""),
@@ -179,6 +181,8 @@ def public_booking_submit(
         request,
         booking_slug=None,
         title=title,
+        requester_name=requester_name,
+        requester_contact=requester_contact,
         attendees_text=attendees_text,
         location=location,
         notes=notes,
@@ -194,6 +198,8 @@ def public_booking_type_submit(
     request: Request,
     booking_slug: str,
     title: str = Form(...),
+    requester_name: str = Form(...),
+    requester_contact: str = Form(...),
     attendees_text: str = Form(""),
     location: str = Form(""),
     notes: str = Form(""),
@@ -206,6 +212,8 @@ def public_booking_type_submit(
         request,
         booking_slug=booking_slug,
         title=title,
+        requester_name=requester_name,
+        requester_contact=requester_contact,
         attendees_text=attendees_text,
         location=location,
         notes=notes,
@@ -221,6 +229,8 @@ def _handle_public_booking_submit(
     *,
     booking_slug: str | None,
     title: str,
+    requester_name: str,
+    requester_contact: str,
     attendees_text: str,
     location: str,
     notes: str,
@@ -237,6 +247,8 @@ def _handle_public_booking_submit(
     )
     booking_form_values = {
         "title": title,
+        "requester_name": requester_name,
+        "requester_contact": requester_contact,
         "attendees_text": attendees_text,
         "location": location,
         "notes": notes,
@@ -276,7 +288,11 @@ def _handle_public_booking_submit(
                 end_time=end_time,
                 timezone=timezone,
                 location=location or None,
-                notes=notes or None,
+                notes=_public_booking_notes(
+                    requester_name=requester_name,
+                    requester_contact=requester_contact,
+                    notes=notes,
+                ),
                 attendees_text=attendees_text or None,
                 target_calendar_url=str(target["value"]),
             ),
@@ -303,6 +319,8 @@ def _handle_public_booking_submit(
                     "timezone": detail.timezone,
                     "calendar_label": str(target["label"]),
                     "attendees_text": detail.attendees_text,
+                    "requester_name": requester_name,
+                    "requester_contact": requester_contact,
                 },
             ),
         )
@@ -2929,11 +2947,29 @@ def _default_booking_availability_form_values(
 def _empty_booking_form_values() -> dict[str, object]:
     return {
         "title": "",
+        "requester_name": "",
+        "requester_contact": "",
         "attendees_text": "",
         "location": "",
         "notes": "",
         "slot_value": "",
     }
+
+
+def _public_booking_notes(
+    *,
+    requester_name: str,
+    requester_contact: str,
+    notes: str,
+) -> str:
+    header = [
+        f"Requested by: {requester_name.strip()}",
+        f"Contact: {requester_contact.strip()}",
+    ]
+    extra_notes = notes.strip()
+    if extra_notes:
+        header.extend(["", extra_notes])
+    return "\n".join(header)
 
 
 def _serialize_availability_results(

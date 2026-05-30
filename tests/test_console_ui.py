@@ -127,6 +127,8 @@ def test_booking_page_renders_public_surface_with_open_slots(monkeypatch) -> Non
     assert response.status_code == 200
     assert "Book time with CalSync" in response.text
     assert "Available times" in response.text
+    assert "Your name" in response.text
+    assert "How should we reach you?" in response.text
     assert "Request this time" in response.text
 
 
@@ -2390,6 +2392,8 @@ def test_booking_page_can_create_appointment_from_selected_slot(monkeypatch) -> 
     response = client.post(
         "/book",
         data={
+            "requester_name": "Morgan",
+            "requester_contact": "morgan@example.com",
             "title": "School intake call",
             "attendees_text": "Kayra",
             "location": "Phone",
@@ -2402,10 +2406,14 @@ def test_booking_page_can_create_appointment_from_selected_slot(monkeypatch) -> 
     assert "Booking confirmed" in response.text
     assert "School intake call" in response.text
     assert "Kayra" in response.text
+    assert "Morgan" in response.text
+    assert "morgan@example.com" in response.text
 
     api_response = client.get("/api/appointments?date_from=2026-06-01&date_to=2026-06-01")
     items = api_response.json()["items"]
-    assert any(item["title"] == "School intake call" for item in items)
+    created = next(item for item in items if item["title"] == "School intake call")
+    assert "Requested by: Morgan" in (created["notes"] or "")
+    assert "Contact: morgan@example.com" in (created["notes"] or "")
 
 
 def test_booking_page_uses_custom_success_message(monkeypatch) -> None:
@@ -2430,6 +2438,8 @@ def test_booking_page_uses_custom_success_message(monkeypatch) -> None:
     response = client.post(
         "/book",
         data={
+            "requester_name": "Morgan",
+            "requester_contact": "morgan@example.com",
             "title": "Therapy intake",
             "attendees_text": "Kayra",
             "location": "Phone",

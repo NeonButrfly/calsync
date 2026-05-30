@@ -281,6 +281,19 @@ Expected behavior:
 - deleting a booking type should remove its shareable `/book/{slug}` link cleanly
 - the management actions should return the operator to `/booking/setup` with clear success or error feedback
 
+## Public Booking Invitee Contact Requirement
+
+- GitHub issue: `#63`
+- interpreted requirement: the public booking flow should capture who is requesting the appointment and how to reach them, so operators are not left with a booked slot but no follow-up context
+
+Expected behavior:
+
+- `/book` and `/book/{slug}` should require the requester name
+- `/book` and `/book/{slug}` should require requester contact details such as an email address or phone number
+- the booking confirmation should show the captured requester name and contact details back to the invitee
+- the resulting appointment context should preserve the requester name and contact details for operators, even if the appointment schema stays lightweight
+- this slice may reuse the existing appointment notes field for that preserved contact context instead of requiring a brand new database model
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

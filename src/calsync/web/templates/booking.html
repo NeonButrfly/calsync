@@ -81,6 +81,11 @@
               <strong>{{ booking_confirmation.calendar_label }}</strong>
               <span>{% if booking_confirmation.attendees_text %}For {{ booking_confirmation.attendees_text }}{% else %}Saved through public booking{% endif %}</span>
             </article>
+            <article class="detail-card">
+              <p class="eyebrow">Requested by</p>
+              <strong>{{ booking_confirmation.requester_name }}</strong>
+              <span>{{ booking_confirmation.requester_contact }}</span>
+            </article>
           </div>
         </section>
         {% endif %}
@@ -184,6 +189,14 @@
               <input type="hidden" name="availability_date_to" value="{{ availability_form_values.date_to }}" />
               <input type="hidden" name="availability_duration_minutes" value="{{ availability_form_values.duration_minutes }}" />
 
+              <label>
+                <span>Your name</span>
+                <input name="requester_name" type="text" value="{{ booking_form_values.requester_name }}" placeholder="Morgan" required />
+              </label>
+              <label>
+                <span>How should we reach you?</span>
+                <input name="requester_contact" type="text" value="{{ booking_form_values.requester_contact }}" placeholder="morgan@example.com or 907-555-0101" required />
+              </label>
               <label>
                 <span>Appointment title</span>
                 <input name="title" type="text" value="{{ booking_form_values.title }}" placeholder="School intake call" required />

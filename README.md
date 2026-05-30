@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, and `#62` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, and `#63` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -33,6 +33,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - a polished scheduling workspace at `/` for create, edit, cancel, filtered browsing, and appointment detail review
 - a planner-style scheduling board at `/` that now renders distinct day, week, and month planning states instead of only one stacked agenda layout
 - a first public booking page at `/book` that lets an invitee claim an open time and create a real appointment through the same shared scheduling brain
+- invitee contact capture in the public booking flow, so `/book` stores who requested the time and how to reach them in the resulting appointment context
 - an in-product booking setup page at `/booking/setup` that lets operators control the public booking title, description, duration defaults, search window, success copy, and target calendar
 - public booking availability rules that let operators choose the invitee-facing bookable weekdays and daily booking hours instead of relying on one hard-coded slot window
 - multiple public booking types with shareable links such as `/book/school-intake`, so different appointment flows can carry their own copy, duration, and availability defaults
@@ -146,6 +147,7 @@ The root page now acts as the first family scheduling UX:
 - that booking setup flow now supports multiple named booking types, each with its own public slug and shareable invitee-facing URL
 - that default `/book` route now becomes a booking-type chooser when multiple public booking types exist, while keeping direct `/book/{slug}` links for focused flows
 - that booking setup flow now also lets operators make an existing booking type the default public flow or delete a stale type directly from the UI
+- that public booking flow now captures the requester name and contact details so operators can follow up without losing that context after the appointment is created
 - a first in-product Alexa setup page that links the live endpoint, policy URLs, and skill package download
 - a first in-product Cloudflare access form that stores Worker-management credentials securely in the product vault
 - a first in-product Alexa edge-settings form that can always save the desired Alexa state in the product vault, then apply Worker Alexa flags live when Cloudflare worker-management permission is configured

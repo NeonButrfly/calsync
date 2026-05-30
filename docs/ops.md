@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current CalSync service, family scheduling UX, the planner-style day/week/month schedule board, a first public booking page, in-product booking setup, public booking availability rules, multiple public booking types with shareable links, a public booking catalog chooser, in-product booking type management actions, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, Alexa setup flow, persisted desired Alexa edge settings, in-product writable target verification, the checklist-style Connections verification center, direct provider actions from that shared surface, and truthful workspace capability messaging tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, and `#62`.
+This guide covers the current CalSync service, family scheduling UX, the planner-style day/week/month schedule board, a first public booking page, public booking invitee contact capture, in-product booking setup, public booking availability rules, multiple public booking types with shareable links, a public booking catalog chooser, in-product booking type management actions, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, Alexa setup flow, persisted desired Alexa edge settings, in-product writable target verification, the checklist-style Connections verification center, direct provider actions from that shared surface, and truthful workspace capability messaging tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, and `#63`.
 
 ## What This Service Does
 
@@ -10,6 +10,7 @@ This guide covers the current CalSync service, family scheduling UX, the planner
 - exposes a professional web scheduling workspace at `/` for create, edit, cancel, filtered browsing, and review
 - exposes a planner-style day/week/month board at `/` so the selected schedule horizon changes the actual presentation layer
 - exposes a first public booking page at `/book` so invitees can request open time through the same shared write-capable scheduling brain
+- exposes public booking requester contact capture so invitees can say who is requesting the time and how to reach them
 - exposes an in-product booking setup page at `/booking/setup` so operators can control the public booking title, description, duration defaults, search window, success copy, and writable target
 - exposes public booking availability rules so operators can restrict `/book` to chosen weekdays and daily booking hours
 - exposes multiple public booking types so `/book/{slug}` can represent different appointment flows with separate invitee-facing copy and defaults
@@ -165,6 +166,7 @@ Behavior:
 - exposes a root schedule board that now renders distinct day, week, and month planning states instead of only a single agenda layout
 - exposes a root workspace capability summary that now reflects the actual connected readiness state instead of static broad capability copy
 - exposes a first public booking page that searches open time and creates a real appointment on the default writable connected calendar target
+- exposes public booking requester contact fields so the saved appointment context records who asked for the time and how to follow up
 - exposes an in-product booking setup page that lets operators configure the invitee-facing copy, default duration, search horizon, success message, and chosen writable target for `/book`
 - exposes public booking weekday and hour rules so `/book` only suggests openings inside the operator-managed bookable window
 - exposes multiple public booking types so operators can create and share distinct invitee-facing URLs like `/book/school-intake` without reusing one global booking configuration
