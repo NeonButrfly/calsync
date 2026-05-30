@@ -2244,6 +2244,8 @@ def test_alexa_setup_page_renders_operator_steps(monkeypatch) -> None:
     assert "amzn1.ask.skill.saved" in response.text
     assert "Writable calendar connected:" in response.text
     assert "Cloudflare Worker access configured:" in response.text
+    assert "Desired Alexa settings saved:" in response.text
+    assert "Desired Alexa settings saved:</strong>\n                  Yes" in response.text
     assert ">No<" in response.text
     assert "Account linking configured:" in response.text
     assert ">No<" in response.text
@@ -2487,6 +2489,8 @@ def test_alexa_setup_page_shows_no_writable_calendar_in_step_four(monkeypatch) -
     assert response.status_code == 200
     assert "Writable calendar connected:" in response.text
     assert "Cloudflare Worker access configured:" in response.text
+    assert "Desired Alexa settings saved:" in response.text
+    assert "Desired Alexa settings saved:</strong>\n                  No" in response.text
     assert ">No<" in response.text
 
 

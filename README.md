@@ -89,6 +89,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - an account-linking row in Alexa Step 4, so the final live turn-on summary shows that prerequisite directly instead of hiding it earlier in the page
 - a writable-calendar row in Alexa Step 4, so the final live turn-on summary now shows the first real scheduling prerequisite instead of leaving it only in the next-action sentence
 - a Cloudflare-access row in Alexa Step 4, so the final live turn-on summary now shows whether product-managed Worker access is configured instead of hiding that blocker only in helper text
+- a desired-settings row in Alexa Step 4, so the final live turn-on summary now shows whether CalSync actually has a saved Alexa plan instead of leaving that prerequisite only in a separate status card
 - a simulator readiness summary for no-calendar voice testing states, so `/alexa/simulator` explains when LaunchRequest is still useful and why scheduling-intent tests are still blocked
 - a first availability finder across the workspace, edge API, and Alexa so CalSync can suggest open appointment windows instead of only listing busy ones
 
@@ -393,6 +394,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Keep Alexa Step 4 turn-on summary aligned with live prerequisites: issue `#85`
 - Keep Alexa Step 4 turn-on summary aligned with writable-calendar readiness: issue `#86`
 - Keep Alexa Step 4 turn-on summary aligned with Cloudflare access readiness: issue `#87`
+- Keep Alexa Step 4 turn-on summary aligned with desired Alexa state readiness: issue `#88`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

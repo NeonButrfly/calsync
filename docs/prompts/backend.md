@@ -468,6 +468,17 @@ Expected behavior:
 - that row should show whether CalSync currently has saved Cloudflare Worker-management credentials
 - the Step 4 checklist should agree with the live helper and next-action guidance instead of hiding the Worker-access blocker outside the final summary
 
+## Alexa Step 4 Desired State Requirement
+
+- GitHub issue: `#88`
+- interpreted requirement: the final Alexa turn-on summary should show whether a desired Alexa plan has already been saved in CalSync, because the product supports a save-now/apply-later flow and the live turn-on path depends on that saved desired state
+
+Expected behavior:
+
+- `GET /alexa/setup` Step 4 should include an explicit desired-state readiness row
+- that row should show whether CalSync currently has saved desired Alexa edge settings
+- the Step 4 checklist should agree with the save-now/apply-later flow instead of hiding the desired-state prerequisite in a separate status card
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

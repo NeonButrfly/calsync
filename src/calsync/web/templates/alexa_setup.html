@@ -287,6 +287,10 @@
                   {% if cloudflare_credentials.api_token_saved %}Yes{% else %}No{% endif %}
                 </p>
                 <p class="appointment-detail">
+                  <strong>Desired Alexa settings saved:</strong>
+                  {% if desired_alexa_settings.saved %}Yes{% else %}No{% endif %}
+                </p>
+                <p class="appointment-detail">
                   <strong>Edge reachable:</strong>
                   {% if readiness.edge.reachable %}Yes{% else %}No{% endif %}
                 </p>
