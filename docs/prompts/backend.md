@@ -501,6 +501,17 @@ Expected behavior:
 - that card should show `Ready` when CalSync has a writable connected calendar path and `Needs setup` when it does not
 - the shared Alexa panel should agree with its own next-action guidance instead of hiding the writable-calendar blocker only in summary text
 
+## Connections Provider Next Actions Requirement
+
+- GitHub issue: `#91`
+- interpreted requirement: the shared `/connections` finish-line summary should tell operators to save the shared Google or Microsoft OAuth app first when browser account connect is not yet available
+
+Expected behavior:
+
+- `GET /connections` should keep the Google and Microsoft `Next actions` summary aligned with the provider cards on the same page
+- when the shared OAuth app is missing, the summary should say to save the shared OAuth app before browser account connect is available
+- only once the shared OAuth app is saved should the summary advance to telling operators to connect the account through the browser
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

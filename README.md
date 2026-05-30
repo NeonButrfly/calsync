@@ -92,6 +92,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - a desired-settings row in Alexa Step 4, so the final live turn-on summary now shows whether CalSync actually has a saved Alexa plan instead of leaving that prerequisite only in a separate status card
 - a truthful desired-settings card on `/connections`, so the shared Alexa panel now says when no Alexa plan has been saved yet instead of presenting unsaved defaults like a real live plan
 - a writable-calendar card on `/connections` for Alexa, so the shared voice panel now surfaces the first real scheduling prerequisite instead of hiding it only in next-action copy
+- truthful Google and Microsoft next-action summaries on `/connections`, so the shared finish-line panel now says to save the shared OAuth app first when browser connect is not actually available yet
 - a simulator readiness summary for no-calendar voice testing states, so `/alexa/simulator` explains when LaunchRequest is still useful and why scheduling-intent tests are still blocked
 - a first availability finder across the workspace, edge API, and Alexa so CalSync can suggest open appointment windows instead of only listing busy ones
 
@@ -399,6 +400,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Keep Alexa Step 4 turn-on summary aligned with desired Alexa state readiness: issue `#88`
 - Keep Connections Alexa panel aligned with desired Alexa state readiness: issue `#89`
 - Keep Connections Alexa panel aligned with writable-calendar readiness: issue `#90`
+- Keep Connections provider next actions truthful before OAuth setup exists: issue `#91`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

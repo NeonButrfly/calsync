@@ -879,6 +879,8 @@ def test_connections_page_renders_provider_summary(monkeypatch) -> None:
     assert 'href="/auth/google/start"' in response.text
     assert '<button type="button" disabled>Connect Microsoft account</button>' in response.text
     assert "Save the shared Microsoft OAuth app before browser account connect is available." in response.text
+    assert "Google:</strong> already usable for live scheduling" in response.text
+    assert "Microsoft:</strong> save the shared Microsoft OAuth app before browser account connect is available" in response.text
     assert 'href="/auth/microsoft/start"' not in response.text
 
 
@@ -1336,6 +1338,8 @@ def test_connections_page_shows_voice_specific_alexa_guidance(monkeypatch) -> No
     assert "Desired settings" in response.text
     assert "Not saved yet" in response.text
     assert "No desired Alexa edge state has been saved in the product yet." in response.text
+    assert "Google:</strong> save the shared Google OAuth app before browser account connect is available" in response.text
+    assert "Microsoft:</strong> save the shared Microsoft OAuth app before browser account connect is available" in response.text
     assert (
         "Connect at least one writable calendar, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
         in response.text

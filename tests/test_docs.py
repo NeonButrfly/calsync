@@ -57,6 +57,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#88" in readme_content
     assert "#89" in readme_content
     assert "#90" in readme_content
+    assert "#91" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -160,6 +161,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "a desired-settings row in alexa step 4" in readme_content
     assert "a truthful desired-settings card on `/connections`" in readme_content
     assert "a writable-calendar card on `/connections` for alexa" in readme_content
+    assert "truthful google and microsoft next-action summaries on `/connections`" in readme_content
     assert "simulator readiness summary for no-calendar voice testing states" in readme_content
     assert "live-vs-desired drift visibility" in readme_content
     assert "workspace capability summary now reflects the actual connected readiness state" in readme_content
@@ -230,6 +232,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#88" in ops_content
     assert "#89" in ops_content
     assert "#90" in ops_content
+    assert "#91" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -304,6 +307,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "exposes alexa account-linking readiness on `/connections`" in ops_content
     assert "keeps the shared alexa desired-settings card on `/connections` truthful" in ops_content
     assert "exposes writable-calendar readiness on `/connections` for the alexa panel" in ops_content
+    assert "keeps the shared google and microsoft next-action summary on `/connections` truthful" in ops_content
     assert "exposes account-linking readiness directly in alexa step 4" in ops_content
     assert "exposes writable-calendar readiness directly in alexa step 4" in ops_content
     assert "exposes cloudflare worker access readiness directly in alexa step 4" in ops_content
@@ -421,6 +425,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "alexa step 4 desired state requirement" in prompt_content
     assert "connections alexa desired state requirement" in prompt_content
     assert "connections alexa writable calendar requirement" in prompt_content
+    assert "connections provider next actions requirement" in prompt_content
     assert "simulator should show clear readiness and blocker guidance when no connected calendars are available" in prompt_content
     assert "get /alexa/setup" in prompt_content
     assert "get /alexa/skill-package.zip" in prompt_content
@@ -538,6 +543,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "`get /alexa/setup` step 4 should include an explicit desired-state readiness row" in prompt_content
     assert "`get /connections` should show a truthful desired-settings status inside the alexa panel" in prompt_content
     assert "`get /connections` should include a writable-calendar readiness card inside the alexa panel" in prompt_content
+    assert "`get /connections` should keep the google and microsoft `next actions` summary aligned with the provider cards on the same page" in prompt_content
     assert "both surfaces should switch to truthful save-only labels instead of promising a live apply" in prompt_content
     assert "enable_alexa" in prompt_content
     assert "alexa_allowed_skill_ids" in prompt_content
