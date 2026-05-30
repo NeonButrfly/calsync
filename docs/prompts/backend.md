@@ -490,6 +490,17 @@ Expected behavior:
 - when no desired Alexa edge state has been saved yet, the panel should say that clearly instead of showing `Keep Alexa off` as if that were a deliberate saved plan
 - when a desired Alexa plan has been saved, the panel should acknowledge that it is saved and describe the saved mode
 
+## Connections Alexa Writable Calendar Requirement
+
+- GitHub issue: `#90`
+- interpreted requirement: the shared Alexa panel on `/connections` should show whether a writable calendar is connected, because that is the first real scheduling prerequisite in the live Alexa turn-on flow
+
+Expected behavior:
+
+- `GET /connections` should include a writable-calendar readiness card inside the Alexa panel
+- that card should show `Ready` when CalSync has a writable connected calendar path and `Needs setup` when it does not
+- the shared Alexa panel should agree with its own next-action guidance instead of hiding the writable-calendar blocker only in summary text
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

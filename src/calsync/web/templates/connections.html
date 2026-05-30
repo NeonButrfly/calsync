@@ -388,6 +388,11 @@
                   <span>{% if readiness.edge.alexa.enabled %}The edge Worker is accepting Alexa traffic.{% else %}The edge Worker still needs Alexa enabled before real device traffic can flow.{% endif %}</span>
                 </article>
                 <article class="detail-card">
+                  <p class="eyebrow">Writable calendar</p>
+                  <strong>{% if readiness.origin.any_calendar_ready %}Ready{% else %}Needs setup{% endif %}</strong>
+                  <span>{% if readiness.origin.any_calendar_ready %}Alexa already has a real writable calendar path behind the shared scheduling brain.{% else %}Connect a writable calendar so Alexa has a real household schedule to read and write.</span>{% endif %}
+                </article>
+                <article class="detail-card">
                   <p class="eyebrow">Desired settings</p>
                   <strong>{% if desired_alexa_settings.saved %}Saved{% else %}Not saved yet{% endif %}</strong>
                   <span>

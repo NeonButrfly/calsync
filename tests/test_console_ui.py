@@ -1133,6 +1133,9 @@ def test_connections_page_shows_alexa_turn_on_controls(monkeypatch) -> None:
         "This will save the desired Alexa plan in CalSync and update the live edge Worker now."
         in response.text
     )
+    assert "Writable calendar" in response.text
+    assert "Ready" in response.text
+    assert "Alexa already has a real writable calendar path behind the shared scheduling brain." in response.text
     assert "Desired settings" in response.text
     assert "Saved" in response.text
     assert "Saved plan: enable Alexa." in response.text
@@ -1327,6 +1330,9 @@ def test_connections_page_shows_voice_specific_alexa_guidance(monkeypatch) -> No
 
     assert response.status_code == 200
     assert "Alexa voice path" in response.text
+    assert "Writable calendar" in response.text
+    assert "Needs setup" in response.text
+    assert "Connect a writable calendar so Alexa has a real household schedule to read and write." in response.text
     assert "Desired settings" in response.text
     assert "Not saved yet" in response.text
     assert "No desired Alexa edge state has been saved in the product yet." in response.text
