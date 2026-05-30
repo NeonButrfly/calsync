@@ -344,10 +344,27 @@
                   <h3>New appointment</h3>
                 </div>
               </div>
+              {% if not create_ready %}
+              <div class="empty-state">
+                <h4>Calendar setup still blocks write actions</h4>
+                <p>
+                  {{ create_block_message }}
+                </p>
+                <div class="stack-actions">
+                  <a class="text-action" href="/connections">Open Connections</a>
+                  <a class="text-action" href="/calendar/setup">Open Apple setup</a>
+                  <a class="text-action" href="/google/setup">Open Google setup</a>
+                  <a class="text-action" href="/microsoft/setup">Open Microsoft setup</a>
+                </div>
+              </div>
+              {% endif %}
               <form class="form-grid" method="post" action="/appointments">
                 <label>
                   <span>Calendar</span>
-                  <select name="target_calendar_url">
+                  <select name="target_calendar_url"{% if not create_ready %} disabled{% endif %}>
+                    {% if not calendar_options %}
+                    <option value="" selected>No writable calendars connected yet</option>
+                    {% endif %}
                     {% for option in calendar_options %}
                     <option value="{{ option.value }}"{% if option.is_selected %} selected{% endif %}>{{ option.label }}</option>
                     {% endfor %}
@@ -391,7 +408,7 @@
                   <input name="all_day" type="checkbox" value="true"{% if form_values.all_day %} checked{% endif %} />
                   <span>All-day appointment</span>
                 </label>
-                <button type="submit">Create appointment</button>
+                <button type="submit"{% if not create_ready %} disabled{% endif %}>Create appointment</button>
               </form>
             </article>
 

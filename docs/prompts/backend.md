@@ -198,6 +198,19 @@ Expected behavior:
 - when Google or Microsoft are not connected yet, the workspace should say those write paths are waiting for setup instead of reading like live verified capability
 - when Alexa is not live yet, the workspace should direct the operator toward setup or a saved turn-on plan instead of implying the live voice route is already active
 
+## Root No-Calendar Create-State Requirement
+
+- GitHub issue: `#67`
+- interpreted requirement: when the live runtime has no writable Apple, Google, or Microsoft calendar connected, the root workspace should stay operationally truthful instead of looking like create actions are ready to use
+
+Expected behavior:
+
+- the root workspace capability list should stop claiming Apple read or write capability when no writable calendar path is connected
+- the root workspace should clearly explain that a writable calendar must be connected before create, edit, and cancel actions are meaningful
+- the create panel should show direct setup guidance instead of only an apparently normal scheduling form
+- the target-calendar control should render as unavailable when there are no writable calendars to choose from
+- the create submission path should look blocked in the UI until the operator connects at least one writable calendar target
+
 ## Public Booking Page Requirement
 
 - GitHub issue: `#55`

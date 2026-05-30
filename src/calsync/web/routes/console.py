@@ -2455,6 +2455,11 @@ def _build_console_context(
     readiness: dict[str, object],
 ) -> dict[str, object]:
     hero_subject = appointments[0] if appointments else None
+    calendar_options = _calendar_options(
+        service,
+        selected_calendar_url=str(form_values.get("target_calendar_url") or ""),
+    )
+    create_ready = bool(calendar_options)
     return {
         "request": request,
         "flash_message": flash_message,
@@ -2465,16 +2470,19 @@ def _build_console_context(
             else None
         ),
         "form_values": form_values,
+        "create_ready": create_ready,
+        "create_block_message": (
+            None
+            if create_ready
+            else "Connect a writable calendar before creating appointments from the schedule workspace."
+        ),
         "availability_form_values": availability_form_values,
         "availability_results": _serialize_availability_results(availability_results),
         "availability_error": availability_error,
         "availability_searched": availability_searched,
         "calendar_label": service.display_calendar_name,
         "account_label": service.display_account_label,
-        "calendar_options": _calendar_options(
-            service,
-            selected_calendar_url=str(form_values.get("target_calendar_url") or ""),
-        ),
+        "calendar_options": calendar_options,
         "selected_window": selected_window,
         "show_cancelled": show_cancelled,
         "window_options": _window_options(
@@ -2691,12 +2699,18 @@ def _workspace_capabilities(readiness: dict[str, object]) -> list[str]:
     origin = readiness.get("origin", {})
     edge = readiness.get("edge", {})
     desired_alexa = readiness.get("desired_alexa", {})
-    items = [
-        "Read existing Apple calendar events",
-        "Write to connected Apple calendars",
-        "Create, edit, and cancel appointments",
-        "Browse day, week, and month windows",
-    ]
+    any_calendar_ready = bool(origin.get("any_calendar_ready"))
+    items: list[str] = ["Browse day, week, and month windows"]
+    if any_calendar_ready:
+        items.insert(0, "Create, edit, and cancel appointments")
+        items.insert(0, "Read and sync existing connected calendar events")
+    else:
+        items.insert(
+            0,
+            "Connect a writable calendar to unlock create, edit, and cancel appointments.",
+        )
+    if origin.get("apple_ready"):
+        items.append("Write to connected Apple calendars")
     if origin.get("google_ready"):
         items.append("Write to connected Google calendars")
     else:

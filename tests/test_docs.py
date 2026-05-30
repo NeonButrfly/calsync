@@ -33,6 +33,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#63" in readme_content
     assert "#65" in readme_content
     assert "#66" in readme_content
+    assert "#67" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -117,6 +118,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "simulator readiness summary for no-calendar voice testing states" in readme_content
     assert "live-vs-desired drift visibility" in readme_content
     assert "workspace capability summary now reflects the actual connected readiness state" in readme_content
+    assert "root workspace now also blocks the create flow clearly when no writable calendar is connected" in readme_content
     assert "named apple calendar targeting through alexa and the simulator" in readme_content
     assert "provider-aware alexa calendar targeting across apple, google, and microsoft" in readme_content
     assert "https://mcp-calsync.kaymayers9.workers.dev/mcp" in readme_content
@@ -153,6 +155,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#63" in ops_content
     assert "#65" in ops_content
     assert "#66" in ops_content
+    assert "#67" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -246,6 +249,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "desired alexa edge-state summary" in ops_content
     assert "save-now/apply-later path" in ops_content
     assert "actual connected readiness state instead of static broad capability copy" in ops_content
+    assert "blocked root create state when no writable calendar is connected" in ops_content
     assert "post /mcp" in ops_content
     assert "mcp_auth_token" in ops_content
     assert "edge_internal_token" in ops_content
@@ -279,6 +283,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#63" in prompt_content
     assert "#65" in prompt_content
     assert "#66" in prompt_content
+    assert "#67" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -368,7 +373,9 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "desired alexa edge settings requirement" in prompt_content
     assert "should always save the desired `enable_alexa` and `alexa_allowed_skill_ids` values" in prompt_content
     assert "workspace truthfulness requirement" in prompt_content
+    assert "root no-calendar create-state requirement" in prompt_content
     assert "should not show broken helper copy or capability language that overstates the currently connected live state" in prompt_content
+    assert "target-calendar control should render as unavailable when there are no writable calendars to choose from" in prompt_content
     assert "enable_alexa" in prompt_content
     assert "alexa_allowed_skill_ids" in prompt_content
     assert "post /alexa/simulate" in prompt_content
