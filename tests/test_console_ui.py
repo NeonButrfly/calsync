@@ -2823,6 +2823,38 @@ def test_console_root_shows_availability_results(monkeypatch) -> None:
     assert "10:00 AM - 11:00 AM" in response.text
 
 
+def test_console_root_blocks_availability_search_when_no_calendar_is_connected(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get(
+        "/?view=week&availability_date_from=2026-06-01&availability_date_to=2026-06-07&availability_duration_minutes=60"
+    )
+
+    assert response.status_code == 200
+    assert "Availability setup still blocked" in response.text
+    assert "Connect a writable calendar before searching for open time from the schedule workspace." in response.text
+    assert '<button type="submit" disabled>Find open time</button>' in response.text
+    assert "No writable calendars connected yet" in response.text
+    assert "No open windows found" not in response.text
+
+
 def test_booking_page_can_create_appointment_from_selected_slot(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     monkeypatch.setattr(

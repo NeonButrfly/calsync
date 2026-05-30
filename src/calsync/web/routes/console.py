@@ -2150,7 +2150,9 @@ def scheduling_console(
     availability_form_values["duration_minutes"] = availability_duration_minutes
     availability_results: list[AvailabilitySlot] = []
     availability_error: str | None = None
-    availability_searched = bool(availability_date_from or availability_date_to)
+    availability_requested = bool(availability_date_from or availability_date_to)
+    availability_ready = bool(service.available_calendars)
+    availability_searched = availability_requested and availability_ready
     if availability_searched:
         try:
             availability_results = service.find_availability(
@@ -2460,6 +2462,7 @@ def _build_console_context(
         selected_calendar_url=str(form_values.get("target_calendar_url") or ""),
     )
     create_ready = bool(calendar_options)
+    availability_ready = create_ready
     return {
         "request": request,
         "flash_message": flash_message,
@@ -2477,6 +2480,12 @@ def _build_console_context(
             else "Connect a writable calendar before creating appointments from the schedule workspace."
         ),
         "availability_form_values": availability_form_values,
+        "availability_ready": availability_ready,
+        "availability_block_message": (
+            None
+            if availability_ready
+            else "Connect a writable calendar before searching for open time from the schedule workspace."
+        ),
         "availability_results": _serialize_availability_results(availability_results),
         "availability_error": availability_error,
         "availability_searched": availability_searched,

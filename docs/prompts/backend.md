@@ -211,6 +211,18 @@ Expected behavior:
 - the target-calendar control should render as unavailable when there are no writable calendars to choose from
 - the create submission path should look blocked in the UI until the operator connects at least one writable calendar target
 
+## Root No-Calendar Availability Requirement
+
+- GitHub issue: `#68`
+- interpreted requirement: when the live runtime has no writable Apple, Google, or Microsoft calendar connected, the root workspace should not behave like availability search is live or imply that there are simply no openings
+
+Expected behavior:
+
+- the root availability panel should clearly explain that writable calendar setup still blocks meaningful open-time search
+- the availability form should look blocked in the UI until the operator connects at least one writable calendar target
+- disconnected availability requests should not fall back to `No open windows found`
+- the root workspace should point the operator toward setup instead of making the no-calendar state look like a normal empty-schedule result
+
 ## Public Booking Page Requirement
 
 - GitHub issue: `#55`

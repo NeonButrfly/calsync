@@ -419,21 +419,35 @@
                   <h3>Find open time</h3>
                 </div>
               </div>
+              {% if not availability_ready %}
+              <div class="empty-state">
+                <h4>Availability setup still blocked</h4>
+                <p>
+                  {{ availability_block_message }}
+                </p>
+                <div class="stack-actions">
+                  <a class="text-action" href="/connections">Open Connections</a>
+                  <a class="text-action" href="/calendar/setup">Open Apple setup</a>
+                  <a class="text-action" href="/google/setup">Open Google setup</a>
+                  <a class="text-action" href="/microsoft/setup">Open Microsoft setup</a>
+                </div>
+              </div>
+              {% endif %}
               <form class="form-grid" method="get" action="/">
                 <input type="hidden" name="view" value="{{ selected_window }}" />
                 <label>
                   <span>From</span>
-                  <input name="availability_date_from" type="date" value="{{ availability_form_values.date_from }}" required />
+                  <input name="availability_date_from" type="date" value="{{ availability_form_values.date_from }}" required{% if not availability_ready %} disabled{% endif %} />
                 </label>
                 <label>
                   <span>To</span>
-                  <input name="availability_date_to" type="date" value="{{ availability_form_values.date_to }}" required />
+                  <input name="availability_date_to" type="date" value="{{ availability_form_values.date_to }}" required{% if not availability_ready %} disabled{% endif %} />
                 </label>
                 <label>
                   <span>Duration minutes</span>
-                  <input name="availability_duration_minutes" type="number" min="15" step="15" value="{{ availability_form_values.duration_minutes }}" required />
+                  <input name="availability_duration_minutes" type="number" min="15" step="15" value="{{ availability_form_values.duration_minutes }}" required{% if not availability_ready %} disabled{% endif %} />
                 </label>
-                <button type="submit">Find open time</button>
+                <button type="submit"{% if not availability_ready %} disabled{% endif %}>Find open time</button>
               </form>
 
               {% if availability_error %}
