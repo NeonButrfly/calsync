@@ -146,6 +146,48 @@ def test_console_root_explains_blocked_create_state_when_no_calendar_is_connecte
     assert "Open Connections" in response.text
 
 
+def test_console_root_explains_blocked_schedule_state_when_no_calendar_is_connected(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    app = create_app()
+    client = TestClient(app)
+
+    day_response = client.get("/?view=day")
+    week_response = client.get("/?view=week")
+    month_response = client.get("/?view=month")
+
+    assert day_response.status_code == 200
+    assert "Calendar setup still blocks live schedule sync." in day_response.text
+    assert "Connect a writable calendar before CalSync can show a real live schedule window." in day_response.text
+    assert "Choose a calendar connection before expecting appointment detail or activity here." in day_response.text
+    assert "Nothing scheduled yet" not in day_response.text
+    assert "Select an appointment" not in day_response.text
+
+    assert week_response.status_code == 200
+    assert "Calendar setup still blocks live schedule sync." in week_response.text
+    assert "Connect a writable calendar before CalSync can show a real live schedule window." in week_response.text
+    assert "Nothing scheduled yet" not in week_response.text
+
+    assert month_response.status_code == 200
+    assert "Calendar setup still blocks live schedule sync." in month_response.text
+    assert "Connect a writable calendar before CalSync can show a real live schedule window." in month_response.text
+    assert ">Open<" not in month_response.text
+
+
 def test_booking_page_renders_public_surface_with_open_slots(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     monkeypatch.setattr(

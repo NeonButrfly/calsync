@@ -2463,6 +2463,7 @@ def _build_console_context(
     )
     create_ready = bool(calendar_options)
     availability_ready = create_ready
+    schedule_ready = create_ready
     return {
         "request": request,
         "flash_message": flash_message,
@@ -2480,6 +2481,17 @@ def _build_console_context(
             else "Connect a writable calendar before creating appointments from the schedule workspace."
         ),
         "availability_form_values": availability_form_values,
+        "schedule_ready": schedule_ready,
+        "schedule_block_message": (
+            None
+            if schedule_ready
+            else "Connect a writable calendar before CalSync can show a real live schedule window."
+        ),
+        "detail_block_message": (
+            None
+            if schedule_ready
+            else "Choose a calendar connection before expecting appointment detail or activity here."
+        ),
         "availability_ready": availability_ready,
         "availability_block_message": (
             None

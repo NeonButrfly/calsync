@@ -234,6 +234,18 @@ Expected behavior:
 - the invitee-facing availability refresh controls should look blocked in the UI until at least one writable calendar target is connected
 - the page should keep the existing `not ready yet` message, but the blocked availability state should reinforce it instead of contradicting it
 
+## Root No-Calendar Schedule-Sync Requirement
+
+- GitHub issue: `#70`
+- interpreted requirement: when the live runtime has no writable Apple, Google, or Microsoft calendar connected, the root schedule board and detail panel should not behave like a normal empty calendar
+
+Expected behavior:
+
+- the root day and week boards should not show `Nothing scheduled yet` for a disconnected runtime
+- the root month board should not show `Open` as if it were a normal empty calendar
+- the selected-appointment empty state should not say `Select an appointment` when the real blocker is missing calendar setup
+- the root workspace should clearly explain that connected calendar setup still blocks meaningful live schedule sync
+
 ## Public Booking Page Requirement
 
 - GitHub issue: `#55`

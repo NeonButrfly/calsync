@@ -171,7 +171,18 @@
                 </div>
               </div>
 
-              {% if schedule_board.mode == "month" %}
+              {% if not schedule_ready %}
+              <div class="empty-state">
+                <h4>Calendar setup still blocks live schedule sync.</h4>
+                <p>{{ schedule_block_message }}</p>
+                <div class="stack-actions">
+                  <a class="text-action" href="/connections">Open Connections</a>
+                  <a class="text-action" href="/calendar/setup">Open Apple setup</a>
+                  <a class="text-action" href="/google/setup">Open Google setup</a>
+                  <a class="text-action" href="/microsoft/setup">Open Microsoft setup</a>
+                </div>
+              </div>
+              {% elif schedule_board.mode == "month" %}
               <div class="schedule-board schedule-board--month">
                 {% for week in schedule_board.weeks %}
                 <div class="month-row">
@@ -327,12 +338,17 @@
               </div>
               {% else %}
               <div class="empty-state">
+                {% if not schedule_ready %}
+                <h4>Calendar setup still blocks appointment detail.</h4>
+                <p>{{ detail_block_message }}</p>
+                {% else %}
                 <h4>Select an appointment</h4>
                 <p>
                   As soon as there is something in the current schedule window,
                   CalSync will surface the detail, activity trail, and safe
                   actions here.
                 </p>
+                {% endif %}
               </div>
               {% endif %}
             </article>

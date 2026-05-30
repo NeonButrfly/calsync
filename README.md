@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, and `#69` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, and `#70` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -155,6 +155,7 @@ The root page now acts as the first family scheduling UX:
 - the workspace capability summary now reflects the actual connected readiness state, so Apple, Google, Microsoft, and Alexa copy stays truthful while setup is still in progress
 - the root workspace now also blocks the create flow clearly when no writable calendar is connected, so operators get direct setup guidance instead of an apparently live scheduling form
 - the root workspace now also blocks availability search clearly when no writable calendar is connected, so operators do not get fake “no openings” signals from an unconfigured scheduling path
+- the root workspace now also blocks the empty schedule board and detail panel clearly when no writable calendar is connected, so an unconfigured runtime does not masquerade as a normal empty calendar
 - a first public booking page that uses the same availability search and writable appointment path as the internal workspace
 - that public booking flow is now configurable from `/booking/setup`, including invitee-facing copy, default duration, search horizon, success message, and the writable target used for new bookings
 - that public booking flow now also respects operator-managed booking weekdays plus daily start and end hours
