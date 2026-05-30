@@ -122,6 +122,7 @@
                   <h3>Connected Apple accounts</h3>
                 </div>
               </div>
+              {% if apple_accounts %}
               <div class="detail-grid">
                 <article class="detail-card">
                   <p class="eyebrow">Account label</p>
@@ -144,16 +145,20 @@
                   <span>App-specific password stays encrypted at rest in the product vault.</span>
                 </article>
               </div>
-              {% if apple_accounts %}
               <div class="detail-stack">
                 {% for account in apple_accounts %}
                 <article class="detail-card">
                   <p class="eyebrow">Apple account</p>
                   <strong>{{ account.account_label }}</strong>
                   <span>{{ account.username }}</span>
-                  <p class="appointment-detail"><strong>Writable targets:</strong> {{ account.calendars|length }}</p>
-                </article>
-                {% endfor %}
+                    <p class="appointment-detail"><strong>Writable targets:</strong> {{ account.calendars|length }}</p>
+                  </article>
+                  {% endfor %}
+                </div>
+              {% else %}
+              <div class="empty-state">
+                <h4>No Apple account connected yet</h4>
+                <p>Save the first Apple account above before expecting a live household calendar path inside CalSync.</p>
               </div>
               {% endif %}
             </article>
@@ -165,6 +170,7 @@
                   <h3>Writable targets</h3>
                 </div>
               </div>
+              {% if calendar_catalog %}
               <div class="detail-grid">
                 {% for item in calendar_catalog %}
                 <article class="detail-card">
@@ -181,6 +187,18 @@
                 </article>
                 {% endfor %}
               </div>
+              {% elif apple_accounts %}
+              <div class="empty-state">
+                <h4>No Apple calendars tracked yet</h4>
+                <p>Save the first writable Apple target for the connected account so the workspace can read and write real schedule data.</p>
+              </div>
+              {% else %}
+              <div class="empty-state">
+                <h4>No writable Apple target yet</h4>
+                <p>Save the first Apple account above before adding writable calendar targets.</p>
+              </div>
+              {% endif %}
+              {% if apple_accounts %}
               <form class="form-grid" method="post" action="/calendar/setup/calendars">
                 {% if apple_accounts|length > 1 %}
                 <label>
@@ -208,6 +226,7 @@
                   <button type="submit">Add another calendar</button>
                 </div>
               </form>
+              {% endif %}
             </article>
           </div>
         </section>

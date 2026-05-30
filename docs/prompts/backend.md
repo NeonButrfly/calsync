@@ -246,6 +246,18 @@ Expected behavior:
 - the selected-appointment empty state should not say `Select an appointment` when the real blocker is missing calendar setup
 - the root workspace should clearly explain that connected calendar setup still blocks meaningful live schedule sync
 
+## Apple Setup No-Account Truthfulness Requirement
+
+- GitHub issue: `#71`
+- interpreted requirement: when no Apple account is saved and no deployment-env Apple credentials exist, `/calendar/setup` should behave like a truthful first-time setup flow rather than implying a partially connected Apple state
+
+Expected behavior:
+
+- the Apple setup page should not show `Family` as if it were a real connected account when the runtime source is actually missing
+- the connected-account panel should switch to an explicit empty-state instead of rendering placeholder connected-account detail cards
+- the writable-target panel should explain that the first Apple account must be saved before additional Apple targets can be managed
+- the add-calendar form should stay hidden or blocked until the first Apple account exists
+
 ## Public Booking Page Requirement
 
 - GitHub issue: `#55`

@@ -37,6 +37,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#68" in readme_content
     assert "#69" in readme_content
     assert "#70" in readme_content
+    assert "#71" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -125,6 +126,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "root workspace now also blocks availability search clearly when no writable calendar is connected" in readme_content
     assert "public booking flow now also blocks the invitee-facing availability refresh controls clearly when no writable calendar is connected" in readme_content
     assert "root workspace now also blocks the empty schedule board and detail panel clearly when no writable calendar is connected" in readme_content
+    assert "apple setup page now also stays truthful when no apple account exists" in readme_content
     assert "named apple calendar targeting through alexa and the simulator" in readme_content
     assert "provider-aware alexa calendar targeting across apple, google, and microsoft" in readme_content
     assert "https://mcp-calsync.kaymayers9.workers.dev/mcp" in readme_content
@@ -165,6 +167,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#68" in ops_content
     assert "#69" in ops_content
     assert "#70" in ops_content
+    assert "#71" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -262,6 +265,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "blocked root availability state when no writable calendar is connected" in ops_content
     assert "blocked root schedule-sync state when no writable calendar is connected" in ops_content
     assert "blocked public-booking availability state when no writable calendar is connected" in ops_content
+    assert "truthful apple setup empty state when no apple account is connected" in ops_content
     assert "post /mcp" in ops_content
     assert "mcp_auth_token" in ops_content
     assert "edge_internal_token" in ops_content
@@ -299,6 +303,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#68" in prompt_content
     assert "#69" in prompt_content
     assert "#70" in prompt_content
+    assert "#71" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -392,11 +397,13 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "root no-calendar availability requirement" in prompt_content
     assert "public booking no-calendar availability requirement" in prompt_content
     assert "root no-calendar schedule-sync requirement" in prompt_content
+    assert "apple setup no-account truthfulness requirement" in prompt_content
     assert "should not show broken helper copy or capability language that overstates the currently connected live state" in prompt_content
     assert "target-calendar control should render as unavailable when there are no writable calendars to choose from" in prompt_content
     assert "disconnected availability requests should not fall back to `no open windows found`" in prompt_content
     assert "invitee-facing availability refresh controls should look blocked in the ui until at least one writable calendar target is connected" in prompt_content
     assert "the root month board should not show `open` as if it were a normal empty calendar" in prompt_content
+    assert "the add-calendar form should stay hidden or blocked until the first apple account exists" in prompt_content
     assert "enable_alexa" in prompt_content
     assert "alexa_allowed_skill_ids" in prompt_content
     assert "post /alexa/simulate" in prompt_content

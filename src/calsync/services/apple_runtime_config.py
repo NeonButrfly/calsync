@@ -108,8 +108,9 @@ class AppleRuntimeConfigService:
             selected_calendar=selected_calendar,
             username=username,
         )
+        account_label = str(selected_account["account_label"] or "")
         return {
-            "account_label": selected_account["account_label"] or self.settings.apple_account_label,
+            "account_label": account_label,
             "username": selected_account["username"] or "",
             "app_specific_password": selected_account["app_specific_password"] or "",
             "source": "product_vault" if any(selected_account.values()) else "missing",

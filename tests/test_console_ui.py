@@ -2298,6 +2298,39 @@ def test_calendar_setup_page_renders_operator_fields(monkeypatch) -> None:
     assert 'name="apple_primary_calendar_name"' in response.text
 
 
+def test_calendar_setup_page_explains_no_connected_apple_account_truthfully(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/calendar/setup")
+
+    assert response.status_code == 200
+    assert "Apple calendar setup is still incomplete." in response.text
+    assert "No Apple account connected yet" in response.text
+    assert "Save the first Apple account above before expecting a live household calendar path inside CalSync." in response.text
+    assert "No writable Apple target yet" in response.text
+    assert "Save the first Apple account above before adding writable calendar targets." in response.text
+    assert "<strong>Family</strong>" not in response.text
+    assert "Used across the workspace and audit detail." not in response.text
+    assert "Add another calendar" not in response.text
+
+
 def test_calendar_setup_page_saves_apple_settings(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     app = create_app()
