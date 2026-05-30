@@ -1133,6 +1133,9 @@ def test_connections_page_shows_alexa_turn_on_controls(monkeypatch) -> None:
         "This will save the desired Alexa plan in CalSync and update the live edge Worker now."
         in response.text
     )
+    assert "Desired settings" in response.text
+    assert "Saved" in response.text
+    assert "Saved plan: enable Alexa." in response.text
     assert "Open Alexa setup" in response.text
     assert "Open Alexa simulator" in response.text
     assert "amzn1.ask.skill.saved" in response.text
@@ -1324,6 +1327,9 @@ def test_connections_page_shows_voice_specific_alexa_guidance(monkeypatch) -> No
 
     assert response.status_code == 200
     assert "Alexa voice path" in response.text
+    assert "Desired settings" in response.text
+    assert "Not saved yet" in response.text
+    assert "No desired Alexa edge state has been saved in the product yet." in response.text
     assert (
         "Connect at least one writable calendar, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
         in response.text

@@ -388,9 +388,20 @@
                   <span>{% if readiness.edge.alexa.enabled %}The edge Worker is accepting Alexa traffic.{% else %}The edge Worker still needs Alexa enabled before real device traffic can flow.{% endif %}</span>
                 </article>
                 <article class="detail-card">
-                  <p class="eyebrow">Desired state</p>
-                  <strong>{% if desired_alexa_settings.enable_alexa %}Enable Alexa{% else %}Keep Alexa off{% endif %}</strong>
-                  <span>{{ alexa_drift.message }}</span>
+                  <p class="eyebrow">Desired settings</p>
+                  <strong>{% if desired_alexa_settings.saved %}Saved{% else %}Not saved yet{% endif %}</strong>
+                  <span>
+                    {% if desired_alexa_settings.saved %}
+                      {% if desired_alexa_settings.enable_alexa %}
+                        Saved plan: enable Alexa.
+                      {% else %}
+                        Saved plan: keep Alexa off.
+                      {% endif %}
+                      {{ alexa_drift.message }}
+                    {% else %}
+                      {{ alexa_drift.message }}
+                    {% endif %}
+                  </span>
                 </article>
                 <article class="detail-card">
                   <p class="eyebrow">Allowed skill IDs</p>

@@ -479,6 +479,17 @@ Expected behavior:
 - that row should show whether CalSync currently has saved desired Alexa edge settings
 - the Step 4 checklist should agree with the save-now/apply-later flow instead of hiding the desired-state prerequisite in a separate status card
 
+## Connections Alexa Desired State Requirement
+
+- GitHub issue: `#89`
+- interpreted requirement: the shared Alexa panel on `/connections` should tell operators when no desired Alexa plan has been saved yet, instead of presenting the unsaved default state like a real saved live plan
+
+Expected behavior:
+
+- `GET /connections` should show a truthful desired-settings status inside the Alexa panel
+- when no desired Alexa edge state has been saved yet, the panel should say that clearly instead of showing `Keep Alexa off` as if that were a deliberate saved plan
+- when a desired Alexa plan has been saved, the panel should acknowledge that it is saved and describe the saved mode
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`
