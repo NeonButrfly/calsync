@@ -435,6 +435,17 @@ Expected behavior:
 - the shared Alexa next-action guidance should mention saving a household link code whenever account linking is still missing and that is part of the real remaining turn-on work
 - when account linking is already configured, `/connections` should say so plainly instead of leaving that state hidden on `/alexa/setup` alone
 
+## Alexa Step 4 Prerequisite Visibility Requirement
+
+- GitHub issue: `#85`
+- interpreted requirement: the final Alexa turn-on summary should show account-linking readiness as one of the visible live prerequisites instead of forcing operators to infer it from an earlier setup step
+
+Expected behavior:
+
+- `GET /alexa/setup` Step 4 should include an explicit account-linking readiness row
+- that row should show whether account linking is configured right now
+- the final Step 4 checklist and next-action guidance should stay aligned, so the page does not hide one of the real live turn-on prerequisites
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

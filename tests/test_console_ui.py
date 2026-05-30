@@ -2242,6 +2242,8 @@ def test_alexa_setup_page_renders_operator_steps(monkeypatch) -> None:
     assert "Desired Alexa settings" in response.text
     assert "Pending edge changes" in response.text
     assert "amzn1.ask.skill.saved" in response.text
+    assert "Account linking configured:" in response.text
+    assert ">No<" in response.text
 
 
 def test_alexa_setup_page_shows_cloudflare_permission_error(monkeypatch) -> None:
@@ -2445,6 +2447,8 @@ def test_alexa_setup_page_shows_account_linking_controls(monkeypatch) -> None:
     assert "calsync-alexa-household" in response.text
     assert "Save account linking setup" in response.text
     assert "Link code saved" in response.text
+    assert "Account linking configured:" in response.text
+    assert ">Yes<" in response.text
 
 
 def test_alexa_setup_page_can_save_account_linking_settings(monkeypatch) -> None:

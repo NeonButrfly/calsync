@@ -51,6 +51,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#82" in readme_content
     assert "#83" in readme_content
     assert "#84" in readme_content
+    assert "#85" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -148,6 +149,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "legacy apple recovery hint ranking that now prefers the real recovered writable booking target over a merely enabled personal-reference calendar" in readme_content
     assert "voice-specific next guidance on alexa-focused setup surfaces" in readme_content
     assert "shared alexa account-linking readiness on `/connections`" in readme_content
+    assert "an account-linking row in alexa step 4" in readme_content
     assert "simulator readiness summary for no-calendar voice testing states" in readme_content
     assert "live-vs-desired drift visibility" in readme_content
     assert "workspace capability summary now reflects the actual connected readiness state" in readme_content
@@ -212,6 +214,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#82" in ops_content
     assert "#83" in ops_content
     assert "#84" in ops_content
+    assert "#85" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -284,6 +287,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "recovery-aware apple hint ranking that prefers true writable booking targets" in ops_content
     assert "voice-specific next guidance for alexa setup and connections voice panels" in ops_content
     assert "exposes alexa account-linking readiness on `/connections`" in ops_content
+    assert "exposes account-linking readiness directly in alexa step 4" in ops_content
     assert "simulator readiness guidance for missing connected calendar states" in ops_content
     assert "planner-style day/week/month board at `/`" in ops_content
     assert "first public booking page at `/book`" in ops_content
@@ -391,6 +395,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "encrypted export and restore path for operator settings" in prompt_content
     assert "alexa-focused surfaces should show voice-specific next steps" in prompt_content
     assert "alexa account-linking readiness requirement" in prompt_content
+    assert "alexa step 4 prerequisite visibility requirement" in prompt_content
     assert "simulator should show clear readiness and blocker guidance when no connected calendars are available" in prompt_content
     assert "get /alexa/setup" in prompt_content
     assert "get /alexa/skill-package.zip" in prompt_content
@@ -502,6 +507,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "shared readiness guidance should tell operators to open apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password" in prompt_content
     assert "when `any_calendar_ready` is false, the root workspace should keep the hero summary in a clearly blocked state instead of showing stale appointment counts or a stale next-up appointment" in prompt_content
     assert "the alexa voice panel on `/connections` should show whether account linking is ready or still needs setup" in prompt_content
+    assert "`get /alexa/setup` step 4 should include an explicit account-linking readiness row" in prompt_content
     assert "both surfaces should switch to truthful save-only labels instead of promising a live apply" in prompt_content
     assert "enable_alexa" in prompt_content
     assert "alexa_allowed_skill_ids" in prompt_content

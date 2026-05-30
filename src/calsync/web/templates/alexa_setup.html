@@ -291,6 +291,10 @@
                   {% if readiness.edge.alexa.enabled %}Yes{% else %}No{% endif %}
                 </p>
                 <p class="appointment-detail">
+                  <strong>Account linking configured:</strong>
+                  {% if account_linking_settings.configured %}Yes{% else %}No{% endif %}
+                </p>
+                <p class="appointment-detail">
                   <strong>Allowed skill IDs configured:</strong>
                   {% if readiness.edge.alexa.skill_ids_configured %}Yes{% else %}No{% endif %}
                 </p>
