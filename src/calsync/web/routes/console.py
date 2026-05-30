@@ -414,6 +414,9 @@ def _build_booking_setup_context(
         not booking_setup_ready
         and str(legacy_apple_recovery_hints.get("source") or "missing") != "missing"
     )
+    booking_setup_block_message = _describe_booking_setup_block_message(
+        recovery_mode=booking_setup_recovery_mode,
+    )
     return {
         "request": request,
         "booking_settings": booking_settings,
@@ -425,13 +428,7 @@ def _build_booking_setup_context(
         "booking_setup_ready": booking_setup_ready,
         "booking_setup_recovery_mode": booking_setup_recovery_mode,
         "booking_setup_block_message": (
-            None
-            if booking_setup_ready
-            else (
-                "Apple reconnect still blocks booking setup. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before configuring public booking."
-                if booking_setup_recovery_mode
-                else "Connect a writable calendar before configuring public booking settings or creating shareable booking types."
-            )
+            None if booking_setup_ready else booking_setup_block_message
         ),
     }
 
@@ -453,13 +450,14 @@ def booking_setup_update(
 ):
     operator_settings = OperatorSettingsService()
     service = AppointmentService()
+    recovery_mode = _booking_setup_recovery_mode(operator_settings=operator_settings)
     try:
         if not _calendar_options(
             service,
             selected_calendar_url=target_calendar_url.strip() or None,
         ):
             raise ValueError(
-                "Connect a writable calendar before saving public booking settings."
+                _describe_booking_setup_save_error(recovery_mode=recovery_mode)
             )
         if booking_slug.strip():
             operator_settings.upsert_public_booking_type(
@@ -515,6 +513,7 @@ def booking_type_create(
 ):
     operator_settings = OperatorSettingsService()
     service = AppointmentService()
+    recovery_mode = _booking_setup_recovery_mode(operator_settings=operator_settings)
     current_settings = _load_public_booking_settings(
         operator_settings,
         booking_slug=booking_slug or None,
@@ -527,7 +526,7 @@ def booking_type_create(
             or None,
         ):
             raise ValueError(
-                "Connect a writable calendar before creating public booking types."
+                _describe_booking_setup_type_error(recovery_mode=recovery_mode)
             )
         operator_settings.upsert_public_booking_type(
             slug=requested_slug,
@@ -2937,6 +2936,32 @@ def _build_console_context(
         "hero_ready": any_calendar_ready,
         "readiness": readiness,
     }
+
+
+def _booking_setup_recovery_mode(
+    *,
+    operator_settings: OperatorSettingsService,
+) -> bool:
+    legacy_apple_recovery_hints = operator_settings.describe_legacy_apple_recovery_hints()
+    return str(legacy_apple_recovery_hints.get("source") or "missing") != "missing"
+
+
+def _describe_booking_setup_block_message(*, recovery_mode: bool) -> str:
+    if recovery_mode:
+        return "Apple reconnect still blocks booking setup. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before configuring public booking."
+    return "Connect a writable calendar before configuring public booking settings or creating shareable booking types."
+
+
+def _describe_booking_setup_save_error(*, recovery_mode: bool) -> str:
+    if recovery_mode:
+        return "Apple reconnect still blocks saving booking setup. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before saving public booking settings."
+    return "Connect a writable calendar before saving public booking settings."
+
+
+def _describe_booking_setup_type_error(*, recovery_mode: bool) -> str:
+    if recovery_mode:
+        return "Apple reconnect still blocks new booking types. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before creating public booking types."
+    return "Connect a writable calendar before creating public booking types."
 
 
 def _build_booking_context(

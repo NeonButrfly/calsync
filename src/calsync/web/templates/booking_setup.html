@@ -243,7 +243,7 @@
                   <span>The public page writes new appointments into the chosen connected calendar target.</span>
                   {% else %}
                   <strong>No writable target yet</strong>
-                  <span>Connect a writable calendar before CalSync can save meaningful public booking defaults or extra booking links.</span>
+                  <span>{{ booking_setup_block_message }}</span>
                   {% endif %}
                 </article>
                 <article class="detail-card">

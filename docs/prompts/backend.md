@@ -548,6 +548,18 @@ Expected behavior:
 - the `Alexa:` line in the Connections `Finish the live stack` summary should also reflect that Apple reconnect comes before the remaining household link-code or Cloudflare steps
 - when no recovery hint exists, the Alexa surfaces can keep the more generic writable-calendar wording used for a blank-install disconnected state
 
+## Booking Setup Recovery Guidance Requirement
+
+- GitHub issue: `#95`
+- interpreted requirement: when the live deployment is in Apple recovery mode, the full booking-setup operator path should stop mixing recovery-aware blockers with generic writable-calendar copy
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no writable calendar is connected, `GET /booking/setup` should use Apple reconnect guidance in the target-behavior card as well as the top-level blocked state
+- in that same state, disconnected `POST /booking/setup` requests should fail with Apple reconnect guidance instead of the generic writable-calendar save error
+- disconnected `POST /booking/setup/types` requests should fail with Apple reconnect guidance instead of the generic writable-calendar booking-type error
+- when no recovery hint exists, the booking setup page and disconnected booking setup actions can keep the more generic writable-calendar wording used for a blank-install disconnected state
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

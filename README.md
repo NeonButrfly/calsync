@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, `#73`, `#76`, `#77`, `#78`, `#79`, and `#80` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, `#73`, `#76`, `#77`, `#78`, `#79`, `#80`, `#81`, `#82`, `#83`, `#84`, `#85`, `#86`, `#87`, `#88`, `#89`, `#90`, `#91`, `#92`, `#93`, `#94`, and `#95` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -47,6 +47,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - recovery-aware Apple reconnect actions on `/` and `/booking/setup`, so blocked operator surfaces now point straight at the loaded Apple recovery path instead of only saying a writable calendar is missing
 - recovery-aware Apple reconnect messaging across the blocked root workspace panels, so schedule, detail, create, and availability states all point at the same real reconnect path
 - recovery-aware Apple reconnect guidance on Alexa setup and Connections, so the voice turn-on flow now follows the real recovered-calendar prerequisite instead of generic no-calendar wording
+- recovery-aware Apple reconnect guidance through the full booking-setup operator flow, so the target-behavior card and blocked save/create responses now match the top-level booking blocker
 - Local audit entries and appointment-to-provider event mapping
 - A dedicated Cloudflare Worker in `workers/edge-calsync`
 - Live ChatGPT-first edge hostname: `https://edge-calsync.neonbutterfly.net`
@@ -407,6 +408,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Align blocked operator surfaces with Apple reconnect path: issue `#92`
 - Align blocked root workspace guidance with Apple reconnect: issue `#93`
 - Align Alexa guidance with Apple reconnect path: issue `#94`
+- Align booking setup recovery guidance end to end: issue `#95`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

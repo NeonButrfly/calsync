@@ -511,6 +511,11 @@ def test_booking_setup_page_points_to_apple_reconnect_when_recovery_hints_exist(
         "Apple reconnect still blocks booking setup. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before configuring public booking."
         in response.text
     )
+    assert (
+        '<strong>No writable target yet</strong>\n'
+        '                  <span>Apple reconnect still blocks booking setup. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before configuring public booking.</span>'
+        in response.text
+    )
     assert '<a class="text-action" href="/calendar/setup">Open Apple setup</a>' in response.text
     assert '<a class="text-action" href="/connections">Open Connections</a>' in response.text
     assert "Connect a writable calendar before configuring public booking settings or creating shareable booking types." not in response.text
@@ -581,6 +586,129 @@ def test_booking_setup_rejects_new_type_when_no_calendar_is_connected(monkeypatc
     assert response.status_code == 400
     assert "Connect a writable calendar before creating public booking types." in response.text
     assert "Public booking type saved securely." not in response.text
+
+
+def test_booking_setup_recovery_mode_rejects_save_with_apple_reconnect_guidance(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/booking/setup",
+        data={
+            "page_title": "Book time with Kayra",
+            "page_description": "Choose a calm household scheduling slot.",
+            "duration_minutes": "45",
+            "search_window_days": "28",
+            "success_message": "You're booked.",
+            "target_calendar_url": "",
+            "booking_weekdays": ["0", "1", "2", "3", "4"],
+            "day_start_time": "09:00",
+            "day_end_time": "15:00",
+        },
+    )
+
+    assert response.status_code == 400
+    assert (
+        "Apple reconnect still blocks saving booking setup. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before saving public booking settings."
+        in response.text
+    )
+    assert "Connect a writable calendar before saving public booking settings." not in response.text
+
+
+def test_booking_setup_recovery_mode_rejects_new_type_with_apple_reconnect_guidance(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/booking/setup/types",
+        data={
+            "new_page_title": "Therapy intake",
+            "new_booking_slug": "therapy-intake",
+        },
+    )
+
+    assert response.status_code == 400
+    assert (
+        "Apple reconnect still blocks new booking types. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before creating public booking types."
+        in response.text
+    )
+    assert "Connect a writable calendar before creating public booking types." not in response.text
 
 
 def test_booking_setup_page_round_trips_public_booking_settings(monkeypatch) -> None:
