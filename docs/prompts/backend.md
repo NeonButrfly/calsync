@@ -748,6 +748,18 @@ Expected behavior:
 - operators should still be able to switch to a different recovered calendar hint explicitly if the recommended reconnect target is not the one they want
 - this default-prefill behavior must not falsely mark Apple connected or ready before a real save succeeds
 
+## Apple Recovery Guidance Alignment Requirement
+
+- GitHub issue: `#82`
+- interpreted requirement: once the recommended recovered Apple hint auto-loads by default, shared readiness and Connections guidance should stop describing the older manual hint-loading workflow
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no Apple account is connected yet, shared readiness guidance should tell operators to open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password
+- `/connections` should use the same already-loaded recovery framing in the Apple setup checklist, provider summary, and finish-the-stack guidance
+- `/connections` should no longer expose a primary action that suggests the default recovered Apple hint still needs to be manually loaded first
+- operators should still be able to switch to another recovered calendar from inside `/calendar/setup` if the recommended reconnect target is not the one they want
+
 ## Alexa Save-Only Action Truthfulness Requirement
 
 - GitHub issue: `#74`

@@ -163,7 +163,7 @@ def test_readiness_service_points_to_apple_reconnect_when_legacy_hints_exist() -
     assert readiness["origin"]["apple_ready"] is False
     assert (
         readiness["next_action"]
-        == "Open Apple setup, load a recovered Apple calendar hint, and save a fresh app-specific password so CalSync can reconnect the real household calendar."
+        == "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password so CalSync can reconnect the real household calendar."
     )
 
 

@@ -79,6 +79,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - a legacy Pi-backup import path for Apple recovery hints, so the preserved SQL backup can surface the old iCloud account and calendar URLs inside CalSync instead of forcing manual dump inspection
 - one-step loading of recovered Apple backup hints into the setup form, so operators can start from the imported account and calendar values and only add a fresh app-specific password
 - automatic loading of the recommended recovered Apple hint on the default setup page, so recovery mode opens straight into the real Family reconnect path instead of waiting for an extra click
+- shared Apple recovery guidance that now reflects the already-loaded reconnect state, so readiness and Connections stop telling operators to perform a manual hint-load step that is no longer needed
 - recovery-aware Apple messaging across readiness, Connections, and Apple setup, so the live product points directly at the reconnect step once legacy hints have been imported
 - a safe Apple setup validation step before reconnect save, so operators can test a fresh Apple username, password, and calendar URL without persisting bad credentials first
 - legacy Apple recovery hint ranking that now prefers the real recovered writable booking target over a merely enabled personal-reference calendar
@@ -380,6 +381,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Add safe Apple setup validation before reconnect save: issue `#79`
 - Prefer true writable Apple targets in legacy recovery hints: issue `#80`
 - Auto-load the recommended Apple recovery hint on reconnect: issue `#81`
+- Align Apple recovery guidance with the new auto-loaded reconnect flow: issue `#82`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

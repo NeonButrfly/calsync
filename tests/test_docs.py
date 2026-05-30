@@ -48,6 +48,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#79" in readme_content
     assert "#80" in readme_content
     assert "#81" in readme_content
+    assert "#82" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -137,6 +138,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "legacy pi-backup import path for apple recovery hints" in readme_content
     assert "load recovered apple backup hints into the setup form" in readme_content
     assert "automatic loading of the recommended recovered apple hint on the default setup page" in readme_content
+    assert "shared apple recovery guidance that now reflects the already-loaded reconnect state" in readme_content
     assert "make apple recovery messaging point to the reconnect step" in readme_content
     assert "recovery-aware apple messaging across readiness, connections, and apple setup" in readme_content
     assert "safe apple setup validation before reconnect save" in readme_content
@@ -202,6 +204,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#79" in ops_content
     assert "#80" in ops_content
     assert "#81" in ops_content
+    assert "#82" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -264,6 +267,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "legacy pi-backup import path on `/connections`" in ops_content
     assert "one-step loading of recovered apple hints into the setup form" in ops_content
     assert "automatic default loading of the recommended apple recovery hint" in ops_content
+    assert "shared apple recovery guidance aligned with the already-loaded reconnect state" in ops_content
     assert "recovery-aware apple reconnect messaging" in ops_content
     assert "encrypted operator-settings backup and restore from `/connections`" in ops_content
     assert "surfaces recovered legacy apple hints on `/calendar/setup`" in ops_content
@@ -484,6 +488,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "`/calendar/setup` should expose a visible `validate apple connection` action alongside save so the reconnect flow is not blind" in prompt_content
     assert "legacy apple recovery extraction should rank explicit `writable_booking_target` calendars ahead of generic enabled calendars when choosing the recommended reconnect hint" in prompt_content
     assert "when no apple account is connected yet and legacy apple recovery hints exist, `get /calendar/setup` should auto-load the recommended recovered apple hint into the setup form" in prompt_content
+    assert "shared readiness guidance should tell operators to open apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password" in prompt_content
     assert "both surfaces should switch to truthful save-only labels instead of promising a live apply" in prompt_content
     assert "enable_alexa" in prompt_content
     assert "alexa_allowed_skill_ids" in prompt_content

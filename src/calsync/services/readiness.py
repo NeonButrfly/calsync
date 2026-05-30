@@ -174,7 +174,7 @@ class ReadinessService:
     ) -> str:
         if not origin["any_calendar_ready"]:
             if operator_settings_footprint.get("has_legacy_apple_recovery_hints", False):
-                return "Open Apple setup, load a recovered Apple calendar hint, and save a fresh app-specific password so CalSync can reconnect the real household calendar."
+                return "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password so CalSync can reconnect the real household calendar."
             if operator_settings_footprint.get(
                 "has_saved_non_provider_state", False
             ) and not operator_settings_footprint.get(

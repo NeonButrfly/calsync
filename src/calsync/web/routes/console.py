@@ -3375,7 +3375,7 @@ def _build_connections_context(
                 "Apple credentials and a writable target are available."
                 if apple_runtime["ready"]
                 else (
-                    "Recovered Apple hints are ready. Open Apple setup, load the right calendar, and save a fresh app-specific password."
+                    "Recovered Apple hints are ready. Apple setup already opens with the recommended calendar loaded, so add a fresh app-specific password and save."
                     if legacy_apple_recovery_hints.get("source") != "missing"
                     else "Save the household Apple connection to unlock the first live calendar path."
                 )

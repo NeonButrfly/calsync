@@ -251,7 +251,7 @@ def test_console_root_points_to_apple_reconnect_when_legacy_hints_exist(
 
     assert response.status_code == 200
     assert (
-        "Open Apple setup, load a recovered Apple calendar hint, and save a fresh app-specific password so CalSync can reconnect the real household calendar."
+        "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password so CalSync can reconnect the real household calendar."
         in response.text
     )
 
@@ -866,10 +866,12 @@ def test_connections_page_shows_apple_recovery_guidance_when_legacy_hints_exist(
     response = client.get("/connections")
 
     assert response.status_code == 200
-    assert "Recovered Apple hints are ready. Load the right calendar into Apple setup and save a fresh app-specific password." in response.text
+    assert "Recovered Apple hints are ready. Apple setup already opens with the recommended calendar loaded, so add a fresh app-specific password and save." in response.text
     assert "Recovery hint available" in response.text
     assert "Recovered account: kaymayers9@gmail.com" in response.text
-    assert "Load recovered Apple hint" in response.text
+    assert "Open Apple setup" in response.text
+    assert "Load recovered Apple hint" not in response.text
+    assert "open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password" in response.text
 
 
 def test_connections_page_shows_checklist_and_verification_state(monkeypatch) -> None:
