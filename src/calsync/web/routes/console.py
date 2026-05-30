@@ -828,17 +828,29 @@ def calendar_setup_page(
     status_code = 200
     flash_message = None
     error_message = None
-    if recovered_calendar_url:
+    selected_recovered_calendar_url = str(recovered_calendar_url or "").strip()
+    auto_loaded_recovery_hint = False
+    if (
+        not selected_recovered_calendar_url
+        and str(apple_settings.get("source") or "") == "missing"
+        and str(legacy_recovery_hints.get("source") or "") != "missing"
+    ):
+        selected_recovered_calendar_url = str(
+            legacy_recovery_hints.get("recommended_calendar_url") or ""
+        ).strip()
+        auto_loaded_recovery_hint = bool(selected_recovered_calendar_url)
+    if selected_recovered_calendar_url:
         try:
             apple_settings = _prefill_apple_settings_from_legacy_hints(
                 apple_settings=apple_settings,
                 legacy_recovery_hints=legacy_recovery_hints,
-                recovered_calendar_url=recovered_calendar_url,
+                recovered_calendar_url=selected_recovered_calendar_url,
             )
-            flash_message = (
-                "Recovered Apple details loaded into the setup form. "
-                "Add a fresh app-specific password to finish reconnecting."
-            )
+            if not auto_loaded_recovery_hint:
+                flash_message = (
+                    "Recovered Apple details loaded into the setup form. "
+                    "Add a fresh app-specific password to finish reconnecting."
+                )
         except ValueError as exc:
             error_message = str(exc)
             status_code = 400
@@ -868,7 +880,16 @@ def _build_calendar_setup_context(
     flash_message: str | None,
     error_message: str | None,
 ) -> dict[str, object]:
+    loaded_recovered_calendar_url = (
+        str(apple_settings.get("primary_calendar_url") or "").strip()
+        if str(apple_settings.get("source") or "") == "legacy_recovery_hints"
+        else ""
+    )
+    recommended_recovered_calendar_url = str(
+        legacy_recovery_hints.get("recommended_calendar_url") or ""
+    ).strip()
     source_card = _describe_calendar_setup_source_card(
+        apple_settings=apple_settings,
         runtime_config=runtime_config,
         legacy_recovery_hints=legacy_recovery_hints,
     )
@@ -882,6 +903,9 @@ def _build_calendar_setup_context(
         "calendar_catalog": runtime_service.list_calendars(),
         "flash_message": flash_message,
         "error_message": error_message,
+        "loaded_recovered_calendar_url": loaded_recovered_calendar_url,
+        "recommended_recovered_hint_loaded": bool(loaded_recovered_calendar_url)
+        and loaded_recovered_calendar_url == recommended_recovered_calendar_url,
     }
 
 
@@ -990,6 +1014,7 @@ def _build_pending_apple_validation_config(
 
 def _describe_calendar_setup_source_card(
     *,
+    apple_settings: dict[str, object],
     runtime_config: dict[str, object],
     legacy_recovery_hints: dict[str, object],
 ) -> dict[str, str]:
@@ -997,6 +1022,11 @@ def _describe_calendar_setup_source_card(
         return {
             "label": str(runtime_config.get("source") or "").replace("_", " ").title(),
             "detail": "Apple calendar setup is ready for the live scheduling brain.",
+        }
+    if str(apple_settings.get("source") or "") == "legacy_recovery_hints":
+        return {
+            "label": "Recovered hint loaded",
+            "detail": "The recommended recovered Apple calendar is already loaded into setup. Add a fresh app-specific password to reconnect.",
         }
     if str(legacy_recovery_hints.get("source") or "") != "missing":
         return {

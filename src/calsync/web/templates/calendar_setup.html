@@ -103,7 +103,11 @@
                 </label>
                 {% if apple_settings.source == "legacy_recovery_hints" %}
                 <p class="appointment-detail">
+                  {% if recommended_recovered_hint_loaded %}
+                  The recommended recovered Apple account and calendar hint are already loaded below. Add a fresh app-specific password, then save to reconnect this calendar path for real.
+                  {% else %}
                   The recovered Apple account and calendar hint are loaded below. Add a fresh app-specific password, then save to reconnect this calendar path for real.
+                  {% endif %}
                 </p>
                 {% endif %}
                 <div class="action-row">
@@ -170,7 +174,11 @@
                   <p class="appointment-detail"><strong>Recommended writable hint:</strong> {{ legacy_recovery_hints.recommended_calendar_name }} · {{ legacy_recovery_hints.recommended_calendar_url }}</p>
                   <p class="appointment-detail"><strong>Calendar home:</strong> {{ legacy_recovery_hints.calendar_home_url }}</p>
                   <div class="action-row">
+                    {% if recommended_recovered_hint_loaded %}
+                    <span class="appointment-detail"><strong>Setup form:</strong> Recommended hint already loaded below.</span>
+                    {% else %}
                     <a class="button-link" href="/calendar/setup?recovered_calendar_url={{ legacy_recovery_hints.recommended_calendar_url | urlencode }}">Load recommended hint into setup form</a>
+                    {% endif %}
                   </div>
                 </article>
                 {% for item in legacy_recovery_hints.calendars %}
@@ -180,7 +188,11 @@
                   <span>{{ item.calendar_role or "legacy calendar" }}</span>
                   <p class="appointment-detail">{{ item.calendar_url }}</p>
                   <div class="action-row">
+                    {% if item.calendar_url == loaded_recovered_calendar_url %}
+                    <span class="appointment-detail"><strong>Setup form:</strong> Loaded below.</span>
+                    {% else %}
                     <a class="button-link" href="/calendar/setup?recovered_calendar_url={{ item.calendar_url | urlencode }}">Load this calendar into setup form</a>
+                    {% endif %}
                   </div>
                 </article>
                 {% endfor %}

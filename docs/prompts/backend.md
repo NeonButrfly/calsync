@@ -735,6 +735,19 @@ Expected behavior:
 - `/calendar/setup` and `/connections` should therefore point operators at the real recovered writable booking target by default after import
 - generic enabled personal-reference calendars may still be listed as recovered hints, but they should not outrank an explicit recovered write target
 
+## Automatic Apple Recovery Prefill Requirement
+
+- GitHub issue: `#81`
+- interpreted requirement: once CalSync knows the recommended recovered Apple reconnect target, the default Apple setup page should open directly in that recovered reconnect state instead of waiting for the operator to click a second load-hint action first
+
+Expected behavior:
+
+- when no Apple account is connected yet and legacy Apple recovery hints exist, `GET /calendar/setup` should auto-load the recommended recovered Apple hint into the setup form
+- the auto-loaded state should prefill the Apple account label, username, primary calendar URL, and calendar name for the recommended reconnect target
+- the product should still require a fresh app-specific password before validation or save can complete the reconnect
+- operators should still be able to switch to a different recovered calendar hint explicitly if the recommended reconnect target is not the one they want
+- this default-prefill behavior must not falsely mark Apple connected or ready before a real save succeeds
+
 ## Alexa Save-Only Action Truthfulness Requirement
 
 - GitHub issue: `#74`

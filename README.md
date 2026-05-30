@@ -78,6 +78,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - restore-aware readiness guidance, so recovery-shaped deployments with only non-provider settings left now point operators toward encrypted restore from `/connections` instead of acting like fresh provider onboarding is the only next move
 - a legacy Pi-backup import path for Apple recovery hints, so the preserved SQL backup can surface the old iCloud account and calendar URLs inside CalSync instead of forcing manual dump inspection
 - one-step loading of recovered Apple backup hints into the setup form, so operators can start from the imported account and calendar values and only add a fresh app-specific password
+- automatic loading of the recommended recovered Apple hint on the default setup page, so recovery mode opens straight into the real Family reconnect path instead of waiting for an extra click
 - recovery-aware Apple messaging across readiness, Connections, and Apple setup, so the live product points directly at the reconnect step once legacy hints have been imported
 - a safe Apple setup validation step before reconnect save, so operators can test a fresh Apple username, password, and calendar URL without persisting bad credentials first
 - legacy Apple recovery hint ranking that now prefers the real recovered writable booking target over a merely enabled personal-reference calendar
@@ -168,6 +169,7 @@ The root page now acts as the first family scheduling UX:
 - the root workspace now also blocks the empty schedule board and detail panel clearly when no writable calendar is connected, so an unconfigured runtime does not masquerade as a normal empty calendar
 - the Apple setup page now also stays truthful when no Apple account exists, so it no longer shows a fake `Family` connected-account state or add-calendar controls before the first Apple account is saved
 - that Apple setup page now also lets operators load a recovered legacy Apple calendar hint directly into the form instead of retyping the imported account and calendar values by hand
+- that Apple setup page now also auto-loads the recommended recovered Apple hint when no Apple account is connected yet, so the default reconnect screen opens in the right Family state
 - the shared readiness and Apple provider surfaces now also acknowledge when recovered Apple hints are available, instead of continuing to read like a generic missing-provider state
 - that Apple setup page now also exposes a safe validation action before save, so operators can test a fresh app-specific password and calendar URL without mutating the live vault state
 - a first public booking page that uses the same availability search and writable appointment path as the internal workspace
@@ -377,6 +379,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Make Apple recovery messaging point to the reconnect step: issue `#78`
 - Add safe Apple setup validation before reconnect save: issue `#79`
 - Prefer true writable Apple targets in legacy recovery hints: issue `#80`
+- Auto-load the recommended Apple recovery hint on reconnect: issue `#81`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

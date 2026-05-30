@@ -2719,14 +2719,16 @@ def test_calendar_setup_page_shows_recovered_legacy_apple_hints(monkeypatch) -> 
 
     assert response.status_code == 200
     assert "Recovered from legacy backup" in response.text
-    assert "Recovered hint available" in response.text
-    assert "Legacy Apple backup hints are ready. Load the right calendar into setup and save a fresh app-specific password to reconnect." in response.text
+    assert "Recovered hint loaded" in response.text
+    assert "The recommended recovered Apple calendar is already loaded into setup. Add a fresh app-specific password to reconnect." in response.text
     assert "kaymayers9@gmail.com" in response.text
     assert "Use these recovered Apple details to finish setup with a fresh app-specific password." in response.text
     assert "Calendar" in response.text
     assert "Recommended writable hint" in response.text
     assert "Recovered writable hint" in response.text
-    assert "Load recommended hint into setup form" in response.text
+    assert "Recommended hint already loaded below." in response.text
+    assert "The recommended recovered Apple account and calendar hint are already loaded below." in response.text
+    assert 'value="https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/"' in response.text
     assert "Load this calendar into setup form" in response.text
 
 
