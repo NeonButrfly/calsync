@@ -2925,7 +2925,10 @@ def _build_console_context(
                 else None
             ),
         ),
-        "workspace_capabilities": _workspace_capabilities(readiness),
+        "workspace_capabilities": _workspace_capabilities(
+            readiness,
+            recovery_mode=root_recovery_mode,
+        ),
         "selected_appointment": _serialize_detail(visible_selected_detail),
         "appointment_count": len(visible_appointments),
         "active_count": len(visible_appointments),
@@ -3157,7 +3160,11 @@ def _build_month_board(
     }
 
 
-def _workspace_capabilities(readiness: dict[str, object]) -> list[str]:
+def _workspace_capabilities(
+    readiness: dict[str, object],
+    *,
+    recovery_mode: bool = False,
+) -> list[str]:
     origin = readiness.get("origin", {})
     edge = readiness.get("edge", {})
     desired_alexa = readiness.get("desired_alexa", {})
@@ -3169,7 +3176,11 @@ def _workspace_capabilities(readiness: dict[str, object]) -> list[str]:
     else:
         items.insert(
             0,
-            "Connect a writable calendar to unlock create, edit, and cancel appointments.",
+            (
+                "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password to unlock create, edit, and cancel appointments."
+                if recovery_mode
+                else "Connect a writable calendar to unlock create, edit, and cancel appointments."
+            ),
         )
     if origin.get("apple_ready"):
         items.append("Write to connected Apple calendars")

@@ -62,6 +62,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#93" in readme_content
     assert "#94" in readme_content
     assert "#95" in readme_content
+    assert "#96" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -161,6 +162,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "recovery-aware apple reconnect messaging across the blocked root workspace panels" in readme_content
     assert "recovery-aware apple reconnect guidance on alexa setup and connections" in readme_content
     assert "recovery-aware apple reconnect guidance through the full booking-setup operator flow" in readme_content
+    assert "recovery-aware apple reconnect guidance in the root workspace capability summary" in readme_content
     assert "voice-specific next guidance on alexa-focused setup surfaces" in readme_content
     assert "shared alexa account-linking readiness on `/connections`" in readme_content
     assert "an account-linking row in alexa step 4" in readme_content
@@ -245,6 +247,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#93" in ops_content
     assert "#94" in ops_content
     assert "#95" in ops_content
+    assert "#96" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -319,6 +322,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "keeps the blocked root schedule, detail, create, and availability panels aligned with that same apple recovery flow" in ops_content
     assert "keeps alexa setup and the connections voice panel aligned with that same apple recovery flow" in ops_content
     assert "keeps the booking setup target-behavior card plus blocked save and booking-type creation responses aligned with that same apple recovery flow" in ops_content
+    assert "keeps the root `what works today` capability summary aligned with that same apple recovery flow" in ops_content
     assert "voice-specific next guidance for alexa setup and connections voice panels" in ops_content
     assert "exposes alexa account-linking readiness on `/connections`" in ops_content
     assert "keeps the shared alexa desired-settings card on `/connections` truthful" in ops_content
@@ -533,6 +537,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "blocked root recovery guidance requirement" in prompt_content
     assert "alexa recovery guidance requirement" in prompt_content
     assert "booking setup recovery guidance requirement" in prompt_content
+    assert "workspace capability recovery guidance requirement" in prompt_content
     assert "root no-calendar schedule-sync requirement" in prompt_content
     assert "apple setup no-account truthfulness requirement" in prompt_content
     assert "should not show broken helper copy or capability language that overstates the currently connected live state" in prompt_content
@@ -562,6 +567,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "when legacy apple recovery hints exist and no writable calendar is connected, `get /booking/setup` should use apple reconnect guidance in the target-behavior card as well as the top-level blocked state" in prompt_content
     assert "disconnected `post /booking/setup` requests should fail with apple reconnect guidance instead of the generic writable-calendar save error" in prompt_content
     assert "disconnected `post /booking/setup/types` requests should fail with apple reconnect guidance instead of the generic writable-calendar booking-type error" in prompt_content
+    assert "when legacy apple recovery hints exist and no writable calendar is connected, the root workspace capability summary should tell operators to open apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password to unlock create, edit, and cancel appointments" in prompt_content
     assert "when `any_calendar_ready` is false, the root workspace should keep the hero summary in a clearly blocked state instead of showing stale appointment counts or a stale next-up appointment" in prompt_content
     assert "the alexa voice panel on `/connections` should show whether account linking is ready or still needs setup" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit account-linking readiness row" in prompt_content

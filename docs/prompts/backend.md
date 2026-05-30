@@ -560,6 +560,16 @@ Expected behavior:
 - disconnected `POST /booking/setup/types` requests should fail with Apple reconnect guidance instead of the generic writable-calendar booking-type error
 - when no recovery hint exists, the booking setup page and disconnected booking setup actions can keep the more generic writable-calendar wording used for a blank-install disconnected state
 
+## Workspace Capability Recovery Guidance Requirement
+
+- GitHub issue: `#96`
+- interpreted requirement: when the live deployment is in Apple recovery mode, the root `What works today` capability summary should stop using blank-install writable-calendar wording
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no writable calendar is connected, the root workspace capability summary should tell operators to open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password to unlock create, edit, and cancel appointments
+- when no recovery hint exists, the root workspace capability summary can keep the more generic writable-calendar wording used for a blank-install disconnected state
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`
