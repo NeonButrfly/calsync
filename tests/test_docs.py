@@ -38,6 +38,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#69" in readme_content
     assert "#70" in readme_content
     assert "#71" in readme_content
+    assert "#72" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -104,6 +105,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "default `/book` route now becomes a booking-type chooser" in readme_content
     assert "booking type management actions" in readme_content
     assert "public booking flow now captures the requester name and contact details" in readme_content
+    assert "booking setup now also blocks its save and create actions clearly when no writable calendar is connected" in readme_content
     assert "bookable weekdays and daily booking hours" in readme_content
     assert "/book/school-intake" in readme_content
     assert "get /book" in readme_content
@@ -168,6 +170,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#69" in ops_content
     assert "#70" in ops_content
     assert "#71" in ops_content
+    assert "#72" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -265,6 +268,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "blocked root availability state when no writable calendar is connected" in ops_content
     assert "blocked root schedule-sync state when no writable calendar is connected" in ops_content
     assert "blocked public-booking availability state when no writable calendar is connected" in ops_content
+    assert "blocked booking-setup state when no writable calendar is connected" in ops_content
     assert "truthful apple setup empty state when no apple account is connected" in ops_content
     assert "post /mcp" in ops_content
     assert "mcp_auth_token" in ops_content
@@ -304,6 +308,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#69" in prompt_content
     assert "#70" in prompt_content
     assert "#71" in prompt_content
+    assert "#72" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -396,6 +401,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "root no-calendar create-state requirement" in prompt_content
     assert "root no-calendar availability requirement" in prompt_content
     assert "public booking no-calendar availability requirement" in prompt_content
+    assert "booking setup no-calendar truthfulness requirement" in prompt_content
     assert "root no-calendar schedule-sync requirement" in prompt_content
     assert "apple setup no-account truthfulness requirement" in prompt_content
     assert "should not show broken helper copy or capability language that overstates the currently connected live state" in prompt_content
@@ -404,6 +410,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "invitee-facing availability refresh controls should look blocked in the ui until at least one writable calendar target is connected" in prompt_content
     assert "the root month board should not show `open` as if it were a normal empty calendar" in prompt_content
     assert "the add-calendar form should stay hidden or blocked until the first apple account exists" in prompt_content
+    assert "disconnected `post /booking/setup` requests should fail clearly instead of saving disconnected public-booking defaults" in prompt_content
+    assert "disconnected `post /booking/setup/types` requests should fail clearly instead of creating shareable booking links that cannot schedule anywhere" in prompt_content
     assert "enable_alexa" in prompt_content
     assert "alexa_allowed_skill_ids" in prompt_content
     assert "post /alexa/simulate" in prompt_content

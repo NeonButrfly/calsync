@@ -237,6 +237,104 @@ def test_booking_page_blocks_availability_refresh_when_no_calendar_is_connected(
     assert "No writable calendar is connected yet." in response.text
 
 
+def test_booking_setup_page_blocks_configuration_when_no_calendar_is_connected(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/booking/setup")
+
+    assert response.status_code == 200
+    assert "Booking setup still needs a calendar" in response.text
+    assert "Connect a writable calendar before configuring public booking settings or creating shareable booking types." in response.text
+    assert '<button type="submit" disabled>Save booking settings</button>' in response.text
+    assert '<button type="submit" disabled>Create booking type</button>' in response.text
+    assert 'name="target_calendar_url" disabled' in response.text
+    assert "No writable calendars connected yet" in response.text
+    assert "No writable target yet" in response.text
+
+
+def test_booking_setup_rejects_save_when_no_calendar_is_connected(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/booking/setup",
+        data={
+            "page_title": "Book time with Kayra",
+            "page_description": "Choose a calm household scheduling slot.",
+            "duration_minutes": "45",
+            "search_window_days": "28",
+            "success_message": "You're booked.",
+            "target_calendar_url": "",
+            "booking_weekdays": ["0", "1", "2", "3", "4"],
+            "day_start_time": "09:00",
+            "day_end_time": "15:00",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Connect a writable calendar before saving public booking settings." in response.text
+    assert "Public booking settings saved securely." not in response.text
+
+
+def test_booking_setup_rejects_new_type_when_no_calendar_is_connected(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/booking/setup/types",
+        data={
+            "new_page_title": "Therapy intake",
+            "new_booking_slug": "therapy-intake",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Connect a writable calendar before creating public booking types." in response.text
+    assert "Public booking type saved securely." not in response.text
+
+
 def test_booking_setup_page_round_trips_public_booking_settings(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     app = create_app()

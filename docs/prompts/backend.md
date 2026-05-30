@@ -258,6 +258,20 @@ Expected behavior:
 - the writable-target panel should explain that the first Apple account must be saved before additional Apple targets can be managed
 - the add-calendar form should stay hidden or blocked until the first Apple account exists
 
+## Booking Setup No-Calendar Truthfulness Requirement
+
+- GitHub issue: `#72`
+- interpreted requirement: when the live runtime has no writable Apple, Google, or Microsoft calendar connected, `/booking/setup` should not behave like public-booking configuration is ready or allow disconnected booking-type creation
+
+Expected behavior:
+
+- `GET /booking/setup` should clearly explain that a writable calendar is still required before public booking settings are meaningful
+- the booking-settings form should render as blocked in the UI when there are no writable calendar targets
+- the setup page should show that no writable calendars are connected yet instead of an empty active target picker
+- the booking-type creation flow should look blocked in the UI until at least one writable calendar target is connected
+- disconnected `POST /booking/setup` requests should fail clearly instead of saving disconnected public-booking defaults
+- disconnected `POST /booking/setup/types` requests should fail clearly instead of creating shareable booking links that cannot schedule anywhere
+
 ## Public Booking Page Requirement
 
 - GitHub issue: `#55`

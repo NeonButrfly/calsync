@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, and `#71` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, and `#72` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -161,6 +161,7 @@ The root page now acts as the first family scheduling UX:
 - that public booking flow is now configurable from `/booking/setup`, including invitee-facing copy, default duration, search horizon, success message, and the writable target used for new bookings
 - that public booking flow now also respects operator-managed booking weekdays plus daily start and end hours
 - that public booking flow now also blocks the invitee-facing availability refresh controls clearly when no writable calendar is connected, so the page does not look half-live during provider setup
+- that booking setup now also blocks its save and create actions clearly when no writable calendar is connected, so operators do not accidentally save disconnected public-booking defaults
 - that booking setup flow now supports multiple named booking types, each with its own public slug and shareable invitee-facing URL
 - that default `/book` route now becomes a booking-type chooser when multiple public booking types exist, while keeping direct `/book/{slug}` links for focused flows
 - that booking setup flow now also lets operators make an existing booking type the default public flow or delete a stale type directly from the UI

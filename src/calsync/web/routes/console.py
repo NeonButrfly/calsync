@@ -353,25 +353,16 @@ def booking_setup_page(request: Request, booking_slug: str | None = None):
         operator_settings,
         booking_slug=booking_slug,
     )
-    service = AppointmentService()
     return _templates.TemplateResponse(
         request,
         "booking_setup.html",
-        {
-            "request": request,
-            "booking_settings": booking_settings,
-            "calendar_options": _calendar_options(
-                service,
-                selected_calendar_url=str(
-                    booking_settings.get("target_calendar_url") or ""
-                )
-                or None,
-            ),
-            "booking_types": operator_settings.describe_public_booking_types(),
-            "flash_message": None,
-            "error_message": None,
-            "public_booking_url": str(booking_settings.get("public_url") or "/book"),
-        },
+        _build_booking_setup_context(
+            request,
+            operator_settings=operator_settings,
+            booking_settings=booking_settings,
+            flash_message=None,
+            error_message=None,
+        ),
     )
 
 
@@ -384,27 +375,50 @@ def _booking_setup_response(
     error_message: str | None,
     status_code: int = 200,
 ):
-    service = AppointmentService()
     return _templates.TemplateResponse(
         request,
         "booking_setup.html",
-        {
-            "request": request,
-            "booking_settings": booking_settings,
-            "calendar_options": _calendar_options(
-                service,
-                selected_calendar_url=str(
-                    booking_settings.get("target_calendar_url") or ""
-                )
-                or None,
-            ),
-            "booking_types": operator_settings.describe_public_booking_types(),
-            "flash_message": flash_message,
-            "error_message": error_message,
-            "public_booking_url": str(booking_settings.get("public_url") or "/book"),
-        },
+        _build_booking_setup_context(
+            request,
+            operator_settings=operator_settings,
+            booking_settings=booking_settings,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
         status_code=status_code,
     )
+
+
+def _build_booking_setup_context(
+    request: Request,
+    *,
+    operator_settings: OperatorSettingsService,
+    booking_settings: dict[str, object],
+    flash_message: str | None,
+    error_message: str | None,
+) -> dict[str, object]:
+    service = AppointmentService()
+    calendar_options = _calendar_options(
+        service,
+        selected_calendar_url=str(booking_settings.get("target_calendar_url") or "")
+        or None,
+    )
+    booking_setup_ready = bool(calendar_options)
+    return {
+        "request": request,
+        "booking_settings": booking_settings,
+        "calendar_options": calendar_options,
+        "booking_types": operator_settings.describe_public_booking_types(),
+        "flash_message": flash_message,
+        "error_message": error_message,
+        "public_booking_url": str(booking_settings.get("public_url") or "/book"),
+        "booking_setup_ready": booking_setup_ready,
+        "booking_setup_block_message": (
+            None
+            if booking_setup_ready
+            else "Connect a writable calendar before configuring public booking settings or creating shareable booking types."
+        ),
+    }
 
 
 @router.post("/booking/setup")
@@ -423,7 +437,15 @@ def booking_setup_update(
     set_as_default: str = Form(""),
 ):
     operator_settings = OperatorSettingsService()
+    service = AppointmentService()
     try:
+        if not _calendar_options(
+            service,
+            selected_calendar_url=target_calendar_url.strip() or None,
+        ):
+            raise ValueError(
+                "Connect a writable calendar before saving public booking settings."
+            )
         if booking_slug.strip():
             operator_settings.upsert_public_booking_type(
                 slug=booking_slug,
@@ -477,12 +499,21 @@ def booking_type_create(
     new_booking_slug: str = Form(""),
 ):
     operator_settings = OperatorSettingsService()
+    service = AppointmentService()
     current_settings = _load_public_booking_settings(
         operator_settings,
         booking_slug=booking_slug or None,
     )
     requested_slug = new_booking_slug.strip() or new_page_title.strip()
     try:
+        if not _calendar_options(
+            service,
+            selected_calendar_url=str(current_settings.get("target_calendar_url") or "")
+            or None,
+        ):
+            raise ValueError(
+                "Connect a writable calendar before creating public booking types."
+            )
         operator_settings.upsert_public_booking_type(
             slug=requested_slug,
             page_title=new_page_title.strip() or str(current_settings["page_title"]),
