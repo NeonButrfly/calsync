@@ -173,20 +173,23 @@ class AppleCalDAVClient:
         ends_at: datetime,
     ) -> list[AppleListedEvent]:
         body = self._build_calendar_query(starts_at=starts_at, ends_at=ends_at)
-        response = httpx.request(
-            "REPORT",
-            self.config.primary_calendar_url,
-            auth=(
-                self.config.apple_username,
-                self.config.app_specific_password,
-            ),
-            content=body,
-            headers={
-                "Depth": "1",
-                "Content-Type": "application/xml; charset=utf-8",
-            },
-            timeout=30,
-        )
+        try:
+            response = httpx.request(
+                "REPORT",
+                self.config.primary_calendar_url,
+                auth=(
+                    self.config.apple_username,
+                    self.config.app_specific_password,
+                ),
+                content=body,
+                headers={
+                    "Depth": "1",
+                    "Content-Type": "application/xml; charset=utf-8",
+                },
+                timeout=30,
+            )
+        except httpx.HTTPError as exc:
+            raise AppleCalDAVError("Apple/iCloud calendar read request failed.") from exc
         if response.status_code == 401:
             raise AppleCalDAVError("Apple/iCloud authentication failed.")
         if response.status_code >= 400:
@@ -289,17 +292,20 @@ class AppleCalDAVClient:
             headers["Content-Type"] = "text/calendar; charset=utf-8"
         if etag:
             headers["If-Match"] = etag
-        response = httpx.request(
-            method,
-            href,
-            auth=(
-                self.config.apple_username,
-                self.config.app_specific_password,
-            ),
-            content=content,
-            headers=headers,
-            timeout=30,
-        )
+        try:
+            response = httpx.request(
+                method,
+                href,
+                auth=(
+                    self.config.apple_username,
+                    self.config.app_specific_password,
+                ),
+                content=content,
+                headers=headers,
+                timeout=30,
+            )
+        except httpx.HTTPError as exc:
+            raise AppleCalDAVError("Apple/iCloud calendar write request failed.") from exc
         if response.status_code == 401:
             raise AppleCalDAVError("Apple/iCloud authentication failed.")
         if response.status_code >= 400:

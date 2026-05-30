@@ -107,6 +107,24 @@ def test_console_root_renders_scheduler_surface(monkeypatch) -> None:
     assert "Find open time" in response.text
 
 
+def test_booking_page_renders_public_surface_with_open_slots(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/book")
+
+    assert response.status_code == 200
+    assert "Book time with CalSync" in response.text
+    assert "Available times" in response.text
+    assert "Request this time" in response.text
+
+
 def test_connections_page_renders_provider_summary(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     service = OperatorSettingsService(settings=get_settings())
@@ -1955,6 +1973,37 @@ def test_console_root_shows_availability_results(monkeypatch) -> None:
     assert "Monday, Jun 1" in response.text
     assert "8:00 AM - 9:00 AM" in response.text
     assert "10:00 AM - 11:00 AM" in response.text
+
+
+def test_booking_page_can_create_appointment_from_selected_slot(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/book",
+        data={
+            "title": "School intake call",
+            "attendees_text": "Kayra",
+            "location": "Phone",
+            "notes": "Public booking flow",
+            "slot_value": "2026-06-01|10:00|11:00|America/Anchorage",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Booking confirmed" in response.text
+    assert "School intake call" in response.text
+    assert "Kayra" in response.text
+
+    api_response = client.get("/api/appointments?date_from=2026-06-01&date_to=2026-06-01")
+    items = api_response.json()["items"]
+    assert any(item["title"] == "School intake call" for item in items)
 
 
 def test_alexa_simulator_supports_find_availability_intent(monkeypatch) -> None:

@@ -76,6 +76,127 @@ def terms_page(request: Request):
     )
 
 
+@router.get("/book")
+def public_booking_page(
+    request: Request,
+    availability_date_from: str | None = None,
+    availability_date_to: str | None = None,
+    availability_duration_minutes: int = 60,
+):
+    service = AppointmentService()
+    return _templates.TemplateResponse(
+        request,
+        "booking.html",
+        _build_booking_context(
+            request,
+            service=service,
+            availability_date_from=availability_date_from,
+            availability_date_to=availability_date_to,
+            availability_duration_minutes=availability_duration_minutes,
+            booking_form_values=_empty_booking_form_values(),
+            flash_message=None,
+            error_message=None,
+            booking_confirmation=None,
+        ),
+    )
+
+
+@router.post("/book")
+def public_booking_submit(
+    request: Request,
+    title: str = Form(...),
+    attendees_text: str = Form(""),
+    location: str = Form(""),
+    notes: str = Form(""),
+    slot_value: str = Form(""),
+    availability_date_from: str = Form(""),
+    availability_date_to: str = Form(""),
+    availability_duration_minutes: int = Form(60),
+):
+    service = AppointmentService()
+    booking_form_values = {
+        "title": title,
+        "attendees_text": attendees_text,
+        "location": location,
+        "notes": notes,
+        "slot_value": slot_value,
+    }
+    target = _default_booking_target(service)
+    if target is None:
+        return _templates.TemplateResponse(
+            request,
+            "booking.html",
+            _build_booking_context(
+                request,
+                service=service,
+                availability_date_from=availability_date_from or None,
+                availability_date_to=availability_date_to or None,
+                availability_duration_minutes=availability_duration_minutes,
+                booking_form_values=booking_form_values,
+                flash_message=None,
+                error_message="No writable calendar target is ready for public booking yet.",
+                booking_confirmation=None,
+            ),
+            status_code=400,
+        )
+    try:
+        date_value, start_time, end_time, timezone = _parse_booking_slot_value(slot_value)
+        created = service.create(
+            CreateAppointmentRequest(
+                title=title,
+                date=date_value,
+                start_time=start_time,
+                end_time=end_time,
+                timezone=timezone,
+                location=location or None,
+                notes=notes or None,
+                attendees_text=attendees_text or None,
+                target_calendar_url=str(target["value"]),
+            ),
+            actor="public_booking",
+        )
+        detail = service.get_detail(created.appointment_id)
+        return _templates.TemplateResponse(
+            request,
+            "booking.html",
+            _build_booking_context(
+                request,
+                service=service,
+                availability_date_from=availability_date_from or None,
+                availability_date_to=availability_date_to or None,
+                availability_duration_minutes=availability_duration_minutes,
+                booking_form_values=_empty_booking_form_values(),
+                flash_message="Booking confirmed.",
+                error_message=None,
+                booking_confirmation={
+                    "title": detail.title,
+                    "date_label": _friendly_date_label(detail.date, include_weekday=True),
+                    "time_label": _time_label(detail),
+                    "timezone": detail.timezone,
+                    "calendar_label": str(target["label"]),
+                    "attendees_text": detail.attendees_text,
+                },
+            ),
+        )
+    except (ValueError, AppleCalDAVError, GoogleCalendarError, MicrosoftCalendarError) as exc:
+        return _templates.TemplateResponse(
+            request,
+            "booking.html",
+            _build_booking_context(
+                request,
+                service=service,
+                availability_date_from=availability_date_from or None,
+                availability_date_to=availability_date_to or None,
+                availability_duration_minutes=availability_duration_minutes,
+                booking_form_values=booking_form_values,
+                flash_message=None,
+                error_message=str(exc),
+                booking_confirmation=None,
+            ),
+            status_code=400,
+        )
+
+
 @router.get("/alexa/setup")
 def alexa_setup_page(request: Request):
     readiness = ReadinessService().build()
@@ -1737,6 +1858,49 @@ def _build_console_context(
     }
 
 
+def _build_booking_context(
+    request: Request,
+    *,
+    service: AppointmentService,
+    availability_date_from: str | None,
+    availability_date_to: str | None,
+    availability_duration_minutes: int,
+    booking_form_values: dict[str, object],
+    flash_message: str | None,
+    error_message: str | None,
+    booking_confirmation: dict[str, object] | None,
+) -> dict[str, object]:
+    defaults = _default_availability_form_values()
+    form_values = {
+        "date_from": availability_date_from or str(defaults["date_from"]),
+        "date_to": availability_date_to or str(defaults["date_to"]),
+        "duration_minutes": availability_duration_minutes or int(defaults["duration_minutes"]),
+    }
+    target = _default_booking_target(service)
+    availability_results: list[AvailabilitySlot] = []
+    availability_error: str | None = None
+    if target is not None:
+        try:
+            availability_results = service.find_availability(
+                date_from=str(form_values["date_from"]),
+                date_to=str(form_values["date_to"]),
+                duration_minutes=int(form_values["duration_minutes"]),
+            ).items
+        except (ValueError, AppleCalDAVError, GoogleCalendarError, MicrosoftCalendarError) as exc:
+            availability_error = str(exc)
+    return {
+        "request": request,
+        "flash_message": flash_message,
+        "error_message": error_message or availability_error,
+        "booking_confirmation": booking_confirmation,
+        "booking_form_values": booking_form_values,
+        "availability_form_values": form_values,
+        "availability_results": _serialize_booking_slots(availability_results),
+        "calendar_target": target,
+        "calendar_ready": target is not None,
+    }
+
+
 def _build_schedule_board(
     appointments: list[AppointmentListItem],
     *,
@@ -2309,6 +2473,16 @@ def _default_availability_form_values() -> dict[str, object]:
     }
 
 
+def _empty_booking_form_values() -> dict[str, object]:
+    return {
+        "title": "",
+        "attendees_text": "",
+        "location": "",
+        "notes": "",
+        "slot_value": "",
+    }
+
+
 def _serialize_availability_results(
     items: list[AvailabilitySlot],
 ) -> list[dict[str, str]]:
@@ -2320,6 +2494,22 @@ def _serialize_availability_results(
         }
         for item in items
     ]
+
+
+def _serialize_booking_slots(
+    items: list[AvailabilitySlot],
+) -> list[dict[str, str | bool]]:
+    slots = _serialize_availability_results(items)
+    serialized: list[dict[str, str | bool]] = []
+    for index, item in enumerate(items):
+        serialized.append(
+            {
+                **slots[index],
+                "slot_value": f"{item.date}|{item.start_time}|{item.end_time}|{item.timezone}",
+                "is_default": index == 0,
+            }
+        )
+    return serialized
 
 
 def _calendar_options(
@@ -2348,6 +2538,29 @@ def _calendar_options(
             }
         )
     return options
+
+
+def _default_booking_target(service: AppointmentService) -> dict[str, object] | None:
+    calendars = service.available_calendars
+    if not calendars:
+        return None
+    selected_value = next(
+        (str(item["calendar_url"]) for item in calendars if bool(item.get("is_default"))),
+        str(calendars[0]["calendar_url"]),
+    )
+    options = _calendar_options(service, selected_calendar_url=selected_value)
+    selected_option = next(option for option in options if bool(option["is_selected"]))
+    return {
+        "label": str(selected_option["label"]),
+        "value": selected_value,
+    }
+
+
+def _parse_booking_slot_value(value: str) -> tuple[str, str, str, str]:
+    parts = str(value or "").split("|")
+    if len(parts) != 4 or not all(parts):
+        raise ValueError("Choose an available time before requesting a booking.")
+    return parts[0], parts[1], parts[2], parts[3]
 
 
 def _default_alexa_simulator_values() -> dict[str, str]:

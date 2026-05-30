@@ -5,6 +5,7 @@ import httpx
 from calsync.services.apple_caldav import (
     AppleCalDAVClient,
     AppleCalDAVConfig,
+    AppleCalDAVError,
     build_event_payload,
 )
 
@@ -106,3 +107,29 @@ END:VCALENDAR</c:calendar-data>
     assert events[0].provider_event_id == "provider-existing"
     assert events[0].title == "Existing School Visit"
     assert events[0].location == "School office"
+
+
+def test_list_events_wraps_transport_error(monkeypatch) -> None:
+    config = AppleCalDAVConfig(
+        account_label="Family",
+        apple_username="family@example.com",
+        app_specific_password="secret",
+        primary_calendar_url="https://caldav.icloud.com/calendar/",
+        primary_calendar_name="Family",
+    )
+    client = AppleCalDAVClient(config)
+
+    def fake_request(method: str, url: str, **_: object) -> httpx.Response:
+        raise httpx.ConnectError("boom")
+
+    monkeypatch.setattr("calsync.services.apple_caldav.httpx.request", fake_request)
+
+    try:
+        client.list_events(
+            starts_at=datetime(2026, 6, 10, 0, 0, tzinfo=UTC),
+            ends_at=datetime(2026, 6, 10, 23, 59, tzinfo=UTC),
+        )
+    except AppleCalDAVError as exc:
+        assert str(exc) == "Apple/iCloud calendar read request failed."
+    else:
+        raise AssertionError("Expected AppleCalDAVError")

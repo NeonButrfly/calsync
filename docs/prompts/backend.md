@@ -17,7 +17,6 @@
 - this slice is Apple/iCloud-first, not a broad multi-provider conversational assistant
 - Google inbound event ingestion is future work
 - iCloud Reminders sync is future work
-- public booking links are future work
 - the first conversational app should expose create, edit, cancel, and date-range list flows
 
 ## Phase Notes
@@ -186,6 +185,19 @@ Expected behavior:
 - `/` should render a month board when `view=month`
 - the selected-appointment detail pane and write actions should remain intact while the schedule board becomes more calendar-like
 - the schedule board should remain useful even when some days are empty, so the planner surface still communicates open space instead of collapsing into a blank page
+
+## Public Booking Page Requirement
+
+- GitHub issue: `#55`
+- interpreted requirement: CalSync should expose a first invitee-facing booking page so the shared write-capable scheduling brain is useful outside the internal operator workspace
+
+Expected behavior:
+
+- `GET /book` should render a public booking page
+- the booking page should show open time from the same shared availability service used by the internal workspace
+- an invitee should be able to choose one available time and submit a booking request
+- the booking request should create a real appointment on the default writable connected calendar target
+- the booking page should confirm the saved appointment details after success instead of bouncing the user into the internal operator workspace
 
 Expected API/edge support:
 
