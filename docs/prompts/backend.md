@@ -524,6 +524,18 @@ Expected behavior:
 - `/booking/setup` should also expose direct operator actions into Apple setup and Connections in that recovery-shaped blocked state
 - invitee-facing `/book` copy can remain generic, because it should not expose operator-only Apple recovery details to the public booking surface
 
+## Blocked Root Recovery Guidance Requirement
+
+- GitHub issue: `#93`
+- interpreted requirement: once the live deployment is clearly in Apple recovery mode, the blocked root workspace panels should stop mixing generic no-calendar copy with recovery-aware guidance on the same page
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no writable calendar is connected, `GET /` should use Apple reconnect guidance in the blocked schedule, detail, create, and availability panels
+- those blocked panel messages should tell operators to open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before expecting live schedule data, appointment detail, writes, or availability search
+- the blocked detail panel should expose the same direct operator actions into Connections and Apple setup that the other blocked root panels already provide
+- when no recovery hint exists, the root workspace can keep the more generic writable-calendar wording used for a blank-install disconnected state
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

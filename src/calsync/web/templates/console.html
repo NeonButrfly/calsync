@@ -359,6 +359,12 @@
                 {% if not schedule_ready %}
                 <h4>Calendar setup still blocks appointment detail.</h4>
                 <p>{{ detail_block_message }}</p>
+                <div class="stack-actions">
+                  <a class="text-action" href="/connections">Open Connections</a>
+                  <a class="text-action" href="/calendar/setup">Open Apple setup</a>
+                  <a class="text-action" href="/google/setup">Open Google setup</a>
+                  <a class="text-action" href="/microsoft/setup">Open Microsoft setup</a>
+                </div>
                 {% else %}
                 <h4>Select an appointment</h4>
                 <p>

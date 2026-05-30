@@ -255,6 +255,22 @@ def test_console_root_points_to_apple_reconnect_when_legacy_hints_exist(
         in response.text
     )
     assert (
+        "Apple reconnect still blocks live schedule sync. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before expecting a real household schedule here."
+        in response.text
+    )
+    assert (
+        "Apple reconnect still blocks write actions. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before creating appointments from the schedule workspace."
+        in response.text
+    )
+    assert (
+        "Apple reconnect still blocks availability search. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before searching for open time from the schedule workspace."
+        in response.text
+    )
+    assert (
+        "Apple reconnect still blocks appointment detail. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before expecting appointment activity here."
+        in response.text
+    )
+    assert (
         '<a class="text-action" href="/connections">Open Connections</a>\n'
         '            <a class="text-action" href="/calendar/setup">Open Apple setup</a>\n'
         '            <a class="text-action" href="/google/setup">Open Google setup</a>'

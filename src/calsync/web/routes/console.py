@@ -2830,6 +2830,7 @@ def _build_console_context(
 ) -> dict[str, object]:
     origin = readiness.get("origin", {}) if isinstance(readiness, dict) else {}
     any_calendar_ready = bool(origin.get("any_calendar_ready"))
+    legacy_recovery_hints = OperatorSettingsService().describe_legacy_apple_recovery_hints()
     visible_appointments = appointments if any_calendar_ready else []
     visible_selected_detail = selected_detail if any_calendar_ready else None
     hero_subject = visible_appointments[0] if visible_appointments else None
@@ -2840,6 +2841,10 @@ def _build_console_context(
     create_ready = bool(calendar_options)
     availability_ready = create_ready
     schedule_ready = create_ready
+    root_recovery_mode = (
+        not schedule_ready
+        and str(legacy_recovery_hints.get("source") or "missing") != "missing"
+    )
     return {
         "request": request,
         "flash_message": flash_message,
@@ -2854,25 +2859,41 @@ def _build_console_context(
         "create_block_message": (
             None
             if create_ready
-            else "Connect a writable calendar before creating appointments from the schedule workspace."
+            else (
+                "Apple reconnect still blocks write actions. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before creating appointments from the schedule workspace."
+                if root_recovery_mode
+                else "Connect a writable calendar before creating appointments from the schedule workspace."
+            )
         ),
         "availability_form_values": availability_form_values,
         "schedule_ready": schedule_ready,
         "schedule_block_message": (
             None
             if schedule_ready
-            else "Connect a writable calendar before CalSync can show a real live schedule window."
+            else (
+                "Apple reconnect still blocks live schedule sync. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before expecting a real household schedule here."
+                if root_recovery_mode
+                else "Connect a writable calendar before CalSync can show a real live schedule window."
+            )
         ),
         "detail_block_message": (
             None
             if schedule_ready
-            else "Choose a calendar connection before expecting appointment detail or activity here."
+            else (
+                "Apple reconnect still blocks appointment detail. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before expecting appointment activity here."
+                if root_recovery_mode
+                else "Choose a calendar connection before expecting appointment detail or activity here."
+            )
         ),
         "availability_ready": availability_ready,
         "availability_block_message": (
             None
             if availability_ready
-            else "Connect a writable calendar before searching for open time from the schedule workspace."
+            else (
+                "Apple reconnect still blocks availability search. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before searching for open time from the schedule workspace."
+                if root_recovery_mode
+                else "Connect a writable calendar before searching for open time from the schedule workspace."
+            )
         ),
         "availability_results": _serialize_availability_results(availability_results),
         "availability_error": availability_error,
