@@ -433,7 +433,7 @@ Current reality:
 Expected behavior:
 
 - deploy a dedicated MCP Worker on `https://mcp-calsync.neonbutterfly.net/mcp`
-- keep a `workers.dev` endpoint available until the custom hostname is delegated cleanly
+- keep a `workers.dev` endpoint available as a fallback alongside the custom hostname
 - expose:
   - `list_appointments`
   - `create_appointment`

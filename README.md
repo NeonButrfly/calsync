@@ -46,8 +46,8 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - A dedicated Cloudflare Worker in `workers/edge-calsync`
 - Live ChatGPT-first edge hostname: `https://edge-calsync.neonbutterfly.net`
 - a dedicated remote MCP Worker in `workers/mcp-calsync`
-- live MCP hostname: `https://mcp-calsync.kaymayers9.workers.dev`
-- intended custom MCP hostname: `https://mcp-calsync.neonbutterfly.net`
+- live MCP hostname: `https://mcp-calsync.neonbutterfly.net`
+- workers.dev MCP fallback: `https://mcp-calsync.kaymayers9.workers.dev`
 - Live Pi origin hostname: `https://calsync.neonbutterfly.net`
 - a first Alexa custom-skill adapter on top of the same shared scheduling brain
 - named Apple calendar targeting through Alexa and the simulator, so voice flows can choose a saved household calendar instead of always using the default destination
@@ -173,8 +173,8 @@ The root page now acts as the first family scheduling UX:
 
 The first remote MCP server now lives beside the edge Worker:
 
-- Worker endpoint: `https://mcp-calsync.kaymayers9.workers.dev/mcp`
-- intended custom domain endpoint: `https://mcp-calsync.neonbutterfly.net/mcp`
+- primary custom domain endpoint: `https://mcp-calsync.neonbutterfly.net/mcp`
+- workers.dev fallback endpoint: `https://mcp-calsync.kaymayers9.workers.dev/mcp`
 - project: `workers/mcp-calsync`
 - tools:
   - `list_appointments`

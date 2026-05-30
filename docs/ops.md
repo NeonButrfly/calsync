@@ -394,11 +394,11 @@ Worker routes:
 
 Live MCP hostname:
 
-- `https://mcp-calsync.kaymayers9.workers.dev`
-
-Intended custom MCP hostname:
-
 - `https://mcp-calsync.neonbutterfly.net`
+
+Workers.dev MCP fallback:
+
+- `https://mcp-calsync.kaymayers9.workers.dev`
 
 Worker route:
 

@@ -112,6 +112,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "provider-aware alexa calendar targeting across apple, google, and microsoft" in readme_content
     assert "https://mcp-calsync.kaymayers9.workers.dev/mcp" in readme_content
     assert "https://mcp-calsync.neonbutterfly.net/mcp" in readme_content
+    assert "workers.dev mcp fallback" in readme_content
     assert "list_appointments" in readme_content
     assert "edge_internal_token" in readme_content
     assert "mounts that same `.runtime` directory" in readme_content
@@ -230,6 +231,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "post /mcp" in ops_content
     assert "mcp_auth_token" in ops_content
     assert "edge_internal_token" in ops_content
+    assert "workers.dev mcp fallback" in ops_content
     assert "get /status" in ops_content
     assert "channel-token presence that exists in `/home/kay/apps/calsync/.runtime/channel-tokens.json`" in ops_content
 
@@ -349,6 +351,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "remote mcp worker requirement" in prompt_content
     assert "https://mcp-calsync.neonbutterfly.net/mcp" in prompt_content
     assert "workers.dev" in prompt_content
+    assert "available as a fallback alongside the custom hostname" in prompt_content
     assert "forward mcp tool calls into the live edge/origin stack" in prompt_content
 
 

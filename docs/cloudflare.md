@@ -10,8 +10,8 @@ Live hostnames:
 
 - Pi origin brain: `https://calsync.neonbutterfly.net`
 - ChatGPT-first edge Worker: `https://edge-calsync.neonbutterfly.net`
-- Remote MCP Worker: `https://mcp-calsync.kaymayers9.workers.dev`
-- Intended custom MCP hostname: `https://mcp-calsync.neonbutterfly.net`
+- Remote MCP Worker: `https://mcp-calsync.neonbutterfly.net`
+- workers.dev MCP fallback: `https://mcp-calsync.kaymayers9.workers.dev`
 
 Live Worker:
 
@@ -23,7 +23,7 @@ Live Worker:
 
 - public edge hostname for ChatGPT-facing requests
 - public MCP hostname for remote MCP clients
-- workers.dev fallback while the custom MCP hostname is not yet delegated
+- workers.dev fallback endpoint for MCP clients that still need the non-custom-domain hostname
 - Worker auth validation
 - feature switches
 - request forwarding to the Pi origin
