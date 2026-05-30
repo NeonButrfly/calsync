@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, and `#73` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, `#73`, `#76`, and `#77` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -77,6 +77,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - truthful save-only Alexa action labels on `/alexa/setup` and `/connections`, so those surfaces stop implying a live Worker apply when Cloudflare Worker management is still unavailable
 - restore-aware readiness guidance, so recovery-shaped deployments with only non-provider settings left now point operators toward encrypted restore from `/connections` instead of acting like fresh provider onboarding is the only next move
 - a legacy Pi-backup import path for Apple recovery hints, so the preserved SQL backup can surface the old iCloud account and calendar URLs inside CalSync instead of forcing manual dump inspection
+- one-step loading of recovered Apple backup hints into the setup form, so operators can start from the imported account and calendar values and only add a fresh app-specific password
 - voice-specific next guidance on Alexa-focused setup surfaces, so the Alexa setup page and Connections voice panel explain the actual voice turn-on work instead of falling back to generic provider onboarding copy
 - a simulator readiness summary for no-calendar voice testing states, so `/alexa/simulator` explains when LaunchRequest is still useful and why scheduling-intent tests are still blocked
 - a first availability finder across the workspace, edge API, and Alexa so CalSync can suggest open appointment windows instead of only listing busy ones
@@ -162,6 +163,7 @@ The root page now acts as the first family scheduling UX:
 - the root workspace now also blocks availability search clearly when no writable calendar is connected, so operators do not get fake “no openings” signals from an unconfigured scheduling path
 - the root workspace now also blocks the empty schedule board and detail panel clearly when no writable calendar is connected, so an unconfigured runtime does not masquerade as a normal empty calendar
 - the Apple setup page now also stays truthful when no Apple account exists, so it no longer shows a fake `Family` connected-account state or add-calendar controls before the first Apple account is saved
+- that Apple setup page now also lets operators load a recovered legacy Apple calendar hint directly into the form instead of retyping the imported account and calendar values by hand
 - a first public booking page that uses the same availability search and writable appointment path as the internal workspace
 - that public booking flow is now configurable from `/booking/setup`, including invitee-facing copy, default duration, search horizon, success message, and the writable target used for new bookings
 - that public booking flow now also respects operator-managed booking weekdays plus daily start and end hours
@@ -365,6 +367,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Truthful save-only Alexa action labels before Worker access exists: issue `#74`
 - Restore-aware readiness guidance for recovery-shaped deployments: issue `#75`
 - Legacy Pi backup import for Apple recovery hints: issue `#76`
+- Load recovered Apple backup hints into the setup form: issue `#77`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

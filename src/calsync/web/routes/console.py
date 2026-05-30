@@ -812,26 +812,106 @@ async def alexa_account_linking_validate(request: Request):
 
 
 @router.get("/calendar/setup")
-def calendar_setup_page(request: Request):
+def calendar_setup_page(
+    request: Request,
+    recovered_calendar_url: str | None = None,
+):
     operator_settings = OperatorSettingsService()
     apple_settings = operator_settings.describe_apple_calendar_settings()
     legacy_recovery_hints = operator_settings.describe_legacy_apple_recovery_hints()
     runtime_service = AppleRuntimeConfigService(operator_settings=operator_settings)
     runtime_config = runtime_service.resolve()
+    status_code = 200
+    flash_message = None
+    error_message = None
+    if recovered_calendar_url:
+        try:
+            apple_settings = _prefill_apple_settings_from_legacy_hints(
+                apple_settings=apple_settings,
+                legacy_recovery_hints=legacy_recovery_hints,
+                recovered_calendar_url=recovered_calendar_url,
+            )
+            flash_message = (
+                "Recovered Apple details loaded into the setup form. "
+                "Add a fresh app-specific password to finish reconnecting."
+            )
+        except ValueError as exc:
+            error_message = str(exc)
+            status_code = 400
     return _templates.TemplateResponse(
         request,
         "calendar_setup.html",
-        {
-            "request": request,
-            "apple_settings": apple_settings,
-            "legacy_recovery_hints": legacy_recovery_hints,
-            "runtime_config": runtime_config,
-            "apple_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": None,
-            "error_message": None,
-        },
+        _build_calendar_setup_context(
+            request,
+            apple_settings=apple_settings,
+            legacy_recovery_hints=legacy_recovery_hints,
+            runtime_service=runtime_service,
+            runtime_config=runtime_config,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
+        status_code=status_code,
     )
+
+
+def _build_calendar_setup_context(
+    request: Request,
+    *,
+    apple_settings: dict[str, object],
+    legacy_recovery_hints: dict[str, object],
+    runtime_service: AppleRuntimeConfigService,
+    runtime_config: dict[str, object],
+    flash_message: str | None,
+    error_message: str | None,
+) -> dict[str, object]:
+    return {
+        "request": request,
+        "apple_settings": apple_settings,
+        "legacy_recovery_hints": legacy_recovery_hints,
+        "runtime_config": runtime_config,
+        "apple_accounts": runtime_service.list_accounts(),
+        "calendar_catalog": runtime_service.list_calendars(),
+        "flash_message": flash_message,
+        "error_message": error_message,
+    }
+
+
+def _prefill_apple_settings_from_legacy_hints(
+    *,
+    apple_settings: dict[str, object],
+    legacy_recovery_hints: dict[str, object],
+    recovered_calendar_url: str,
+) -> dict[str, object]:
+    if str(legacy_recovery_hints.get("source") or "") == "missing":
+        raise ValueError("Import a legacy Apple backup before trying to load recovered setup hints.")
+    if str(apple_settings.get("source") or "") != "missing":
+        raise ValueError(
+            "Recovered Apple hints can only prefill the form before the first Apple account is saved."
+        )
+    selected_url = str(recovered_calendar_url or "").strip()
+    selected_hint = next(
+        (
+            item
+            for item in legacy_recovery_hints.get("calendars", [])
+            if isinstance(item, dict)
+            and str(item.get("calendar_url") or "").strip() == selected_url
+        ),
+        None,
+    )
+    if selected_hint is None:
+        raise ValueError("Recovered Apple calendar hint was not found.")
+    return {
+        "account_label": str(
+            legacy_recovery_hints.get("account_label")
+            or legacy_recovery_hints.get("account_username")
+            or ""
+        ),
+        "username": str(legacy_recovery_hints.get("account_username") or ""),
+        "primary_calendar_url": selected_url,
+        "primary_calendar_name": str(selected_hint.get("calendar_name") or ""),
+        "password_saved": False,
+        "source": "legacy_recovery_hints",
+    }
 
 
 @router.get("/connections")
@@ -1167,15 +1247,15 @@ def calendar_setup_update(
     return _templates.TemplateResponse(
         request,
         "calendar_setup.html",
-        {
-            "request": request,
-            "apple_settings": apple_settings,
-            "runtime_config": runtime_config,
-            "apple_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": flash_message,
-            "error_message": error_message,
-        },
+        _build_calendar_setup_context(
+            request,
+            apple_settings=apple_settings,
+            legacy_recovery_hints=operator_settings.describe_legacy_apple_recovery_hints(),
+            runtime_service=runtime_service,
+            runtime_config=runtime_config,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
         status_code=200 if error_message is None else 400,
     )
 
@@ -1234,15 +1314,15 @@ def calendar_setup_add_calendar(
     return _templates.TemplateResponse(
         request,
         "calendar_setup.html",
-        {
-            "request": request,
-            "apple_settings": apple_settings,
-            "runtime_config": runtime_config,
-            "apple_accounts": runtime_service.list_accounts(),
-            "calendar_catalog": runtime_service.list_calendars(),
-            "flash_message": flash_message,
-            "error_message": error_message,
-        },
+        _build_calendar_setup_context(
+            request,
+            apple_settings=apple_settings,
+            legacy_recovery_hints=operator_settings.describe_legacy_apple_recovery_hints(),
+            runtime_service=runtime_service,
+            runtime_config=runtime_config,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
         status_code=200 if error_message is None else 400,
     )
 

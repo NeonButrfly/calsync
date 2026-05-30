@@ -107,6 +107,11 @@
                   <span>Primary calendar name</span>
                   <input name="apple_primary_calendar_name" type="text" value="{{ apple_settings.primary_calendar_name }}" placeholder="Family" required />
                 </label>
+                {% if apple_settings.source == "legacy_recovery_hints" %}
+                <p class="appointment-detail">
+                  The recovered Apple account and calendar hint are loaded below. Add a fresh app-specific password, then save to reconnect this calendar path for real.
+                </p>
+                {% endif %}
                 <div class="action-row">
                   <button type="submit">Save Apple account</button>
                 </div>
@@ -169,6 +174,9 @@
                   <p class="appointment-detail"><strong>Imported from:</strong> {{ legacy_recovery_hints.source_filename }}</p>
                   <p class="appointment-detail"><strong>Recommended writable hint:</strong> {{ legacy_recovery_hints.recommended_calendar_name }} · {{ legacy_recovery_hints.recommended_calendar_url }}</p>
                   <p class="appointment-detail"><strong>Calendar home:</strong> {{ legacy_recovery_hints.calendar_home_url }}</p>
+                  <div class="action-row">
+                    <a class="button-link" href="/calendar/setup?recovered_calendar_url={{ legacy_recovery_hints.recommended_calendar_url | urlencode }}">Load recommended hint into setup form</a>
+                  </div>
                 </article>
                 {% for item in legacy_recovery_hints.calendars %}
                 <article class="detail-card">
@@ -176,6 +184,9 @@
                   <strong>{{ item.calendar_name }}</strong>
                   <span>{{ item.calendar_role or "legacy calendar" }}</span>
                   <p class="appointment-detail">{{ item.calendar_url }}</p>
+                  <div class="action-row">
+                    <a class="button-link" href="/calendar/setup?recovered_calendar_url={{ item.calendar_url | urlencode }}">Load this calendar into setup form</a>
+                  </div>
                 </article>
                 {% endfor %}
               </div>

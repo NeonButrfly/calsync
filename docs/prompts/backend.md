@@ -686,6 +686,18 @@ Expected behavior:
 - the recovered hints should help the operator finish Apple setup with a fresh app-specific password, but they must not falsely mark Apple as connected or ready on their own
 - this feature may stay focused on Apple legacy recovery; it does not need to complete Google or Microsoft legacy import in this slice
 
+## Legacy Apple Recovery Form Prefill Requirement
+
+- GitHub issue: `#77`
+- interpreted requirement: once legacy Apple hints have been imported, the operator should be able to load those recovered values directly into the Apple setup form instead of retyping the account and calendar details by hand
+
+Expected behavior:
+
+- when no Apple account is connected yet, `/calendar/setup` should offer a one-step way to load a recovered Apple calendar hint into the setup form
+- loading a recovered hint should prefill the Apple account label, Apple username, calendar URL, and calendar name while still requiring a fresh app-specific password before save
+- operators should be able to load either the recommended writable hint or another recovered calendar hint from the imported legacy data
+- loading recovered values into the form must not falsely mark Apple connected or ready before a real save succeeds
+
 ## Alexa Save-Only Action Truthfulness Requirement
 
 - GitHub issue: `#74`
