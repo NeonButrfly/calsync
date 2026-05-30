@@ -655,6 +655,7 @@ def _render_alexa_setup_page(
     desired_settings = operator_settings.describe_desired_alexa_settings()
     account_linking_settings = operator_settings.describe_alexa_account_linking_settings()
     cloudflare_credentials = operator_settings.describe_cloudflare_worker_credentials()
+    legacy_apple_recovery_hints = operator_settings.describe_legacy_apple_recovery_hints()
     alexa_action_copy = _describe_alexa_action_copy(edge_settings=edge_settings)
     return _templates.TemplateResponse(
         request,
@@ -673,6 +674,7 @@ def _render_alexa_setup_page(
                 desired_settings=desired_settings,
                 account_linking_settings=account_linking_settings,
                 cloudflare_credentials=cloudflare_credentials,
+                legacy_apple_recovery_hints=legacy_apple_recovery_hints,
             ),
             "account_linking_settings": account_linking_settings,
             "cloudflare_credentials": cloudflare_credentials,
@@ -3494,6 +3496,13 @@ def _build_connections_context(
             desired_settings=desired_alexa_settings,
             account_linking_settings=account_linking_settings,
             cloudflare_credentials=cloudflare_credentials,
+            legacy_apple_recovery_hints=legacy_apple_recovery_hints,
+        ),
+        "alexa_finish_line_action": _describe_alexa_finish_line_action(
+            readiness=readiness,
+            account_linking_settings=account_linking_settings,
+            cloudflare_credentials=cloudflare_credentials,
+            legacy_apple_recovery_hints=legacy_apple_recovery_hints,
         ),
         "cloudflare_credentials": cloudflare_credentials,
         "account_linking_settings": account_linking_settings,
@@ -3911,6 +3920,7 @@ def _describe_alexa_next_action(
     desired_settings: dict[str, object],
     account_linking_settings: dict[str, object],
     cloudflare_credentials: dict[str, object],
+    legacy_apple_recovery_hints: dict[str, object],
 ) -> str:
     origin = readiness.get("origin", {})
     edge = readiness.get("edge", {})
@@ -3923,13 +3933,25 @@ def _describe_alexa_next_action(
     ]
     account_linking_ready = bool(account_linking_settings.get("configured"))
     cloudflare_ready = bool(cloudflare_credentials.get("api_token_saved"))
+    recovery_mode = _alexa_recovery_mode(
+        readiness=readiness,
+        legacy_apple_recovery_hints=legacy_apple_recovery_hints,
+    )
     if not origin.get("any_calendar_ready") and not cloudflare_credentials.get(
         "api_token_saved"
     ):
+        if recovery_mode and not account_linking_ready:
+            return "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
+        if recovery_mode:
+            return "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password, then save Cloudflare Worker access so you can turn on the live Alexa route from CalSync."
         if not account_linking_ready:
             return "Connect at least one writable calendar, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
         return "Connect at least one writable calendar, then save Cloudflare Worker access so you can turn on the live Alexa route from CalSync."
     if not origin.get("any_calendar_ready"):
+        if recovery_mode and not account_linking_ready:
+            return "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password, then save a household link code so the live skill can link to the right CalSync household."
+        if recovery_mode:
+            return "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password so Alexa has a real schedule to read and write once voice traffic goes live."
         if not account_linking_ready:
             return "Connect at least one writable calendar, then save a household link code so the live skill can link to the right CalSync household."
         return "Connect at least one writable calendar so Alexa has a real schedule to read and write once voice traffic goes live."
@@ -3950,6 +3972,44 @@ def _describe_alexa_next_action(
     if not channel_tokens.get("alexa", False):
         return "Bootstrap the Alexa channel token on the origin so voice-origin calls can be authenticated."
     return "Alexa is ready for real signed Amazon skill verification."
+
+
+def _describe_alexa_finish_line_action(
+    *,
+    readiness: dict[str, object],
+    account_linking_settings: dict[str, object],
+    cloudflare_credentials: dict[str, object],
+    legacy_apple_recovery_hints: dict[str, object],
+) -> str:
+    account_linking_ready = bool(account_linking_settings.get("configured"))
+    cloudflare_ready = bool(cloudflare_credentials.get("api_token_saved"))
+    recovery_mode = _alexa_recovery_mode(
+        readiness=readiness,
+        legacy_apple_recovery_hints=legacy_apple_recovery_hints,
+    )
+    if recovery_mode:
+        if not account_linking_ready and not cloudflare_ready:
+            return "open Apple setup, confirm the loaded recovered calendar, save a fresh app-specific password, then save a household link code and Cloudflare Worker access from the Alexa setup page."
+        if not account_linking_ready:
+            return "open Apple setup, confirm the loaded recovered calendar, save a fresh app-specific password, then save a household link code from the Alexa setup page."
+        if not cloudflare_ready:
+            return "open Apple setup, confirm the loaded recovered calendar, save a fresh app-specific password, then save Cloudflare Worker access from the Alexa setup page."
+        return "open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password so Alexa has a real schedule behind the shared brain."
+    if account_linking_ready:
+        return "finish edge enablement and skill-ID allowlisting from the Alexa setup page."
+    return "save a household link code, then finish edge enablement and skill-ID allowlisting from the Alexa setup page."
+
+
+def _alexa_recovery_mode(
+    *,
+    readiness: dict[str, object],
+    legacy_apple_recovery_hints: dict[str, object],
+) -> bool:
+    origin = readiness.get("origin", {}) if isinstance(readiness, dict) else {}
+    return (
+        not bool(origin.get("any_calendar_ready"))
+        and str(legacy_apple_recovery_hints.get("source") or "missing") != "missing"
+    )
 
 
 def _describe_alexa_simulator_state(

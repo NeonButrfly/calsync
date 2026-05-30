@@ -536,6 +536,18 @@ Expected behavior:
 - the blocked detail panel should expose the same direct operator actions into Connections and Apple setup that the other blocked root panels already provide
 - when no recovery hint exists, the root workspace can keep the more generic writable-calendar wording used for a blank-install disconnected state
 
+## Alexa Recovery Guidance Requirement
+
+- GitHub issue: `#94`
+- interpreted requirement: when the live deployment is in Apple recovery mode, Alexa setup and Connections should stop describing the voice prerequisite as a generic writable-calendar setup problem and instead point at the specific recovered Apple reconnect path
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no writable calendar is connected, `GET /alexa/setup` should tell operators to open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before the remaining Alexa account-linking and edge steps
+- in that same state, `GET /connections` should make the Alexa writable-calendar card recovery-aware instead of only saying to connect a writable calendar
+- the `Alexa:` line in the Connections `Finish the live stack` summary should also reflect that Apple reconnect comes before the remaining household link-code or Cloudflare steps
+- when no recovery hint exists, the Alexa surfaces can keep the more generic writable-calendar wording used for a blank-install disconnected state
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

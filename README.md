@@ -46,6 +46,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - encrypted operator-settings backup and restore from `/connections`, so Apple, Google, Microsoft, Alexa, and booking setup can be exported and recovered without hand-rebuilding the product vault
 - recovery-aware Apple reconnect actions on `/` and `/booking/setup`, so blocked operator surfaces now point straight at the loaded Apple recovery path instead of only saying a writable calendar is missing
 - recovery-aware Apple reconnect messaging across the blocked root workspace panels, so schedule, detail, create, and availability states all point at the same real reconnect path
+- recovery-aware Apple reconnect guidance on Alexa setup and Connections, so the voice turn-on flow now follows the real recovered-calendar prerequisite instead of generic no-calendar wording
 - Local audit entries and appointment-to-provider event mapping
 - A dedicated Cloudflare Worker in `workers/edge-calsync`
 - Live ChatGPT-first edge hostname: `https://edge-calsync.neonbutterfly.net`
@@ -405,6 +406,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Keep Connections provider next actions truthful before OAuth setup exists: issue `#91`
 - Align blocked operator surfaces with Apple reconnect path: issue `#92`
 - Align blocked root workspace guidance with Apple reconnect: issue `#93`
+- Align Alexa guidance with Apple reconnect path: issue `#94`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

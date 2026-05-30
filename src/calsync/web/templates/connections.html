@@ -390,7 +390,7 @@
                 <article class="detail-card">
                   <p class="eyebrow">Writable calendar</p>
                   <strong>{% if readiness.origin.any_calendar_ready %}Ready{% else %}Needs setup{% endif %}</strong>
-                  <span>{% if readiness.origin.any_calendar_ready %}Alexa already has a real writable calendar path behind the shared scheduling brain.{% else %}Connect a writable calendar so Alexa has a real household schedule to read and write.</span>{% endif %}
+                  <span>{% if readiness.origin.any_calendar_ready %}Alexa already has a real writable calendar path behind the shared scheduling brain.{% elif legacy_apple_recovery_hints.source != "missing" %}Recovered Apple hints are ready. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password so Alexa has a real household schedule to read and write.{% else %}Connect a writable calendar so Alexa has a real household schedule to read and write.{% endif %}</span>
                 </article>
                 <article class="detail-card">
                   <p class="eyebrow">Desired settings</p>
@@ -469,7 +469,7 @@
                 <p class="appointment-detail"><strong>Apple:</strong> {% if apple_runtime.ready %}already usable for live scheduling{% elif legacy_apple_recovery_hints.source != "missing" %}open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password{% else %}open Apple setup and save the household calendar connection{% endif %}</p>
                 <p class="appointment-detail"><strong>Google:</strong> {% if google_runtime.ready %}already usable for live scheduling{% elif google_connect_ready %}open Google setup and connect the Google account through the browser{% else %}save the shared Google OAuth app before browser account connect is available{% endif %}</p>
                 <p class="appointment-detail"><strong>Microsoft:</strong> {% if microsoft_runtime.ready %}already usable for live scheduling{% elif microsoft_connect_ready %}open Microsoft setup and connect the Outlook account through the browser{% else %}save the shared Microsoft OAuth app before browser account connect is available{% endif %}</p>
-                <p class="appointment-detail"><strong>Alexa:</strong> {% if account_linking_settings.configured %}finish edge enablement and skill-ID allowlisting from the Alexa setup page.{% else %}save a household link code, then finish edge enablement and skill-ID allowlisting from the Alexa setup page.{% endif %}</p>
+                <p class="appointment-detail"><strong>Alexa:</strong> {{ alexa_finish_line_action }}</p>
               </div>
               <div class="action-row">
                 <a class="button-link" href="/alexa/setup">Open Alexa setup</a>
