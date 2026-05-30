@@ -2242,6 +2242,8 @@ def test_alexa_setup_page_renders_operator_steps(monkeypatch) -> None:
     assert "Desired Alexa settings" in response.text
     assert "Pending edge changes" in response.text
     assert "amzn1.ask.skill.saved" in response.text
+    assert "Writable calendar connected:" in response.text
+    assert ">No<" in response.text
     assert "Account linking configured:" in response.text
     assert ">No<" in response.text
 
@@ -2447,8 +2449,35 @@ def test_alexa_setup_page_shows_account_linking_controls(monkeypatch) -> None:
     assert "calsync-alexa-household" in response.text
     assert "Save account linking setup" in response.text
     assert "Link code saved" in response.text
+    assert "Writable calendar connected:" in response.text
+    assert ">Yes<" in response.text
     assert "Account linking configured:" in response.text
     assert ">Yes<" in response.text
+
+
+def test_alexa_setup_page_shows_no_writable_calendar_in_step_four(monkeypatch) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/alexa/setup")
+
+    assert response.status_code == 200
+    assert "Writable calendar connected:" in response.text
+    assert ">No<" in response.text
 
 
 def test_alexa_setup_page_can_save_account_linking_settings(monkeypatch) -> None:

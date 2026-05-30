@@ -279,6 +279,10 @@
               </div>
               <div class="detail-stack">
                 <p class="appointment-detail">
+                  <strong>Writable calendar connected:</strong>
+                  {% if readiness.origin.any_calendar_ready %}Yes{% else %}No{% endif %}
+                </p>
+                <p class="appointment-detail">
                   <strong>Edge reachable:</strong>
                   {% if readiness.edge.reachable %}Yes{% else %}No{% endif %}
                 </p>

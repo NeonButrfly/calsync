@@ -446,6 +446,17 @@ Expected behavior:
 - that row should show whether account linking is configured right now
 - the final Step 4 checklist and next-action guidance should stay aligned, so the page does not hide one of the real live turn-on prerequisites
 
+## Alexa Step 4 Writable Calendar Requirement
+
+- GitHub issue: `#86`
+- interpreted requirement: the final Alexa turn-on summary should show whether a writable calendar is connected, because that is the first real scheduling prerequisite in the current live turn-on flow
+
+Expected behavior:
+
+- `GET /alexa/setup` Step 4 should include an explicit writable-calendar readiness row
+- that row should show whether CalSync currently has any writable connected calendar path
+- the Step 4 checklist should agree with the next-action guidance instead of hiding the current first blocker in voice turn-on
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

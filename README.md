@@ -87,6 +87,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - voice-specific next guidance on Alexa-focused setup surfaces, so the Alexa setup page and Connections voice panel explain the actual voice turn-on work instead of falling back to generic provider onboarding copy
 - shared Alexa account-linking readiness on `/connections`, so the last-mile voice panel now shows whether the household link code is configured instead of treating Cloudflare and skill IDs as the only remaining setup state
 - an account-linking row in Alexa Step 4, so the final live turn-on summary shows that prerequisite directly instead of hiding it earlier in the page
+- a writable-calendar row in Alexa Step 4, so the final live turn-on summary now shows the first real scheduling prerequisite instead of leaving it only in the next-action sentence
 - a simulator readiness summary for no-calendar voice testing states, so `/alexa/simulator` explains when LaunchRequest is still useful and why scheduling-intent tests are still blocked
 - a first availability finder across the workspace, edge API, and Alexa so CalSync can suggest open appointment windows instead of only listing busy ones
 
@@ -389,6 +390,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Keep the entire root workspace blocked when no calendar is connected: issue `#83`
 - Keep Alexa guidance aligned with account-linking readiness: issue `#84`
 - Keep Alexa Step 4 turn-on summary aligned with live prerequisites: issue `#85`
+- Keep Alexa Step 4 turn-on summary aligned with writable-calendar readiness: issue `#86`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`
