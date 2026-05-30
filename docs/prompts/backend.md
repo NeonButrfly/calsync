@@ -424,6 +424,17 @@ Expected behavior:
 - that no-calendar state should still explain that `LaunchRequest` and general voice-copy previews remain useful
 - empty named-calendar selectors should get helper text that explains why there are no choices yet and what setup will populate them
 
+## Alexa Account-Linking Readiness Requirement
+
+- GitHub issue: `#84`
+- interpreted requirement: the shared Alexa setup guidance should surface account-linking readiness directly instead of treating Cloudflare access and skill allowlisting as the only remaining Alexa setup state
+
+Expected behavior:
+
+- the Alexa voice panel on `/connections` should show whether account linking is ready or still needs setup
+- the shared Alexa next-action guidance should mention saving a household link code whenever account linking is still missing and that is part of the real remaining turn-on work
+- when account linking is already configured, `/connections` should say so plainly instead of leaving that state hidden on `/alexa/setup` alone
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

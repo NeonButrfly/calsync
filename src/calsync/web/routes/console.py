@@ -3420,13 +3420,19 @@ def _build_connections_context(
                 "Ready"
                 if readiness.get("edge", {}).get("reachable")
                 and readiness.get("edge", {}).get("alexa", {}).get("enabled")
+                and account_linking_settings.get("configured")
                 else "Needs setup"
             ),
             "detail": (
-                "The edge Worker can accept Alexa traffic."
+                "The edge Worker can accept Alexa traffic and account linking is configured."
                 if readiness.get("edge", {}).get("reachable")
                 and readiness.get("edge", {}).get("alexa", {}).get("enabled")
-                else "Finish edge enablement and skill allowlisting before real device traffic is live."
+                and account_linking_settings.get("configured")
+                else (
+                    "Save a household link code, then finish edge enablement and skill allowlisting before real device traffic is live."
+                    if not account_linking_settings.get("configured")
+                    else "Finish edge enablement and skill allowlisting before real device traffic is live."
+                )
             ),
         },
     ]
@@ -3459,6 +3465,7 @@ def _build_connections_context(
             cloudflare_credentials=cloudflare_credentials,
         ),
         "cloudflare_credentials": cloudflare_credentials,
+        "account_linking_settings": account_linking_settings,
         "flash_message": flash_message,
         "error_message": error_message,
         "setup_checklist": setup_checklist,
@@ -3883,15 +3890,23 @@ def _describe_alexa_next_action(
         for value in desired_settings.get("allowed_skill_ids", [])
         if str(value).strip()
     ]
+    account_linking_ready = bool(account_linking_settings.get("configured"))
+    cloudflare_ready = bool(cloudflare_credentials.get("api_token_saved"))
     if not origin.get("any_calendar_ready") and not cloudflare_credentials.get(
         "api_token_saved"
     ):
+        if not account_linking_ready:
+            return "Connect at least one writable calendar, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
         return "Connect at least one writable calendar, then save Cloudflare Worker access so you can turn on the live Alexa route from CalSync."
     if not origin.get("any_calendar_ready"):
+        if not account_linking_ready:
+            return "Connect at least one writable calendar, then save a household link code so the live skill can link to the right CalSync household."
         return "Connect at least one writable calendar so Alexa has a real schedule to read and write once voice traffic goes live."
-    if not cloudflare_credentials.get("api_token_saved"):
+    if not account_linking_ready and not cloudflare_ready:
+        return "Save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
+    if not cloudflare_ready:
         return "Save Cloudflare Worker access so CalSync can turn on the live Alexa route and skill allowlist from the product."
-    if not account_linking_settings.get("configured"):
+    if not account_linking_ready:
         return "Save a household link code so Alexa account linking can hand the live skill a bearer token."
     if not desired_settings.get("saved"):
         return "Save the Alexa plan and your real skill ID so CalSync knows what the live Worker should allow."

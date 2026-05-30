@@ -1137,6 +1137,39 @@ def test_connections_page_shows_alexa_turn_on_controls(monkeypatch) -> None:
     assert "Open Alexa simulator" in response.text
     assert "amzn1.ask.skill.saved" in response.text
     assert "Desired Alexa settings differ from the live Worker and still need to be applied." in response.text
+    assert "Account linking" in response.text
+    assert "Save a household link code so Alexa can link the live skill to this CalSync household." in response.text
+
+
+def test_connections_page_shows_ready_account_linking_state(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_alexa_account_linking_settings(link_code="Family123")
+
+    class FakeCloudflareWorkerConfigService:
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": True,
+                "credential_source": "product_vault",
+                "message": "Ready to configure the edge Worker from the product.",
+            }
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        FakeCloudflareWorkerConfigService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/connections")
+
+    assert response.status_code == 200
+    assert "Account linking" in response.text
+    assert "Ready" in response.text
+    assert "A household link code and bearer token are already saved for the live skill." in response.text
 
 
 def test_connections_page_can_save_desired_alexa_settings(monkeypatch) -> None:
@@ -1260,7 +1293,7 @@ def test_alexa_setup_page_shows_voice_specific_next_guidance(monkeypatch) -> Non
 
     assert response.status_code == 200
     assert (
-        "Connect at least one writable calendar, then save Cloudflare Worker access so you can turn on the live Alexa route from CalSync."
+        "Connect at least one writable calendar, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
         in response.text
     )
     assert (
@@ -1292,9 +1325,10 @@ def test_connections_page_shows_voice_specific_alexa_guidance(monkeypatch) -> No
     assert response.status_code == 200
     assert "Alexa voice path" in response.text
     assert (
-        "Connect at least one writable calendar, then save Cloudflare Worker access so you can turn on the live Alexa route from CalSync."
+        "Connect at least one writable calendar, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
         in response.text
     )
+    assert "Account linking" in response.text
 
 
 def test_connections_page_can_download_encrypted_settings_backup(monkeypatch) -> None:
