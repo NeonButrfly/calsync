@@ -256,6 +256,19 @@ Expected behavior:
 - each booking-type card should link directly into its focused booking URL such as `/book/school-intake`
 - when only one public booking type exists, `GET /book` may still render that focused booking form directly
 
+## Public Booking Type Management Requirement
+
+- GitHub issue: `#60`
+- interpreted requirement: once CalSync supports multiple public booking types, operators should be able to manage those links directly from the product instead of needing backend-only cleanup or default switching
+
+Expected behavior:
+
+- `/booking/setup` should expose a direct action to make an existing booking type the default public `/book` flow
+- `/booking/setup` should expose a direct action to delete an existing booking type
+- when the current default booking type is deleted and another type remains, the product should promote a remaining type to default automatically
+- deleting a booking type should remove its shareable `/book/{slug}` link cleanly
+- the management actions should return the operator to `/booking/setup` with clear success or error feedback
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

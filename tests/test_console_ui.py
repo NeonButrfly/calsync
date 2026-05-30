@@ -339,6 +339,130 @@ def test_public_booking_root_shows_a_catalog_when_multiple_types_exist(
     assert 'action="/book"' not in response.text
 
 
+def test_booking_setup_can_make_an_existing_type_the_default(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_public_booking_settings(
+        page_title="Book time with Kayra",
+        page_description="Choose a calm household scheduling slot.",
+        duration_minutes=45,
+        search_window_days=28,
+        success_message="You're booked.",
+        target_calendar_url="https://caldav.icloud.com/calendar/",
+        booking_weekdays=[0, 1, 2, 3, 4],
+        day_start_time="09:00",
+        day_end_time="15:00",
+    )
+    operator_settings.upsert_public_booking_type(
+        slug="school-intake",
+        page_title="School intake call",
+        page_description="Claim a school planning slot.",
+        duration_minutes=30,
+        search_window_days=21,
+        success_message="School intake booked.",
+        target_calendar_url="https://caldav.icloud.com/school/",
+        booking_weekdays=[0, 2, 4],
+        day_start_time="10:00",
+        day_end_time="14:00",
+        set_as_default=False,
+    )
+    operator_settings.upsert_public_booking_type(
+        slug="family-follow-up",
+        page_title="Family follow-up",
+        page_description="Book a longer family follow-up.",
+        duration_minutes=60,
+        search_window_days=14,
+        success_message="Family follow-up booked.",
+        target_calendar_url="https://caldav.icloud.com/family/",
+        booking_weekdays=[1, 3],
+        day_start_time="11:00",
+        day_end_time="16:00",
+        set_as_default=True,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/booking/setup/types/default",
+        data={"booking_slug": "school-intake"},
+    )
+
+    assert response.status_code == 200
+    assert "Default booking type updated." in response.text
+    assert 'href="/booking/setup?booking_slug=school-intake"' in response.text
+    assert "Default type" in response.text
+
+    booking_types = operator_settings.describe_public_booking_types()
+    school_type = next(item for item in booking_types if item["slug"] == "school-intake")
+    family_type = next(
+        item for item in booking_types if item["slug"] == "family-follow-up"
+    )
+    assert school_type["is_default"] is True
+    assert family_type["is_default"] is False
+
+
+def test_booking_setup_can_delete_an_existing_booking_type(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_public_booking_settings(
+        page_title="Book time with Kayra",
+        page_description="Choose a calm household scheduling slot.",
+        duration_minutes=45,
+        search_window_days=28,
+        success_message="You're booked.",
+        target_calendar_url="https://caldav.icloud.com/calendar/",
+        booking_weekdays=[0, 1, 2, 3, 4],
+        day_start_time="09:00",
+        day_end_time="15:00",
+    )
+    operator_settings.upsert_public_booking_type(
+        slug="school-intake",
+        page_title="School intake call",
+        page_description="Claim a school planning slot.",
+        duration_minutes=30,
+        search_window_days=21,
+        success_message="School intake booked.",
+        target_calendar_url="https://caldav.icloud.com/school/",
+        booking_weekdays=[0, 2, 4],
+        day_start_time="10:00",
+        day_end_time="14:00",
+        set_as_default=False,
+    )
+    operator_settings.upsert_public_booking_type(
+        slug="family-follow-up",
+        page_title="Family follow-up",
+        page_description="Book a longer family follow-up.",
+        duration_minutes=60,
+        search_window_days=14,
+        success_message="Family follow-up booked.",
+        target_calendar_url="https://caldav.icloud.com/family/",
+        booking_weekdays=[1, 3],
+        day_start_time="11:00",
+        day_end_time="16:00",
+        set_as_default=True,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/booking/setup/types/delete",
+        data={"booking_slug": "school-intake"},
+    )
+
+    assert response.status_code == 200
+    assert "Booking type deleted." in response.text
+    assert 'href="/booking/setup?booking_slug=school-intake"' not in response.text
+    assert "/book/school-intake" not in response.text
+    assert "Family follow-up" in response.text
+
+    booking_types = operator_settings.describe_public_booking_types()
+    assert [item["slug"] for item in booking_types] == ["family-follow-up"]
+
+
 def test_connections_page_renders_provider_summary(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     service = OperatorSettingsService(settings=get_settings())

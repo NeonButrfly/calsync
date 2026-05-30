@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current CalSync service, family scheduling UX, the planner-style day/week/month schedule board, a first public booking page, in-product booking setup, public booking availability rules, multiple public booking types with shareable links, a public booking catalog chooser, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, Alexa setup flow, in-product writable target verification, the checklist-style Connections verification center, and direct provider actions from that shared surface tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, and `#59`.
+This guide covers the current CalSync service, family scheduling UX, the planner-style day/week/month schedule board, a first public booking page, in-product booking setup, public booking availability rules, multiple public booking types with shareable links, a public booking catalog chooser, in-product booking type management actions, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, Alexa setup flow, in-product writable target verification, the checklist-style Connections verification center, and direct provider actions from that shared surface tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, and `#60`.
 
 ## What This Service Does
 
@@ -14,6 +14,7 @@ This guide covers the current CalSync service, family scheduling UX, the planner
 - exposes public booking availability rules so operators can restrict `/book` to chosen weekdays and daily booking hours
 - exposes multiple public booking types so `/book/{slug}` can represent different appointment flows with separate invitee-facing copy and defaults
 - exposes a public booking catalog so `/book` becomes a chooser when more than one public booking type exists
+- exposes in-product booking type management so operators can make a type the default or delete a stale public link from `/booking/setup`
 - exposes a connections workspace at `/connections` so Apple, Google, and Microsoft setup can be reviewed together
 - exposes a checklist-style verification center at `/connections` so provider readiness and last write proof can be reviewed together
 - exposes direct Google and Microsoft refresh/disconnect actions from `/connections` so the shared control surface is not just read-only
@@ -121,6 +122,8 @@ Root experience:
 - `GET /book`
 - `GET /book/{slug}`
 - `GET /connections`
+- `POST /booking/setup/types/default`
+- `POST /booking/setup/types/delete`
 - `POST /connections/test`
 - `POST /connections/google/refresh`
 - `POST /connections/google/disconnect`
@@ -165,6 +168,7 @@ Behavior:
 - exposes public booking weekday and hour rules so `/book` only suggests openings inside the operator-managed bookable window
 - exposes multiple public booking types so operators can create and share distinct invitee-facing URLs like `/book/school-intake` without reusing one global booking configuration
 - exposes a booking-type chooser at `/book` when more than one public booking type exists, while keeping direct `/book/{slug}` flows for focused links
+- exposes direct booking-type management actions so operators can make one type the default `/book` flow or delete a stale type without leaving `/booking/setup`
 - exposes an in-product Apple calendar setup page with encrypted vault-backed storage instead of forcing host-only Apple env edits
 - exposes an in-product Google setup page with encrypted vault-backed OAuth storage plus browser-based account connect
 - exposes an in-product Microsoft setup page with encrypted vault-backed OAuth storage plus browser-based account connect

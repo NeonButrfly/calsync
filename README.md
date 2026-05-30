@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, and `#59` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, and `#60` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -37,6 +37,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - public booking availability rules that let operators choose the invitee-facing bookable weekdays and daily booking hours instead of relying on one hard-coded slot window
 - multiple public booking types with shareable links such as `/book/school-intake`, so different appointment flows can carry their own copy, duration, and availability defaults
 - a public booking catalog at `/book` that can now present multiple booking types cleanly before invitees drill into a specific `/book/{slug}` flow
+- in-product booking type management actions so operators can now make one type the default `/book` flow or delete a stale public link without touching backend state
 - a dedicated connections workspace at `/connections` that summarizes Apple, Google, and Microsoft setup in one product surface
 - a checklist-style connections workspace at `/connections` that also shows persisted write verification and direct run-test actions
 - a stronger Connections control center that can also trigger shared Google and Microsoft connect, refresh, and disconnect actions without leaving the page
@@ -75,6 +76,8 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 
 - `GET /`
 - `GET /booking/setup`
+- `POST /booking/setup/types/default`
+- `POST /booking/setup/types/delete`
 - `GET /connections`
 - `GET /book`
 - `POST /connections/test`
@@ -140,6 +143,7 @@ The root page now acts as the first family scheduling UX:
 - that public booking flow now also respects operator-managed booking weekdays plus daily start and end hours
 - that booking setup flow now supports multiple named booking types, each with its own public slug and shareable invitee-facing URL
 - that default `/book` route now becomes a booking-type chooser when multiple public booking types exist, while keeping direct `/book/{slug}` links for focused flows
+- that booking setup flow now also lets operators make an existing booking type the default public flow or delete a stale type directly from the UI
 - a first in-product Alexa setup page that links the live endpoint, policy URLs, and skill package download
 - a first in-product Cloudflare access form that stores Worker-management credentials securely in the product vault
 - a first in-product Alexa edge-settings form that can read and update Worker Alexa flags when Cloudflare worker-management permission is configured
@@ -325,6 +329,7 @@ If you prefer not to keep a Worker-management API token in the host `.env`, the 
 - Public booking availability rules: issue `#57`
 - Multiple public booking types with shareable links: issue `#58`
 - Public booking catalog for multiple appointment types: issue `#59`
+- In-product booking type management actions: issue `#60`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`
 - Apple live calendar sync into the shared workspace and Alexa: issue `#41`

@@ -355,6 +355,38 @@ def booking_setup_page(request: Request, booking_slug: str | None = None):
     )
 
 
+def _booking_setup_response(
+    request: Request,
+    *,
+    operator_settings: OperatorSettingsService,
+    booking_settings: dict[str, object],
+    flash_message: str | None,
+    error_message: str | None,
+    status_code: int = 200,
+):
+    service = AppointmentService()
+    return _templates.TemplateResponse(
+        request,
+        "booking_setup.html",
+        {
+            "request": request,
+            "booking_settings": booking_settings,
+            "calendar_options": _calendar_options(
+                service,
+                selected_calendar_url=str(
+                    booking_settings.get("target_calendar_url") or ""
+                )
+                or None,
+            ),
+            "booking_types": operator_settings.describe_public_booking_types(),
+            "flash_message": flash_message,
+            "error_message": error_message,
+            "public_booking_url": str(booking_settings.get("public_url") or "/book"),
+        },
+        status_code=status_code,
+    )
+
+
 @router.post("/booking/setup")
 def booking_setup_update(
     request: Request,
@@ -371,7 +403,6 @@ def booking_setup_update(
     set_as_default: str = Form(""),
 ):
     operator_settings = OperatorSettingsService()
-    service = AppointmentService()
     try:
         if booking_slug.strip():
             operator_settings.upsert_public_booking_type(
@@ -408,24 +439,12 @@ def booking_setup_update(
         operator_settings,
         booking_slug=booking_slug or None,
     )
-    return _templates.TemplateResponse(
+    return _booking_setup_response(
         request,
-        "booking_setup.html",
-        {
-            "request": request,
-            "booking_settings": booking_settings,
-            "calendar_options": _calendar_options(
-                service,
-                selected_calendar_url=str(
-                    booking_settings.get("target_calendar_url") or ""
-                )
-                or None,
-            ),
-            "booking_types": operator_settings.describe_public_booking_types(),
-            "flash_message": flash_message,
-            "error_message": error_message,
-            "public_booking_url": str(booking_settings.get("public_url") or "/book"),
-        },
+        operator_settings=operator_settings,
+        booking_settings=booking_settings,
+        flash_message=flash_message,
+        error_message=error_message,
         status_code=200 if error_message is None else 400,
     )
 
@@ -438,7 +457,6 @@ def booking_type_create(
     new_booking_slug: str = Form(""),
 ):
     operator_settings = OperatorSettingsService()
-    service = AppointmentService()
     current_settings = _load_public_booking_settings(
         operator_settings,
         booking_slug=booking_slug or None,
@@ -471,24 +489,73 @@ def booking_type_create(
         flash_message = None
         error_message = str(exc)
 
-    return _templates.TemplateResponse(
+    return _booking_setup_response(
         request,
-        "booking_setup.html",
-        {
-            "request": request,
-            "booking_settings": created_settings,
-            "calendar_options": _calendar_options(
-                service,
-                selected_calendar_url=str(
-                    created_settings.get("target_calendar_url") or ""
-                )
-                or None,
-            ),
-            "booking_types": operator_settings.describe_public_booking_types(),
-            "flash_message": flash_message,
-            "error_message": error_message,
-            "public_booking_url": str(created_settings.get("public_url") or "/book"),
-        },
+        operator_settings=operator_settings,
+        booking_settings=created_settings,
+        flash_message=flash_message,
+        error_message=error_message,
+        status_code=200 if error_message is None else 400,
+    )
+
+
+@router.post("/booking/setup/types/default")
+def booking_type_set_default(
+    request: Request,
+    booking_slug: str = Form(""),
+):
+    operator_settings = OperatorSettingsService()
+    try:
+        operator_settings.set_default_public_booking_type(booking_slug)
+        booking_settings = _load_public_booking_settings(
+            operator_settings,
+            booking_slug=booking_slug or None,
+        )
+        flash_message = "Default booking type updated."
+        error_message = None
+    except (TypeError, ValueError) as exc:
+        booking_settings = _load_public_booking_settings(operator_settings)
+        flash_message = None
+        error_message = str(exc)
+
+    return _booking_setup_response(
+        request,
+        operator_settings=operator_settings,
+        booking_settings=booking_settings,
+        flash_message=flash_message,
+        error_message=error_message,
+        status_code=200 if error_message is None else 400,
+    )
+
+
+@router.post("/booking/setup/types/delete")
+def booking_type_delete(
+    request: Request,
+    booking_slug: str = Form(""),
+):
+    operator_settings = OperatorSettingsService()
+    try:
+        operator_settings.delete_public_booking_type(booking_slug)
+        booking_settings = _load_public_booking_settings(
+            operator_settings,
+            booking_slug=None,
+        )
+        flash_message = "Booking type deleted."
+        error_message = None
+    except (TypeError, ValueError) as exc:
+        booking_settings = _load_public_booking_settings(
+            operator_settings,
+            booking_slug=booking_slug or None,
+        )
+        flash_message = None
+        error_message = str(exc)
+
+    return _booking_setup_response(
+        request,
+        operator_settings=operator_settings,
+        booking_settings=booking_settings,
+        flash_message=flash_message,
+        error_message=error_message,
         status_code=200 if error_message is None else 400,
     )
 

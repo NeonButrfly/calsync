@@ -151,6 +151,16 @@
                   <div class="action-row">
                     <a class="button-link button-link--secondary" href="/booking/setup?booking_slug={{ item.slug }}">Edit</a>
                     <a class="button-link button-link--secondary" href="{{ item.public_url }}">Open</a>
+                    {% if not item.is_default %}
+                    <form method="post" action="/booking/setup/types/default">
+                      <input name="booking_slug" type="hidden" value="{{ item.slug }}" />
+                      <button type="submit">Make default</button>
+                    </form>
+                    {% endif %}
+                    <form method="post" action="/booking/setup/types/delete">
+                      <input name="booking_slug" type="hidden" value="{{ item.slug }}" />
+                      <button type="submit" class="danger-button">Delete</button>
+                    </form>
                   </div>
                 </article>
                 {% else %}

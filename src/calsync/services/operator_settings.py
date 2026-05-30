@@ -159,6 +159,58 @@ class OperatorSettingsService:
         if default_item:
             self._store_legacy_public_booking_payload(default_item)
 
+    def set_default_public_booking_type(self, slug: str) -> None:
+        normalized_slug = self._normalize_booking_slug(slug)
+        existing = self.get_public_booking_types()
+        if not existing:
+            raise ValueError("Public booking type was not found.")
+        if not any(str(item.get("slug") or "") == normalized_slug for item in existing):
+            raise ValueError("Public booking type was not found.")
+        next_items = [
+            {
+                **item,
+                "is_default": str(item.get("slug") or "") == normalized_slug,
+            }
+            for item in existing
+        ]
+        normalized_items = self._coerce_public_booking_types(next_items)
+        self.set_value("public_booking_types", json.dumps(normalized_items))
+        default_item = next(
+            (item for item in normalized_items if bool(item.get("is_default"))),
+            None,
+        )
+        if default_item:
+            self._store_legacy_public_booking_payload(default_item)
+
+    def delete_public_booking_type(self, slug: str) -> None:
+        normalized_slug = self._normalize_booking_slug(slug)
+        existing = self.get_public_booking_types()
+        if not existing:
+            raise ValueError("Public booking type was not found.")
+        next_items = [
+            item
+            for item in existing
+            if str(item.get("slug") or "") != normalized_slug
+        ]
+        if len(next_items) == len(existing):
+            raise ValueError("Public booking type was not found.")
+        if not next_items:
+            self.delete_value("public_booking_types")
+            return
+        if not any(bool(item.get("is_default")) for item in next_items):
+            next_items[0] = {
+                **next_items[0],
+                "is_default": True,
+            }
+        normalized_items = self._coerce_public_booking_types(next_items)
+        self.set_value("public_booking_types", json.dumps(normalized_items))
+        default_item = next(
+            (item for item in normalized_items if bool(item.get("is_default"))),
+            None,
+        )
+        if default_item:
+            self._store_legacy_public_booking_payload(default_item)
+
     def get_public_booking_types(self) -> list[dict[str, object]]:
         raw = self.get_value("public_booking_types")
         if not raw:
