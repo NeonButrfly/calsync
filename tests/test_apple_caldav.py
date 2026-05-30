@@ -133,3 +133,28 @@ def test_list_events_wraps_transport_error(monkeypatch) -> None:
         assert str(exc) == "Apple/iCloud calendar read request failed."
     else:
         raise AssertionError("Expected AppleCalDAVError")
+
+
+def test_validate_calendar_access_uses_safe_read_probe(monkeypatch) -> None:
+    config = AppleCalDAVConfig(
+        account_label="Family",
+        apple_username="family@example.com",
+        app_specific_password="secret",
+        primary_calendar_url="https://caldav.icloud.com/calendar/",
+        primary_calendar_name="Family",
+    )
+    client = AppleCalDAVClient(config)
+    captured: dict[str, datetime] = {}
+
+    def fake_list_events(*, starts_at: datetime, ends_at: datetime):
+        captured["starts_at"] = starts_at
+        captured["ends_at"] = ends_at
+        return []
+
+    monkeypatch.setattr(client, "list_events", fake_list_events)
+
+    client.validate_calendar_access()
+
+    assert captured["starts_at"].tzinfo is UTC
+    assert captured["ends_at"].tzinfo is UTC
+    assert captured["ends_at"] > captured["starts_at"]

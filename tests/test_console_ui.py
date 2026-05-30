@@ -2824,6 +2824,98 @@ def test_calendar_setup_page_saves_apple_settings(monkeypatch) -> None:
     }
 
 
+def test_calendar_setup_page_shows_validate_action(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/calendar/setup")
+
+    assert response.status_code == 200
+    assert "Validate Apple connection" in response.text
+    assert 'formaction="/calendar/setup/validate"' in response.text
+
+
+def test_calendar_setup_page_can_validate_pending_apple_settings_without_saving(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    validated: dict[str, str] = {}
+
+    def fake_validate(self) -> None:
+        validated["account_label"] = self.config.account_label
+        validated["username"] = self.config.apple_username
+        validated["calendar_url"] = self.config.primary_calendar_url
+        validated["calendar_name"] = self.config.primary_calendar_name
+        validated["password"] = self.config.app_specific_password
+
+    monkeypatch.setattr(
+        "calsync.services.apple_caldav.AppleCalDAVClient.validate_calendar_access",
+        fake_validate,
+        raising=False,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/calendar/setup/validate",
+        data={
+            "apple_account_label": "Household",
+            "apple_username": "household@example.com",
+            "apple_app_specific_password": "fresh-secret",
+            "apple_primary_calendar_url": "https://caldav.icloud.com/household/",
+            "apple_primary_calendar_name": "Household",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Apple calendar credentials validated successfully. Nothing has been saved yet." in response.text
+    assert validated == {
+        "account_label": "Household",
+        "username": "household@example.com",
+        "calendar_url": "https://caldav.icloud.com/household/",
+        "calendar_name": "Household",
+        "password": "fresh-secret",
+    }
+
+    service = OperatorSettingsService(settings=get_settings())
+    assert service.describe_apple_calendar_settings()["source"] == "missing"
+    assert service.get_apple_accounts() == []
+
+
+def test_calendar_setup_page_validation_failure_does_not_save_settings(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+
+    def fake_validate(self) -> None:
+        raise AppleCalDAVError("Apple/iCloud authentication failed.")
+
+    monkeypatch.setattr(
+        "calsync.services.apple_caldav.AppleCalDAVClient.validate_calendar_access",
+        fake_validate,
+        raising=False,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/calendar/setup/validate",
+        data={
+            "apple_account_label": "Household",
+            "apple_username": "household@example.com",
+            "apple_app_specific_password": "wrong-secret",
+            "apple_primary_calendar_url": "https://caldav.icloud.com/household/",
+            "apple_primary_calendar_name": "Household",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Apple/iCloud authentication failed." in response.text
+
+    service = OperatorSettingsService(settings=get_settings())
+    assert service.describe_apple_calendar_settings()["source"] == "missing"
+    assert service.get_apple_accounts() == []
+
+
 def test_calendar_setup_page_can_add_another_apple_account(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     app = create_app()

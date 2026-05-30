@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from datetime import date as date_value
 from xml.etree import ElementTree as ET
 from urllib.parse import urljoin
@@ -80,6 +80,13 @@ def build_event_payload(
 class AppleCalDAVClient:
     def __init__(self, config: AppleCalDAVConfig) -> None:
         self.config = config
+
+    def validate_calendar_access(self) -> None:
+        starts_at = datetime.now(UTC)
+        self.list_events(
+            starts_at=starts_at,
+            ends_at=starts_at + timedelta(days=1),
+        )
 
     def resource_href(self, provider_event_id: str) -> str:
         base_url = self.config.primary_calendar_url

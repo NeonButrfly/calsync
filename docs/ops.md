@@ -1,6 +1,6 @@
 # Operations Guide
 
-This guide covers the current CalSync service, family scheduling UX, the planner-style day/week/month schedule board, a first public booking page, public booking invitee contact capture, in-product booking setup, public booking availability rules, multiple public booking types with shareable links, a public booking catalog chooser, in-product booking type management actions, truthful blocked booking-setup actions for no-calendar states, truthful blocked Google and Microsoft browser-connect actions before OAuth setup exists, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, Alexa setup flow, persisted desired Alexa edge settings, truthful save-only Alexa action labels before Worker access exists, restore-aware readiness guidance for recovery-shaped deployments, legacy Pi-backup import for Apple recovery hints, one-step loading of recovered Apple hints into the setup form, recovery-aware Apple reconnect messaging, voice-specific next guidance for Alexa setup and Connections voice panels, simulator readiness guidance for missing connected calendar states, in-product writable target verification, encrypted operator-settings backup and restore from `/connections`, the checklist-style Connections verification center, direct provider actions from that shared surface, truthful workspace capability messaging, blocked root create guidance for no-calendar states, blocked root availability guidance for no-calendar states, blocked public-booking availability guidance for no-calendar states, blocked root schedule-sync guidance for no-calendar states, and truthful Apple setup empty-state guidance for no-account states tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, `#73`, `#74`, `#75`, `#76`, `#77`, and `#78`.
+This guide covers the current CalSync service, family scheduling UX, the planner-style day/week/month schedule board, a first public booking page, public booking invitee contact capture, in-product booking setup, public booking availability rules, multiple public booking types with shareable links, a public booking catalog chooser, in-product booking type management actions, truthful blocked booking-setup actions for no-calendar states, truthful blocked Google and Microsoft browser-connect actions before OAuth setup exists, live Apple calendar sync, writable Google and Microsoft setup, multi-calendar Apple targets, provider-aware Alexa calendar targeting, availability lookup, edge Worker, remote MCP Worker, Alexa adapter, readiness surface, Apple setup flow, safe Apple setup validation before reconnect save, Alexa setup flow, persisted desired Alexa edge settings, truthful save-only Alexa action labels before Worker access exists, restore-aware readiness guidance for recovery-shaped deployments, legacy Pi-backup import for Apple recovery hints, one-step loading of recovered Apple hints into the setup form, recovery-aware Apple reconnect messaging, voice-specific next guidance for Alexa setup and Connections voice panels, simulator readiness guidance for missing connected calendar states, in-product writable target verification, encrypted operator-settings backup and restore from `/connections`, the checklist-style Connections verification center, direct provider actions from that shared surface, truthful workspace capability messaging, blocked root create guidance for no-calendar states, blocked root availability guidance for no-calendar states, blocked public-booking availability guidance for no-calendar states, blocked root schedule-sync guidance for no-calendar states, and truthful Apple setup empty-state guidance for no-account states tracked in issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, `#73`, `#74`, `#75`, `#76`, `#77`, `#78`, and `#79`.
 
 ## What This Service Does
 
@@ -146,6 +146,7 @@ Root experience:
 - `POST /connections/microsoft/disconnect`
 - `GET /calendar/setup`
 - `POST /calendar/setup`
+- `POST /calendar/setup/validate`
 - `POST /calendar/setup/calendars`
 - `GET /google/setup`
 - `POST /google/setup`
@@ -224,12 +225,14 @@ This operator-facing flow now serves:
 - more than one connected Apple account
 - additional tracked Apple calendar targets
 - one default Apple calendar target for new appointments
+- a safe validation action that tests fresh Apple credentials and calendar access before save
 
 Current management boundary:
 
 - the product can use either deployment env Apple settings or product-vault Apple settings
 - product-vault Apple settings are encrypted with `ENCRYPTION_KEY`
 - the appointment service and readiness surface now fall back to those saved product settings when host env Apple values are absent
+- `POST /calendar/setup/validate` can run a safe read probe against the entered Apple username, app-specific password, and calendar URL without mutating the saved product-vault Apple state
 - `POST /calendar/setup/calendars` can add another saved Apple target for a selected Apple account without replacing the existing default target
 - the calendar setup page remains the place to define the default target Apple calendar for the family-facing Apple path
 - each saved Apple target can also run an in-product write smoke test to prove that target really supports create, update, and cancel

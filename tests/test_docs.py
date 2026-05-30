@@ -45,6 +45,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#76" in readme_content
     assert "#77" in readme_content
     assert "#78" in readme_content
+    assert "#79" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -69,6 +70,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "post /alexa/setup" in readme_content
     assert "get /calendar/setup" in readme_content
     assert "post /calendar/setup" in readme_content
+    assert "post /calendar/setup/validate" in readme_content
     assert "post /calendar/setup/calendars" in readme_content
     assert "get /google/setup" in readme_content
     assert "post /google/setup" in readme_content
@@ -134,6 +136,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "load recovered apple backup hints into the setup form" in readme_content
     assert "make apple recovery messaging point to the reconnect step" in readme_content
     assert "recovery-aware apple messaging across readiness, connections, and apple setup" in readme_content
+    assert "safe apple setup validation before reconnect save" in readme_content
     assert "voice-specific next guidance on alexa-focused setup surfaces" in readme_content
     assert "simulator readiness summary for no-calendar voice testing states" in readme_content
     assert "live-vs-desired drift visibility" in readme_content
@@ -143,6 +146,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "public booking flow now also blocks the invitee-facing availability refresh controls clearly when no writable calendar is connected" in readme_content
     assert "root workspace now also blocks the empty schedule board and detail panel clearly when no writable calendar is connected" in readme_content
     assert "apple setup page now also stays truthful when no apple account exists" in readme_content
+    assert "that apple setup page now also exposes a safe validation action before save, so operators can test a fresh app-specific password and calendar url without mutating the live vault state" in readme_content
     assert "named apple calendar targeting through alexa and the simulator" in readme_content
     assert "provider-aware alexa calendar targeting across apple, google, and microsoft" in readme_content
     assert "https://mcp-calsync.kaymayers9.workers.dev/mcp" in readme_content
@@ -191,6 +195,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#76" in ops_content
     assert "#77" in ops_content
     assert "#78" in ops_content
+    assert "#79" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -205,6 +210,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /api/readiness" in ops_content
     assert "get /calendar/setup" in ops_content
     assert "post /calendar/setup" in ops_content
+    assert "post /calendar/setup/validate" in ops_content
     assert "post /calendar/setup/calendars" in ops_content
     assert "get /connections" in ops_content
     assert "post /connections/test" in ops_content
@@ -237,6 +243,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "cloudflare worker access form" in ops_content
     assert "apple calendar setup page" in ops_content
     assert "more than one connected apple account" in ops_content
+    assert "a safe validation action that tests fresh apple credentials and calendar access before save" in ops_content
     assert "google setup page" in ops_content
     assert "browser-based account connect on the live calsync domain" in ops_content
     assert "multiple connected google accounts under the same shared oauth app" in ops_content
@@ -254,6 +261,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "encrypted operator-settings backup and restore from `/connections`" in ops_content
     assert "surfaces recovered legacy apple hints on `/calendar/setup`" in ops_content
     assert "load a recovered apple calendar hint directly into the `/calendar/setup` form" in ops_content
+    assert "safe apple setup validation before reconnect save" in ops_content
     assert "voice-specific next guidance for alexa setup and connections voice panels" in ops_content
     assert "simulator readiness guidance for missing connected calendar states" in ops_content
     assert "planner-style day/week/month board at `/`" in ops_content
@@ -344,6 +352,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#76" in prompt_content
     assert "#77" in prompt_content
     assert "#78" in prompt_content
+    assert "#79" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -365,6 +374,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "get /alexa/simulator" in prompt_content
     assert "get /calendar/setup" in prompt_content
     assert "post /calendar/setup" in prompt_content
+    assert "post /calendar/setup/validate" in prompt_content
     assert "post /calendar/setup/calendars" in prompt_content
     assert "get /google/setup" in prompt_content
     assert "post /google/setup" in prompt_content
@@ -435,6 +445,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "legacy apple backup recovery requirement" in prompt_content
     assert "legacy apple recovery form prefill requirement" in prompt_content
     assert "apple recovery guidance requirement" in prompt_content
+    assert "apple setup validation requirement" in prompt_content
     assert "alexa save-only action truthfulness requirement" in prompt_content
     assert "should always save the desired `enable_alexa` and `alexa_allowed_skill_ids` values" in prompt_content
     assert "workspace truthfulness requirement" in prompt_content
@@ -460,6 +471,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "should offer a one-step way to load a recovered apple calendar hint into the setup form" in prompt_content
     assert "loading a recovered hint should prefill the apple account label, apple username, calendar url, and calendar name" in prompt_content
     assert "get /api/readiness should tell operators to open apple setup, load a recovered apple hint, and save a fresh app-specific password" in prompt_content
+    assert "`post /calendar/setup/validate` should test the entered apple username, app-specific password, and primary calendar url without persisting those values first" in prompt_content
+    assert "`/calendar/setup` should expose a visible `validate apple connection` action alongside save so the reconnect flow is not blind" in prompt_content
     assert "both surfaces should switch to truthful save-only labels instead of promising a live apply" in prompt_content
     assert "enable_alexa" in prompt_content
     assert "alexa_allowed_skill_ids" in prompt_content

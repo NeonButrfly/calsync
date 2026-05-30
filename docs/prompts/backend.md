@@ -711,6 +711,19 @@ Expected behavior:
 - `/calendar/setup` should show a source-card state like recovered-hint availability instead of generic `Missing`
 - these guidance improvements must not falsely mark Apple connected or ready before a real save succeeds
 
+## Apple Setup Validation Requirement
+
+- GitHub issue: `#79`
+- interpreted requirement: before the operator saves recovered or newly entered Apple credentials into the live product vault, CalSync should let them validate the Apple username, app-specific password, and calendar URL safely from the setup form
+
+Expected behavior:
+
+- `POST /calendar/setup/validate` should test the entered Apple username, app-specific password, and primary calendar URL without persisting those values first
+- the validation action should return a clear success path when the Apple calendar can be read safely
+- the validation action should return a clear failure path when Apple authentication or calendar access fails
+- validation must not mutate the saved Apple account state, writable target state, or readiness state on its own
+- `/calendar/setup` should expose a visible `Validate Apple connection` action alongside save so the reconnect flow is not blind
+
 ## Alexa Save-Only Action Truthfulness Requirement
 
 - GitHub issue: `#74`

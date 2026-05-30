@@ -22,7 +22,11 @@ from calsync.schemas.appointments import (
     CreateAppointmentRequest,
     UpdateAppointmentRequest,
 )
-from calsync.services.apple_caldav import AppleCalDAVError
+from calsync.services.apple_caldav import (
+    AppleCalDAVClient,
+    AppleCalDAVConfig,
+    AppleCalDAVError,
+)
 from calsync.services.alexa_simulator import AlexaSimulatorService
 from calsync.services.appointments import AppointmentService
 from calsync.services.apple_runtime_config import AppleRuntimeConfigService
@@ -919,6 +923,71 @@ def _prefill_apple_settings_from_legacy_hints(
     }
 
 
+def _build_pending_apple_setup_state(
+    *,
+    apple_account_label: str,
+    apple_username: str,
+    apple_primary_calendar_url: str,
+    apple_primary_calendar_name: str,
+    legacy_recovery_hints: dict[str, object],
+) -> dict[str, object]:
+    normalized_username = apple_username.strip()
+    normalized_calendar_url = apple_primary_calendar_url.strip()
+    source = "form"
+    if (
+        str(legacy_recovery_hints.get("source") or "") != "missing"
+        and normalized_username
+        and normalized_username.lower()
+        == str(legacy_recovery_hints.get("account_username") or "").strip().lower()
+        and any(
+            isinstance(item, dict)
+            and str(item.get("calendar_url") or "").strip() == normalized_calendar_url
+            for item in legacy_recovery_hints.get("calendars", [])
+        )
+    ):
+        source = "legacy_recovery_hints"
+    return {
+        "account_label": apple_account_label.strip(),
+        "username": normalized_username,
+        "primary_calendar_url": normalized_calendar_url,
+        "primary_calendar_name": apple_primary_calendar_name.strip(),
+        "password_saved": False,
+        "source": source,
+    }
+
+
+def _build_pending_apple_validation_config(
+    *,
+    apple_account_label: str,
+    apple_username: str,
+    apple_app_specific_password: str,
+    apple_primary_calendar_url: str,
+    apple_primary_calendar_name: str,
+) -> AppleCalDAVConfig:
+    normalized_account_label = apple_account_label.strip()
+    normalized_username = apple_username.strip()
+    normalized_password = apple_app_specific_password.strip()
+    normalized_calendar_url = apple_primary_calendar_url.strip()
+    normalized_calendar_name = apple_primary_calendar_name.strip()
+    if not normalized_account_label:
+        raise ValueError("Apple account label is required.")
+    if not normalized_username:
+        raise ValueError("Apple username is required.")
+    if not normalized_password:
+        raise ValueError("Apple app-specific password is required for validation.")
+    if not normalized_calendar_url:
+        raise ValueError("Apple calendar URL is required.")
+    if not normalized_calendar_name:
+        raise ValueError("Apple calendar name is required.")
+    return AppleCalDAVConfig(
+        account_label=normalized_account_label,
+        apple_username=normalized_username,
+        app_specific_password=normalized_password,
+        primary_calendar_url=normalized_calendar_url,
+        primary_calendar_name=normalized_calendar_name,
+    )
+
+
 def _describe_calendar_setup_source_card(
     *,
     runtime_config: dict[str, object],
@@ -1277,6 +1346,62 @@ def calendar_setup_update(
             request,
             apple_settings=apple_settings,
             legacy_recovery_hints=operator_settings.describe_legacy_apple_recovery_hints(),
+            runtime_service=runtime_service,
+            runtime_config=runtime_config,
+            flash_message=flash_message,
+            error_message=error_message,
+        ),
+        status_code=200 if error_message is None else 400,
+    )
+
+
+@router.post("/calendar/setup/validate")
+def calendar_setup_validate(
+    request: Request,
+    apple_account_label: str = Form(""),
+    apple_username: str = Form(""),
+    apple_app_specific_password: str = Form(""),
+    apple_primary_calendar_url: str = Form(""),
+    apple_primary_calendar_name: str = Form(""),
+):
+    operator_settings = OperatorSettingsService()
+    runtime_service = AppleRuntimeConfigService(
+        operator_settings=operator_settings
+    )
+    legacy_recovery_hints = operator_settings.describe_legacy_apple_recovery_hints()
+    apple_settings = _build_pending_apple_setup_state(
+        apple_account_label=apple_account_label,
+        apple_username=apple_username,
+        apple_primary_calendar_url=apple_primary_calendar_url,
+        apple_primary_calendar_name=apple_primary_calendar_name,
+        legacy_recovery_hints=legacy_recovery_hints,
+    )
+    try:
+        config = _build_pending_apple_validation_config(
+            apple_account_label=apple_account_label,
+            apple_username=apple_username,
+            apple_app_specific_password=apple_app_specific_password,
+            apple_primary_calendar_url=apple_primary_calendar_url,
+            apple_primary_calendar_name=apple_primary_calendar_name,
+        )
+        AppleCalDAVClient(config).validate_calendar_access()
+        flash_message = (
+            "Apple calendar credentials validated successfully. "
+            "Nothing has been saved yet."
+        )
+        error_message = None
+    except (ValueError, AppleCalDAVError) as exc:
+        flash_message = None
+        error_message = str(exc)
+
+    runtime_config = runtime_service.resolve()
+    return _templates.TemplateResponse(
+        request,
+        "calendar_setup.html",
+        _build_calendar_setup_context(
+            request,
+            apple_settings=apple_settings,
+            legacy_recovery_hints=legacy_recovery_hints,
             runtime_service=runtime_service,
             runtime_config=runtime_config,
             flash_message=flash_message,
