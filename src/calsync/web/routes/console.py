@@ -1975,15 +1975,22 @@ def alexa_setup_update_cloudflare_credentials(
 @router.get("/alexa/simulator")
 def alexa_simulator_page(request: Request):
     service = AppointmentService()
+    readiness = ReadinessService().build()
+    calendar_name_options = _calendar_name_options(service)
     return _templates.TemplateResponse(
         request,
         "alexa_simulator.html",
         {
             "request": request,
+            "readiness": readiness,
+            "simulator_state": _describe_alexa_simulator_state(
+                readiness=readiness,
+                calendar_name_options=calendar_name_options,
+            ),
             "simulation_result": None,
             "error_message": None,
             "form_values": _default_alexa_simulator_values(),
-            "calendar_name_options": _calendar_name_options(service),
+            "calendar_name_options": calendar_name_options,
         },
     )
 
@@ -2007,6 +2014,7 @@ def alexa_simulator_run(
     new_end_time: str = Form(""),
     new_calendar_name: str = Form(""),
 ):
+    service = AppointmentService()
     form_values = {
         "request_type": request_type,
         "intent_name": intent_name,
@@ -2049,18 +2057,23 @@ def alexa_simulator_run(
     except ValueError as exc:
         simulation_result = None
         error_message = str(exc)
+    readiness = ReadinessService().build()
+    calendar_name_options = _calendar_name_options(service)
 
     return _templates.TemplateResponse(
         request,
         "alexa_simulator.html",
         {
             "request": request,
+            "readiness": readiness,
+            "simulator_state": _describe_alexa_simulator_state(
+                readiness=readiness,
+                calendar_name_options=calendar_name_options,
+            ),
             "simulation_result": simulation_result,
             "error_message": error_message,
             "form_values": form_values,
-            "calendar_name_options": _calendar_name_options(
-                AppointmentService()
-            ),
+            "calendar_name_options": calendar_name_options,
         },
         status_code=200 if simulation_result is not None else 400,
     )
@@ -3444,6 +3457,56 @@ def _describe_alexa_next_action(
     if not channel_tokens.get("alexa", False):
         return "Bootstrap the Alexa channel token on the origin so voice-origin calls can be authenticated."
     return "Alexa is ready for real signed Amazon skill verification."
+
+
+def _describe_alexa_simulator_state(
+    *,
+    readiness: dict[str, object],
+    calendar_name_options: list[dict[str, str]],
+) -> dict[str, object]:
+    origin = readiness.get("origin", {})
+    edge = readiness.get("edge", {})
+    any_calendar_ready = bool(origin.get("any_calendar_ready"))
+    edge_reachable = bool(edge.get("reachable", False))
+    edge_enabled = bool(edge.get("alexa", {}).get("enabled", False))
+    if not any_calendar_ready:
+        headline = "Calendar setup still blocks meaningful scheduling tests"
+        detail = (
+            "No writable calendar is connected yet. You can still preview LaunchRequest "
+            "and the general voice shape, but scheduling intents become useful after "
+            "Apple, Google, or Microsoft setup is connected."
+        )
+        useful_now = "LaunchRequest and copy checks"
+    elif not edge_enabled:
+        headline = "Scheduling simulation is ready before full device turn-on"
+        detail = (
+            "A writable calendar is ready, so the simulator can exercise scheduling "
+            "intents even though the real Alexa route is still disabled."
+        )
+        useful_now = "LaunchRequest plus scheduling intents"
+    elif not edge_reachable:
+        headline = "Simulator guidance is limited while edge status is unavailable"
+        detail = (
+            "Calendar-backed scheduling is configured, but CalSync cannot currently "
+            "confirm the live edge state."
+        )
+        useful_now = "Most simulator requests"
+    else:
+        headline = "Simulator is ready for end-to-end voice rehearsal"
+        detail = (
+            "The connected calendar path and live edge state are both visible, so "
+            "this page can preview the real voice behavior before signed Amazon traffic."
+        )
+        useful_now = "LaunchRequest plus scheduling intents"
+    return {
+        "calendar_ready": any_calendar_ready,
+        "edge_reachable": edge_reachable,
+        "edge_enabled": edge_enabled,
+        "headline": headline,
+        "detail": detail,
+        "useful_now": useful_now,
+        "target_option_count": len(calendar_name_options),
+    }
 
 
 def _calendar_name_options(

@@ -325,6 +325,18 @@ Expected behavior:
 - the guidance should explain the real next Alexa work, such as connecting a writable calendar, saving Cloudflare Worker access, saving account linking, or applying the saved edge plan
 - generic workspace and provider-readiness copy may still exist elsewhere in the product, but Alexa-focused surfaces should not fall back to the broad `Add an Apple calendar or finish Google or Microsoft setup...` message as their primary next step
 
+## Alexa Simulator Readiness Guidance Requirement
+
+- GitHub issue: `#66`
+- interpreted requirement: the Alexa simulator should show clear readiness and blocker guidance when no connected calendars are available instead of only rendering empty calendar selectors and a generic form
+
+Expected behavior:
+
+- `/alexa/simulator` should show a simulator-readiness summary before the request form
+- when no connected writable calendar exists, the simulator should say that scheduling-intent tests are still blocked by missing calendar setup
+- that no-calendar state should still explain that `LaunchRequest` and general voice-copy previews remain useful
+- empty named-calendar selectors should get helper text that explains why there are no choices yet and what setup will populate them
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`
