@@ -283,6 +283,113 @@ def test_console_root_points_to_apple_reconnect_when_legacy_hints_exist(
     )
 
 
+def test_console_create_submit_rejects_without_calendar_target(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/appointments",
+        data={
+            "title": "Recovery proof",
+            "date_value": "2026-06-01",
+            "start_time": "10:00",
+            "end_time": "10:30",
+            "timezone": "America/Anchorage",
+            "location": "Phone",
+            "notes": "Blocked root write proof",
+            "attendees_text": "Kayra",
+            "target_calendar_url": "",
+        },
+    )
+
+    assert response.status_code == 400
+    assert (
+        "Connect a writable calendar before creating appointments from the schedule workspace."
+        in response.text
+    )
+
+
+def test_console_create_submit_points_to_apple_reconnect_when_legacy_hints_exist(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/appointments",
+        data={
+            "title": "Recovery proof",
+            "date_value": "2026-06-01",
+            "start_time": "10:00",
+            "end_time": "10:30",
+            "timezone": "America/Anchorage",
+            "location": "Phone",
+            "notes": "Blocked root write proof",
+            "attendees_text": "Kayra",
+            "target_calendar_url": "",
+        },
+    )
+
+    assert response.status_code == 400
+    assert (
+        "Apple reconnect still blocks write actions. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before creating appointments from the schedule workspace."
+        in response.text
+    )
+    assert "Primary Apple/iCloud calendar is not configured." not in response.text
+
+
 def test_console_root_explains_blocked_schedule_state_when_no_calendar_is_connected(
     monkeypatch,
 ) -> None:

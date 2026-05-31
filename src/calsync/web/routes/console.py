@@ -2590,6 +2590,58 @@ def create_appointment_from_console(
     target_calendar_url: str = Form(""),
     all_day: bool = Form(False),
 ):
+    service = AppointmentService()
+    calendar_options = _calendar_options(
+        service,
+        selected_calendar_url=target_calendar_url,
+    )
+    recovery_mode = (
+        not calendar_options
+        and _booking_setup_recovery_mode(
+            operator_settings=OperatorSettingsService()
+        )
+    )
+    if not calendar_options:
+        date_from, date_to, selected_window = _resolve_window("week")
+        appointments = service.list_range(
+            date_from=date_from.isoformat(),
+            date_to=date_to.isoformat(),
+        ).items
+        selected_detail = _resolve_selected_detail(service, appointments, None)
+        return _templates.TemplateResponse(
+            request,
+            "console.html",
+            _build_console_context(
+                request,
+                service=service,
+                appointments=appointments,
+                selected_detail=selected_detail,
+                flash_message=None,
+                error_message=_describe_console_submit_error(
+                    recovery_mode=recovery_mode
+                ),
+                form_values={
+                    "title": title,
+                    "date": date_value,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "timezone": timezone,
+                    "location": location,
+                    "notes": notes,
+                    "attendees_text": attendees_text,
+                    "target_calendar_url": target_calendar_url,
+                    "all_day": all_day,
+                },
+                availability_form_values=_default_availability_form_values(),
+                availability_results=[],
+                availability_error=None,
+                availability_searched=False,
+                selected_window=selected_window,
+                show_cancelled=False,
+                readiness=ReadinessService().build(),
+            ),
+            status_code=400,
+        )
     payload = CreateAppointmentRequest(
         title=title,
         date=date_value,
@@ -2602,7 +2654,6 @@ def create_appointment_from_console(
         target_calendar_url=target_calendar_url or None,
         all_day=all_day,
     )
-    service = AppointmentService()
     try:
         created = service.create(payload, actor="console")
         return RedirectResponse(
@@ -2972,6 +3023,12 @@ def _describe_booking_setup_block_message(*, recovery_mode: bool) -> str:
     if recovery_mode:
         return "Apple reconnect still blocks booking setup. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before configuring public booking."
     return "Connect a writable calendar before configuring public booking settings or creating shareable booking types."
+
+
+def _describe_console_submit_error(*, recovery_mode: bool) -> str:
+    if recovery_mode:
+        return "Apple reconnect still blocks write actions. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before creating appointments from the schedule workspace."
+    return "Connect a writable calendar before creating appointments from the schedule workspace."
 
 
 def _describe_booking_setup_save_error(*, recovery_mode: bool) -> str:

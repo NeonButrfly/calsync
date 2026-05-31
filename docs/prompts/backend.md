@@ -616,6 +616,17 @@ Expected behavior:
 - in that same state, blocked `POST /book/{slug}` responses should use that same Apple reconnect submit guidance
 - when no recovery hint exists, blocked public booking submit responses can keep the more generic `No writable calendar target is ready for public booking yet.` wording
 
+## Root Appointment Submit Error Requirement
+
+- GitHub issue: `#101`
+- interpreted requirement: when the live deployment is in Apple recovery mode, blocked direct schedule-workspace appointment-create responses should stop using the raw Apple config error
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no writable calendar is connected, blocked `POST /appointments` responses should say Apple reconnect still blocks write actions
+- in that same state, the blocked response should not fall back to `Primary Apple/iCloud calendar is not configured.`
+- when no recovery hint exists, blocked direct appointment-create responses can keep the more generic `Connect a writable calendar before creating appointments from the schedule workspace.` wording
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`
