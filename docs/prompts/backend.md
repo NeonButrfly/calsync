@@ -593,6 +593,18 @@ Expected behavior:
 - in that same state, the empty `New calendar` helper copy on `GET /alexa/simulator` should tell operators to open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before reschedule moves can target a named calendar there
 - when no recovery hint exists, those empty selector helper lines can keep the more generic blank-install wording about named calendar targeting appearing after provider setup is connected
 
+## Public Booking Recovery Guidance Requirement
+
+- GitHub issue: `#99`
+- interpreted requirement: when the live deployment is in Apple recovery mode, the blocked public booking page should stop using blank-install no-calendar wording
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no writable calendar is connected, `GET /book` should point blocked availability search at Apple reconnect rather than generic writable-calendar setup
+- in that same state, the public booking target card should acknowledge that recovered Apple hints are ready and point operators to Apple setup plus the loaded recovered calendar
+- in that same state, the blocked request-time panel on `GET /book` should say Apple reconnect still blocks invitees from requesting time
+- when no recovery hint exists, the public booking page can keep the more generic no-calendar wording used for a blank-install disconnected state
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

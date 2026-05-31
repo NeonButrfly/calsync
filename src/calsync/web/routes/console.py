@@ -2981,6 +2981,30 @@ def _describe_booking_setup_type_error(*, recovery_mode: bool) -> str:
     return "Connect a writable calendar before creating public booking types."
 
 
+def _describe_public_booking_availability_block_message(*, recovery_mode: bool) -> str:
+    if recovery_mode:
+        return "Apple reconnect still blocks public booking availability. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before invitees can search for open time."
+    return "Connect a writable calendar before public booking can search for open time."
+
+
+def _describe_public_booking_not_ready_message(*, recovery_mode: bool) -> str:
+    if recovery_mode:
+        return "Apple reconnect still blocks public booking. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before invitees can request time."
+    return "CalSync needs one writable calendar target before invitees can request time."
+
+
+def _describe_public_booking_target_status(*, recovery_mode: bool) -> tuple[str, str]:
+    if recovery_mode:
+        return (
+            "Apple reconnect still needed",
+            "Recovered Apple hints are ready. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before this public booking flow can go live.",
+        )
+    return (
+        "Not ready yet",
+        "CalSync needs at least one writable calendar before public booking can go live.",
+    )
+
+
 def _build_booking_context(
     request: Request,
     *,
@@ -2996,6 +3020,9 @@ def _build_booking_context(
     booking_types: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
     defaults = _default_booking_availability_form_values(booking_settings=booking_settings)
+    recovery_mode = _booking_setup_recovery_mode(
+        operator_settings=OperatorSettingsService()
+    )
     form_values = {
         "date_from": availability_date_from or str(defaults["date_from"]),
         "date_to": availability_date_to or str(defaults["date_to"]),
@@ -3007,6 +3034,9 @@ def _build_booking_context(
     )
     availability_results: list[AvailabilitySlot] = []
     availability_error: str | None = None
+    target_status, target_message = _describe_public_booking_target_status(
+        recovery_mode=recovery_mode
+    )
     if target is not None:
         try:
             availability_results = service.find_availability(
@@ -3033,14 +3063,30 @@ def _build_booking_context(
         "booking_types": booking_types or [],
         "availability_form_values": form_values,
         "availability_ready": target is not None,
+        "recovery_mode": recovery_mode,
         "availability_block_message": (
             None
             if target is not None
-            else "Connect a writable calendar before public booking can search for open time."
+            else _describe_public_booking_availability_block_message(
+                recovery_mode=recovery_mode
+            )
         ),
         "availability_results": _serialize_booking_slots(availability_results),
         "calendar_target": target,
         "calendar_ready": target is not None,
+        "calendar_target_status": (
+            str(target.get("label") or "Connected calendar target")
+            if target is not None
+            else target_status
+        ),
+        "calendar_target_message": (
+            "This public booking flow writes into the selected connected calendar target."
+            if target is not None
+            else target_message
+        ),
+        "public_booking_not_ready_message": _describe_public_booking_not_ready_message(
+            recovery_mode=recovery_mode
+        ),
     }
 
 

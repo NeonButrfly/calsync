@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, `#73`, `#76`, `#77`, `#78`, `#79`, `#80`, `#81`, `#82`, `#83`, `#84`, `#85`, `#86`, `#87`, `#88`, `#89`, `#90`, `#91`, `#92`, `#93`, `#94`, `#95`, `#96`, `#97`, and `#98` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, `#73`, `#76`, `#77`, `#78`, `#79`, `#80`, `#81`, `#82`, `#83`, `#84`, `#85`, `#86`, `#87`, `#88`, `#89`, `#90`, `#91`, `#92`, `#93`, `#94`, `#95`, `#96`, `#97`, `#98`, and `#99` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -101,6 +101,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - a simulator readiness summary for no-calendar voice testing states, so `/alexa/simulator` explains when LaunchRequest is still useful and why scheduling-intent tests are still blocked
 - recovery-aware simulator readiness guidance on `/alexa/simulator`, so the voice testing page now points operators to Apple reconnect instead of falling back to blank-install no-calendar wording when legacy hints already exist
 - recovery-aware Alexa simulator selector guidance on `/alexa/simulator`, so empty target-calendar and reschedule-calendar helper text now points to Apple reconnect instead of blank-install setup wording when legacy hints already exist
+- recovery-aware public booking guidance on `/book`, so blocked invitee-facing booking states now point to Apple reconnect instead of blank-install no-calendar wording when legacy hints already exist
 - a first availability finder across the workspace, edge API, and Alexa so CalSync can suggest open appointment windows instead of only listing busy ones
 
 ### Endpoints
@@ -194,6 +195,7 @@ The root page now acts as the first family scheduling UX:
 - that public booking flow is now configurable from `/booking/setup`, including invitee-facing copy, default duration, search horizon, success message, and the writable target used for new bookings
 - that public booking flow now also respects operator-managed booking weekdays plus daily start and end hours
 - that public booking flow now also blocks the invitee-facing availability refresh controls clearly when no writable calendar is connected, so the page does not look half-live during provider setup
+- that public booking flow now also aligns its blocked availability, request, and target-card copy with Apple reconnect when legacy recovery hints already exist
 - that booking setup now also blocks its save and create actions clearly when no writable calendar is connected, so operators do not accidentally save disconnected public-booking defaults
 - that booking setup flow now supports multiple named booking types, each with its own public slug and shareable invitee-facing URL
 - that default `/book` route now becomes a booking-type chooser when multiple public booking types exist, while keeping direct `/book/{slug}` links for focused flows
@@ -416,6 +418,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Align workspace capability summary with Apple reconnect: issue `#96`
 - Align Alexa simulator readiness with Apple reconnect: issue `#97`
 - Align Alexa simulator selector guidance with Apple reconnect: issue `#98`
+- Align public booking recovery guidance with Apple reconnect: issue `#99`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

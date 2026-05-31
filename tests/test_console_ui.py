@@ -435,6 +435,74 @@ def test_booking_page_blocks_availability_refresh_when_no_calendar_is_connected(
     assert "No writable calendar is connected yet." in response.text
 
 
+def test_booking_page_points_to_apple_reconnect_when_recovery_hints_exist(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/book")
+
+    assert response.status_code == 200
+    assert "Apple reconnect still needed" in response.text
+    assert (
+        "Recovered Apple hints are ready. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before this public booking flow can go live."
+        in response.text
+    )
+    assert (
+        "Apple reconnect still blocks public booking availability. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before invitees can search for open time."
+        in response.text
+    )
+    assert (
+        "Apple reconnect still blocks public booking. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before invitees can request time."
+        in response.text
+    )
+    assert "Recovered Apple hints are already loaded into Apple setup." in response.text
+    assert response.text.count("Open Apple setup") >= 1
+    assert "Connect a writable calendar before public booking can search for open time." not in response.text
+    assert "No writable calendar is connected yet." not in response.text
+    assert (
+        "CalSync needs one writable calendar target before invitees can request time."
+        not in response.text
+    )
+
+
 def test_booking_setup_page_blocks_configuration_when_no_calendar_is_connected(
     monkeypatch,
 ) -> None:

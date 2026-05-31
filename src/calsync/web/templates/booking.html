@@ -28,11 +28,17 @@
         <div class="sidebar-card">
           <p class="eyebrow">Calendar target</p>
           {% if calendar_target %}
-          <strong>{{ calendar_target.label }}</strong>
-          <span>This public booking flow writes into the selected connected calendar target.</span>
+          <strong>{{ calendar_target_status }}</strong>
+          <span>{{ calendar_target_message }}</span>
           {% else %}
-          <strong>Not ready yet</strong>
-          <span>CalSync needs at least one writable calendar before public booking can go live.</span>
+          <strong>{{ calendar_target_status }}</strong>
+          <span>{{ calendar_target_message }}</span>
+          {% if recovery_mode %}
+          <div class="stack-actions">
+            <a class="text-action" href="/calendar/setup">Open Apple setup</a>
+            <a class="text-action" href="/connections">Open Connections</a>
+          </div>
+          {% endif %}
           {% endif %}
         </div>
 
@@ -127,7 +133,13 @@
               <div class="empty-state">
                 <h4>Booking availability is not ready yet</h4>
                 <p>{{ availability_block_message }}</p>
-                <p>No writable calendar is connected yet.</p>
+                <p>{% if recovery_mode %}Recovered Apple hints are already loaded into Apple setup.{% else %}No writable calendar is connected yet.{% endif %}</p>
+                {% if recovery_mode %}
+                <div class="stack-actions">
+                  <a class="text-action" href="/calendar/setup">Open Apple setup</a>
+                  <a class="text-action" href="/connections">Open Connections</a>
+                </div>
+                {% endif %}
               </div>
               {% endif %}
 
@@ -177,7 +189,14 @@
             {% else %}
             <div class="empty-state">
               <h4>Public booking is not ready yet</h4>
-              <p>CalSync needs one writable calendar target before invitees can request time.</p>
+              <p>{{ public_booking_not_ready_message }}</p>
+              {% if recovery_mode %}
+              <p>Recovered Apple hints are already loaded into Apple setup.</p>
+              <div class="stack-actions">
+                <a class="text-action" href="/calendar/setup">Open Apple setup</a>
+                <a class="text-action" href="/connections">Open Connections</a>
+              </div>
+              {% endif %}
             </div>
             {% endif %}
           </article>
