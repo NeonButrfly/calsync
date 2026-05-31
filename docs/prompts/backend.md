@@ -1049,6 +1049,18 @@ Expected behavior:
 - when the current CalSync `encryption_key` cannot decrypt that preserved Apple secret, `/calendar/setup`, `/connections`, and shared readiness guidance should say the original key is needed or a fresh manual app-specific password must be entered
 - these encrypted-secret diagnostics must not falsely mark Apple connected or ready before a real save succeeds
 
+## Alexa Encrypted Secret Recovery Guidance Requirement
+
+- GitHub issue: `#109`
+- interpreted requirement: when legacy Apple recovery hints exist and no writable calendar is connected, Alexa-facing recovery surfaces should mirror the preserved encrypted-secret state instead of always acting like a fresh password is the only path forward
+
+Expected behavior:
+
+- when the preserved Apple password is reusable with the current key, `GET /alexa/setup`, the Alexa panel on `GET /connections`, and `GET /alexa/simulator` should point operators to validate or save the already-loaded recovered calendar
+- when the preserved Apple password still needs the original key, those same Alexa surfaces should tell operators to restore the original CalSync encryption key or save a fresh manual app-specific password before the remaining Alexa steps
+- when no preserved encrypted password exists, those Alexa surfaces can keep the older recovery wording about confirming the loaded recovered calendar and saving a fresh app-specific password
+- the Alexa simulator readiness copy and empty selector helper text should follow the same reusable-versus-original-key distinction so voice rehearsal guidance does not drift behind Apple setup and Connections
+
 ## Root Workspace Stale Detail Blocking Requirement
 
 - GitHub issue: `#83`

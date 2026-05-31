@@ -2439,6 +2439,7 @@ def alexa_simulator_page(request: Request):
             "simulator_state": _describe_alexa_simulator_state(
                 readiness=readiness,
                 calendar_name_options=calendar_name_options,
+                legacy_apple_recovery_hints=legacy_apple_recovery_hints,
                 recovery_mode=_alexa_recovery_mode(
                     readiness=readiness,
                     legacy_apple_recovery_hints=legacy_apple_recovery_hints,
@@ -2517,7 +2518,9 @@ def alexa_simulator_run(
         intent_name=intent_name or None,
         recovery_mode=recovery_mode,
     ):
-        simulation_result = _alexa_recovery_guidance_simulation_result()
+        simulation_result = _alexa_recovery_guidance_simulation_result(
+            legacy_apple_recovery_hints=legacy_apple_recovery_hints
+        )
         error_message = None
     else:
         try:
@@ -2541,6 +2544,7 @@ def alexa_simulator_run(
             "simulator_state": _describe_alexa_simulator_state(
                 readiness=readiness,
                 calendar_name_options=calendar_name_options,
+                legacy_apple_recovery_hints=legacy_apple_recovery_hints,
                 recovery_mode=recovery_mode,
             ),
             "simulation_result": simulation_result,
@@ -4289,21 +4293,37 @@ def _describe_alexa_next_action(
         readiness=readiness,
         legacy_apple_recovery_hints=legacy_apple_recovery_hints,
     )
+    recovery_action = _describe_alexa_apple_recovery_action(
+        legacy_apple_recovery_hints=legacy_apple_recovery_hints,
+    )
     if not origin.get("any_calendar_ready") and not cloudflare_credentials.get(
         "api_token_saved"
     ):
         if recovery_mode and not account_linking_ready:
-            return "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
+            return (
+                f"{recovery_action}, then save a household link code and Cloudflare "
+                "Worker access so CalSync can finish Alexa account linking and live "
+                "edge turn-on."
+            )
         if recovery_mode:
-            return "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password, then save Cloudflare Worker access so you can turn on the live Alexa route from CalSync."
+            return (
+                f"{recovery_action}, then save Cloudflare Worker access so you can "
+                "turn on the live Alexa route from CalSync."
+            )
         if not account_linking_ready:
             return "Connect at least one writable calendar, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
         return "Connect at least one writable calendar, then save Cloudflare Worker access so you can turn on the live Alexa route from CalSync."
     if not origin.get("any_calendar_ready"):
         if recovery_mode and not account_linking_ready:
-            return "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password, then save a household link code so the live skill can link to the right CalSync household."
+            return (
+                f"{recovery_action}, then save a household link code so the live "
+                "skill can link to the right CalSync household."
+            )
         if recovery_mode:
-            return "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password so Alexa has a real schedule to read and write once voice traffic goes live."
+            return (
+                f"{recovery_action} so Alexa has a real schedule to read and write "
+                "once voice traffic goes live."
+            )
         if not account_linking_ready:
             return "Connect at least one writable calendar, then save a household link code so the live skill can link to the right CalSync household."
         return "Connect at least one writable calendar so Alexa has a real schedule to read and write once voice traffic goes live."
@@ -4339,14 +4359,27 @@ def _describe_alexa_finish_line_action(
         readiness=readiness,
         legacy_apple_recovery_hints=legacy_apple_recovery_hints,
     )
+    recovery_action = _describe_alexa_apple_recovery_action(
+        legacy_apple_recovery_hints=legacy_apple_recovery_hints,
+        lowercase=True,
+    )
     if recovery_mode:
         if not account_linking_ready and not cloudflare_ready:
-            return "open Apple setup, confirm the loaded recovered calendar, save a fresh app-specific password, then save a household link code and Cloudflare Worker access from the Alexa setup page."
+            return (
+                f"{recovery_action}, then save a household link code and Cloudflare "
+                "Worker access from the Alexa setup page."
+            )
         if not account_linking_ready:
-            return "open Apple setup, confirm the loaded recovered calendar, save a fresh app-specific password, then save a household link code from the Alexa setup page."
+            return (
+                f"{recovery_action}, then save a household link code from the Alexa "
+                "setup page."
+            )
         if not cloudflare_ready:
-            return "open Apple setup, confirm the loaded recovered calendar, save a fresh app-specific password, then save Cloudflare Worker access from the Alexa setup page."
-        return "open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password so Alexa has a real schedule behind the shared brain."
+            return (
+                f"{recovery_action}, then save Cloudflare Worker access from the "
+                "Alexa setup page."
+            )
+        return f"{recovery_action} so Alexa has a real schedule behind the shared brain."
     if account_linking_ready:
         return "finish edge enablement and skill-ID allowlisting from the Alexa setup page."
     return "save a household link code, then finish edge enablement and skill-ID allowlisting from the Alexa setup page."
@@ -4378,10 +4411,106 @@ def _should_use_alexa_recovery_guidance_intent(
     }
 
 
-def _alexa_recovery_guidance_simulation_result() -> dict[str, object]:
-    speech = (
+def _describe_alexa_apple_recovery_action(
+    *,
+    legacy_apple_recovery_hints: dict[str, object],
+    lowercase: bool = False,
+) -> str:
+    if bool(legacy_apple_recovery_hints.get("can_reuse_saved_password")):
+        action = (
+            "Open Apple setup and validate or save the loaded recovered calendar"
+        )
+    elif bool(legacy_apple_recovery_hints.get("encrypted_secret_present")):
+        action = (
+            "Open Apple setup, then either restore the original CalSync encryption key "
+            "or save a fresh app-specific password"
+        )
+    else:
+        action = (
+            "Open Apple setup, confirm the loaded recovered calendar, and save a fresh "
+            "app-specific password"
+        )
+    if not lowercase:
+        return action
+    if action.startswith("Open "):
+        return "open " + action[5:]
+    return action[0].lower() + action[1:]
+
+
+def _describe_alexa_apple_recovery_guidance_speech(
+    *,
+    legacy_apple_recovery_hints: dict[str, object],
+) -> str:
+    if bool(legacy_apple_recovery_hints.get("can_reuse_saved_password")):
+        return (
+            "Open Apple setup and validate or save the loaded recovered calendar. "
+            "The preserved Apple password is reusable with the current CalSync key."
+        )
+    if bool(legacy_apple_recovery_hints.get("encrypted_secret_present")):
+        return (
+            "Open Apple setup, then either restore the original CalSync encryption key "
+            "or save a fresh app-specific password so CalSync can reconnect the real "
+            "household calendar."
+        )
+    return (
         "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh "
         "app-specific password so CalSync can reconnect the real household calendar."
+    )
+
+
+def _describe_alexa_simulator_recovery_detail(
+    *,
+    legacy_apple_recovery_hints: dict[str, object],
+) -> str:
+    if bool(legacy_apple_recovery_hints.get("can_reuse_saved_password")):
+        return (
+            "Recovered Apple hints are already loaded into Apple setup. You can still "
+            "preview LaunchRequest and the general voice shape, but scheduling intents "
+            "become useful after you validate or save the loaded recovered calendar."
+        )
+    if bool(legacy_apple_recovery_hints.get("encrypted_secret_present")):
+        return (
+            "Recovered Apple hints are already loaded into Apple setup. You can still "
+            "preview LaunchRequest and the general voice shape, but scheduling intents "
+            "become useful after you restore the original CalSync encryption key or save "
+            "a fresh app-specific password on the recovered Apple calendar."
+        )
+    return (
+        "Recovered Apple hints are already loaded into Apple setup. You can still "
+        "preview LaunchRequest and the general voice shape, but scheduling intents "
+        "become useful after you save a fresh app-specific password on the recovered "
+        "Apple calendar."
+    )
+
+
+def _describe_alexa_simulator_selector_guidance(
+    *,
+    legacy_apple_recovery_hints: dict[str, object],
+    reschedule: bool = False,
+) -> str:
+    if bool(legacy_apple_recovery_hints.get("can_reuse_saved_password")):
+        action = "validate or save the loaded recovered calendar"
+    elif bool(legacy_apple_recovery_hints.get("encrypted_secret_present")):
+        action = (
+            "restore the original CalSync encryption key or save a fresh app-specific "
+            "password"
+        )
+    else:
+        action = "save a fresh app-specific password"
+    tail = (
+        "before reschedule moves can target a named calendar here."
+        if reschedule
+        else "before named calendar targeting appears here."
+    )
+    return f"Open Apple setup, then {action} {tail}"
+
+
+def _alexa_recovery_guidance_simulation_result(
+    *,
+    legacy_apple_recovery_hints: dict[str, object],
+) -> dict[str, object]:
+    speech = _describe_alexa_apple_recovery_guidance_speech(
+        legacy_apple_recovery_hints=legacy_apple_recovery_hints
     )
     return {
         "ok": True,
@@ -4410,6 +4539,7 @@ def _describe_alexa_simulator_state(
     *,
     readiness: dict[str, object],
     calendar_name_options: list[dict[str, str]],
+    legacy_apple_recovery_hints: dict[str, object],
     recovery_mode: bool = False,
 ) -> dict[str, object]:
     origin = readiness.get("origin", {})
@@ -4424,9 +4554,9 @@ def _describe_alexa_simulator_state(
             else "Calendar setup still blocks meaningful scheduling tests"
         )
         detail = (
-            "Recovered Apple hints are already loaded into Apple setup. You can still preview LaunchRequest "
-            "and the general voice shape, but scheduling intents become useful after you save a fresh "
-            "app-specific password on the recovered Apple calendar."
+            _describe_alexa_simulator_recovery_detail(
+                legacy_apple_recovery_hints=legacy_apple_recovery_hints
+            )
             if recovery_mode
             else "No writable calendar is connected yet. You can still preview LaunchRequest "
             "and the general voice shape, but scheduling intents become useful after "
@@ -4463,6 +4593,33 @@ def _describe_alexa_simulator_state(
         "detail": detail,
         "useful_now": useful_now,
         "target_option_count": len(calendar_name_options),
+        "calendar_detail": (
+            "At least one writable calendar path is connected for scheduling tests."
+            if any_calendar_ready
+            else (
+                _describe_alexa_apple_recovery_guidance_speech(
+                    legacy_apple_recovery_hints=legacy_apple_recovery_hints
+                ).replace(" so CalSync can reconnect the real household calendar.", " before expecting meaningful scheduling-intent results.")
+                if recovery_mode
+                else "Connect Apple, Google, or Microsoft before expecting meaningful scheduling-intent results."
+            )
+        ),
+        "selector_guidance": (
+            _describe_alexa_simulator_selector_guidance(
+                legacy_apple_recovery_hints=legacy_apple_recovery_hints,
+                reschedule=False,
+            )
+            if recovery_mode
+            else "Named calendar targeting will appear here after Apple, Google, or Microsoft setup is connected."
+        ),
+        "reschedule_selector_guidance": (
+            _describe_alexa_simulator_selector_guidance(
+                legacy_apple_recovery_hints=legacy_apple_recovery_hints,
+                reschedule=True,
+            )
+            if recovery_mode
+            else "Reschedule moves can target a named calendar after a writable calendar path is connected."
+        ),
     }
 
 

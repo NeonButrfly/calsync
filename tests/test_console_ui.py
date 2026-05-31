@@ -1989,6 +1989,65 @@ def test_alexa_setup_page_points_to_apple_reconnect_when_recovery_hints_exist(
     )
 
 
+def test_alexa_setup_page_points_to_original_key_recovery_when_preserved_secret_needs_old_key(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    mismatched_secret = Fernet(
+        base64.urlsafe_b64encode(hashlib.sha256(b"different-test-key").digest())
+    ).encrypt(b"apple-secret-123").decode("utf-8")
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "credential_secret_encrypted": mismatched_secret,
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/alexa/setup")
+
+    assert response.status_code == 200
+    assert (
+        "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
+        in response.text
+    )
+    assert (
+        "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
+        not in response.text
+    )
+
+
 def test_connections_page_shows_voice_specific_alexa_guidance(monkeypatch) -> None:
     db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
@@ -2080,10 +2139,73 @@ def test_connections_page_points_alexa_to_apple_reconnect_when_recovery_hints_ex
         in response.text
     )
     assert (
-        "<strong>Alexa:</strong> open Apple setup, confirm the loaded recovered calendar, save a fresh app-specific password, then save a household link code and Cloudflare Worker access from the Alexa setup page."
+        "<strong>Alexa:</strong> open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password, then save a household link code and Cloudflare Worker access from the Alexa setup page."
         in response.text
     )
     assert "Connect a writable calendar so Alexa has a real household schedule to read and write." not in response.text
+
+
+def test_connections_page_points_alexa_to_original_key_recovery_when_preserved_secret_needs_old_key(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    mismatched_secret = Fernet(
+        base64.urlsafe_b64encode(hashlib.sha256(b"different-test-key").digest())
+    ).encrypt(b"apple-secret-123").decode("utf-8")
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "credential_secret_encrypted": mismatched_secret,
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/connections")
+
+    assert response.status_code == 200
+    assert (
+        "Recovered Apple hints are ready, but the preserved encrypted password needs the original CalSync encryption key. Open Apple setup and restore that key or enter a fresh app-specific password so Alexa has a real household schedule to read and write."
+        in response.text
+    )
+    assert (
+        "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
+        in response.text
+    )
+    assert (
+        "<strong>Alexa:</strong> open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password, then save a household link code and Cloudflare Worker access from the Alexa setup page."
+        in response.text
+    )
 
 
 def test_connections_page_can_download_encrypted_settings_backup(monkeypatch) -> None:
@@ -4636,7 +4758,7 @@ def test_alexa_simulator_page_points_to_apple_reconnect_when_recovery_hints_exis
     assert "Simulator readiness" in response.text
     assert "Apple reconnect still blocks meaningful scheduling tests" in response.text
     assert (
-        "Recovered Apple hints are ready. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before expecting meaningful scheduling-intent results."
+        "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password before expecting meaningful scheduling-intent results."
         in response.text
     )
     assert (
@@ -4644,11 +4766,11 @@ def test_alexa_simulator_page_points_to_apple_reconnect_when_recovery_hints_exis
         in response.text
     )
     assert (
-        "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before named calendar targeting appears here."
+        "Open Apple setup, then save a fresh app-specific password before named calendar targeting appears here."
         in response.text
     )
     assert (
-        "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before reschedule moves can target a named calendar here."
+        "Open Apple setup, then save a fresh app-specific password before reschedule moves can target a named calendar here."
         in response.text
     )
     assert '<a class="text-action" href="/calendar/setup">Open Apple setup</a>' in response.text
@@ -4656,6 +4778,74 @@ def test_alexa_simulator_page_points_to_apple_reconnect_when_recovery_hints_exis
     assert "No writable calendar is connected yet." not in response.text
     assert "Named calendar targeting will appear here after Apple, Google, or Microsoft setup is connected." not in response.text
     assert "Reschedule moves can target a named calendar after a writable calendar path is connected." not in response.text
+
+
+def test_alexa_simulator_page_points_to_original_key_recovery_when_preserved_secret_needs_old_key(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    mismatched_secret = Fernet(
+        base64.urlsafe_b64encode(hashlib.sha256(b"different-test-key").digest())
+    ).encrypt(b"apple-secret-123").decode("utf-8")
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "credential_secret_encrypted": mismatched_secret,
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/alexa/simulator")
+
+    assert response.status_code == 200
+    assert "Apple reconnect still blocks meaningful scheduling tests" in response.text
+    assert (
+        "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before expecting meaningful scheduling-intent results."
+        in response.text
+    )
+    assert (
+        "Recovered Apple hints are already loaded into Apple setup. You can still preview LaunchRequest and the general voice shape, but scheduling intents become useful after you restore the original CalSync encryption key or save a fresh app-specific password on the recovered Apple calendar."
+        in response.text
+    )
+    assert (
+        "Open Apple setup, then restore the original CalSync encryption key or save a fresh app-specific password before named calendar targeting appears here."
+        in response.text
+    )
+    assert (
+        "Open Apple setup, then restore the original CalSync encryption key or save a fresh app-specific password before reschedule moves can target a named calendar here."
+        in response.text
+    )
 
 
 def test_alexa_simulator_run_points_guidance_intents_to_apple_reconnect_when_recovery_hints_exist(

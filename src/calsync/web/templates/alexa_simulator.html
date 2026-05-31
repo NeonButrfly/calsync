@@ -39,10 +39,10 @@
               </div>
             </div>
             <div class="detail-grid">
-              <article class="detail-card">
+                <article class="detail-card">
                 <p class="eyebrow">Connected calendar</p>
                 <strong>{% if simulator_state.calendar_ready %}Ready{% else %}Still needed{% endif %}</strong>
-                <span>{% if simulator_state.calendar_ready %}At least one writable calendar path is connected for scheduling tests.{% elif simulator_state.recovery_mode %}Recovered Apple hints are ready. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before expecting meaningful scheduling-intent results.{% else %}Connect Apple, Google, or Microsoft before expecting meaningful scheduling-intent results.{% endif %}</span>
+                <span>{{ simulator_state.calendar_detail }}</span>
               </article>
               <article class="detail-card">
                 <p class="eyebrow">Voice route</p>
@@ -129,7 +129,7 @@
                   {% endfor %}
                 </select>
                 {% if not calendar_name_options %}
-                <small>{% if simulator_state.recovery_mode %}Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before named calendar targeting appears here.{% else %}Named calendar targeting will appear here after Apple, Google, or Microsoft setup is connected.{% endif %}</small>
+                <small>{{ simulator_state.selector_guidance }}</small>
                 {% endif %}
               </label>
               <div class="two-up">
@@ -165,7 +165,7 @@
                   {% endfor %}
                 </select>
                 {% if not calendar_name_options %}
-                <small>{% if simulator_state.recovery_mode %}Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before reschedule moves can target a named calendar here.{% else %}Reschedule moves can target a named calendar after a writable calendar path is connected.{% endif %}</small>
+                <small>{{ simulator_state.reschedule_selector_guidance }}</small>
                 {% endif %}
               </label>
               <button type="submit">Run simulation</button>
