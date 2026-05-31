@@ -77,6 +77,7 @@ function buildReadinessResponse(
   options?: {
     anyCalendarReady?: boolean;
     recoveryMode?: boolean;
+    nextAction?: string;
   },
 ): Response {
   return new Response(
@@ -85,6 +86,9 @@ function buildReadinessResponse(
         any_calendar_ready: options?.anyCalendarReady ?? true,
         recovery_mode: options?.recoveryMode ?? false,
       },
+      next_action:
+        options?.nextAction ??
+        "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password so CalSync can reconnect the real household calendar.",
     }),
     {
       status: 200,
@@ -154,6 +158,8 @@ describe("alexa worker adapter", () => {
           return buildReadinessResponse({
             anyCalendarReady: false,
             recoveryMode: true,
+            nextAction:
+              "Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password so CalSync can reconnect the real household calendar.",
           });
         }
         throw new Error(`Unexpected fetch ${url}`);
@@ -180,7 +186,7 @@ describe("alexa worker adapter", () => {
       response: {
         outputSpeech: {
           text: expect.stringContaining(
-            "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password",
+            "enter the original CalSync encryption key there or save a fresh app-specific password",
           ),
         },
       },
@@ -264,6 +270,8 @@ describe("alexa worker adapter", () => {
           return buildReadinessResponse({
             anyCalendarReady: false,
             recoveryMode: true,
+            nextAction:
+              "Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password so CalSync can reconnect the real household calendar.",
           });
         }
         throw new Error(`Unexpected fetch ${url}`);
@@ -293,7 +301,7 @@ describe("alexa worker adapter", () => {
       response: {
         outputSpeech: {
           text: expect.stringContaining(
-            "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password",
+            "enter the original CalSync encryption key there or save a fresh app-specific password",
           ),
         },
       },
@@ -312,6 +320,8 @@ describe("alexa worker adapter", () => {
           return buildReadinessResponse({
             anyCalendarReady: false,
             recoveryMode: true,
+            nextAction:
+              "Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password so CalSync can reconnect the real household calendar.",
           });
         }
         throw new Error(`Unexpected fetch ${url}`);
@@ -341,7 +351,7 @@ describe("alexa worker adapter", () => {
       response: {
         outputSpeech: {
           text: expect.stringContaining(
-            "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password",
+            "enter the original CalSync encryption key there or save a fresh app-specific password",
           ),
         },
       },
@@ -425,11 +435,17 @@ describe("alexa worker adapter", () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockImplementation(async (input) => {
-        if (
-          String(input) ===
-          "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate"
-        ) {
+        const url = String(input);
+        if (url === "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate") {
           return buildAccountLinkingValidationResponse();
+        }
+        if (url === "https://calsync.neonbutterfly.net/api/readiness") {
+          return buildReadinessResponse({
+            anyCalendarReady: false,
+            recoveryMode: true,
+            nextAction:
+              "Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password so CalSync can reconnect the real household calendar.",
+          });
         }
 
         return new Response(
@@ -469,13 +485,13 @@ describe("alexa worker adapter", () => {
 
     await waitOnExecutionContext(ctx);
 
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       response: {
         outputSpeech: {
           text: expect.stringContaining(
-            "Apple reconnect still needs one more step.",
+            "enter the original CalSync encryption key there or save a fresh app-specific password",
           ),
         },
       },
@@ -486,11 +502,17 @@ describe("alexa worker adapter", () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockImplementation(async (input) => {
-        if (
-          String(input) ===
-          "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate"
-        ) {
+        const url = String(input);
+        if (url === "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate") {
           return buildAccountLinkingValidationResponse();
+        }
+        if (url === "https://calsync.neonbutterfly.net/api/readiness") {
+          return buildReadinessResponse({
+            anyCalendarReady: false,
+            recoveryMode: true,
+            nextAction:
+              "Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password so CalSync can reconnect the real household calendar.",
+          });
         }
 
         return new Response(
@@ -530,13 +552,13 @@ describe("alexa worker adapter", () => {
 
     await waitOnExecutionContext(ctx);
 
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       response: {
         outputSpeech: {
           text: expect.stringContaining(
-            "Apple reconnect still needs one more step.",
+            "enter the original CalSync encryption key there or save a fresh app-specific password",
           ),
         },
       },
@@ -781,11 +803,17 @@ describe("alexa worker adapter", () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockImplementation(async (input) => {
-        if (
-          String(input) ===
-          "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate"
-        ) {
+        const url = String(input);
+        if (url === "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate") {
           return buildAccountLinkingValidationResponse();
+        }
+        if (url === "https://calsync.neonbutterfly.net/api/readiness") {
+          return buildReadinessResponse({
+            anyCalendarReady: false,
+            recoveryMode: true,
+            nextAction:
+              "Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password so CalSync can reconnect the real household calendar.",
+          });
         }
 
         return new Response(
@@ -823,13 +851,13 @@ describe("alexa worker adapter", () => {
 
     await waitOnExecutionContext(ctx);
 
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       response: {
         outputSpeech: {
           text: expect.stringContaining(
-            "Apple reconnect still needs one more step.",
+            "enter the original CalSync encryption key there or save a fresh app-specific password",
           ),
         },
       },
@@ -840,11 +868,17 @@ describe("alexa worker adapter", () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockImplementation(async (input) => {
-        if (
-          String(input) ===
-          "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate"
-        ) {
+        const url = String(input);
+        if (url === "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate") {
           return buildAccountLinkingValidationResponse();
+        }
+        if (url === "https://calsync.neonbutterfly.net/api/readiness") {
+          return buildReadinessResponse({
+            anyCalendarReady: false,
+            recoveryMode: true,
+            nextAction:
+              "Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password so CalSync can reconnect the real household calendar.",
+          });
         }
 
         return new Response(
@@ -882,13 +916,13 @@ describe("alexa worker adapter", () => {
 
     await waitOnExecutionContext(ctx);
 
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       response: {
         outputSpeech: {
           text: expect.stringContaining(
-            "Apple reconnect still needs one more step.",
+            "enter the original CalSync encryption key there or save a fresh app-specific password",
           ),
         },
       },

@@ -655,12 +655,13 @@ Expected behavior:
 ## Alexa Worker Recovery Normalization Requirement
 
 - GitHub issue: `#107`
-- interpreted requirement: the Alexa Worker should normalize the stale Apple target lookup failure the same way the origin API already does, so a future edge deploy cannot drift back to the raw provider error
+- interpreted requirement: the Alexa Worker should follow the current origin Apple reconnect guidance instead of hardcoding older fresh-password-only recovery copy, so a future edge deploy cannot drift behind the live original-key recovery flow
 
 Expected behavior:
 
-- when the Worker receives `Apple calendar target URL was not found.` from the shared scheduling backend, it should speak the same Apple reconnect guidance already used for the other recovery-mode Apple errors
-- create, availability, and any other scheduling intents that rely on the shared normalization helper should all inherit that same recovery behavior after the Worker update
+- when the Worker is in Apple recovery mode, launch, help, and fallback guidance should follow the current readiness-driven Apple reconnect message instead of older hardcoded fresh-password-only wording
+- when the Worker receives `Apple calendar target URL was not found.` or the other recovery-mode Apple backend errors, it should speak that same current Apple reconnect guidance instead of falling back to stale Worker-owned copy
+- create, availability, cancel, reschedule, and any other scheduling intents that rely on the shared normalization helper should all inherit that same recovery behavior after the Worker update
 - the Worker tests should cover the stale Apple target error explicitly so the edge layer cannot silently drift behind origin normalization again
 - until the Worker is actually redeployed, treat this as a tracked code-and-test slice rather than a proven live edge behavior change
 
@@ -1080,7 +1081,7 @@ Expected behavior:
 Expected behavior:
 
 - when the preserved Apple password is reusable with the current key, `GET /alexa/setup`, the Alexa panel on `GET /connections`, and `GET /alexa/simulator` should point operators to validate or save the already-loaded recovered calendar
-- when the preserved Apple password still needs the original key, those same Alexa surfaces should tell operators to restore the original CalSync encryption key or save a fresh manual app-specific password before the remaining Alexa steps
+- when the preserved Apple password still needs the original key, those same Alexa surfaces should tell operators to enter the original CalSync encryption key on Apple setup or save a fresh manual app-specific password before the remaining Alexa steps
 - when no preserved encrypted password exists, those Alexa surfaces can keep the older recovery wording about confirming the loaded recovered calendar and saving a fresh app-specific password
 - the Alexa simulator readiness copy and empty selector helper text should follow the same reusable-versus-original-key distinction so voice rehearsal guidance does not drift behind Apple setup and Connections
 

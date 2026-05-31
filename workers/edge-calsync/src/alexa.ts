@@ -91,9 +91,10 @@ interface AlexaReadinessResponse {
     any_calendar_ready?: boolean;
     recovery_mode?: boolean;
   };
+  next_action?: string;
 }
 
-const APPLE_RECOVERY_GUIDANCE =
+const DEFAULT_APPLE_RECOVERY_GUIDANCE =
   "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password so CalSync can reconnect the real household calendar.";
 
 export async function handleAlexaRequest(
@@ -176,12 +177,11 @@ async function dispatchAlexaPayload(
     }
   }
   if (requestType === "LaunchRequest") {
-    const recoveryMode = await isAppleRecoveryMode(env, requestId);
-    if (recoveryMode) {
+    const recoveryGuidance = await loadAppleRecoveryGuidance(env, requestId);
+    if (recoveryGuidance) {
       return alexaResponse({
-        speech: APPLE_RECOVERY_GUIDANCE,
-        reprompt:
-          "Open Apple setup in CalSync, confirm the loaded recovered Apple calendar, and save a fresh app-specific password.",
+        speech: recoveryGuidance,
+        reprompt: recoveryGuidance,
         shouldEndSession: false,
       });
     }
@@ -213,11 +213,14 @@ async function dispatchAlexaPayload(
 
   switch (intentName) {
     case "AMAZON.HelpIntent":
-      if (await isAppleRecoveryMode(env, requestId)) {
-        return alexaResponse({
-          speech: APPLE_RECOVERY_GUIDANCE,
-          shouldEndSession: false,
-        });
+      {
+        const recoveryGuidance = await loadAppleRecoveryGuidance(env, requestId);
+        if (recoveryGuidance) {
+          return alexaResponse({
+            speech: recoveryGuidance,
+            shouldEndSession: false,
+          });
+        }
       }
       return alexaResponse({
         speech:
@@ -231,11 +234,14 @@ async function dispatchAlexaPayload(
         shouldEndSession: true,
       });
     case "AMAZON.FallbackIntent":
-      if (await isAppleRecoveryMode(env, requestId)) {
-        return alexaResponse({
-          speech: APPLE_RECOVERY_GUIDANCE,
-          shouldEndSession: false,
-        });
+      {
+        const recoveryGuidance = await loadAppleRecoveryGuidance(env, requestId);
+        if (recoveryGuidance) {
+          return alexaResponse({
+            speech: recoveryGuidance,
+            shouldEndSession: false,
+          });
+        }
       }
       return alexaResponse({
         speech:
@@ -312,10 +318,10 @@ async function ensureLinkedAccount(
   }
 }
 
-async function isAppleRecoveryMode(
+async function loadAppleRecoveryGuidance(
   env: WorkerEnv,
   requestId: string,
-): Promise<boolean> {
+): Promise<string | null> {
   try {
     const originResponse = await callOriginJson(env, {
       method: "GET",
@@ -324,27 +330,42 @@ async function isAppleRecoveryMode(
       requestId,
     });
     if (!originResponse.ok) {
-      return false;
+      return null;
     }
     const originBody = (await originResponse.json()) as AlexaReadinessResponse;
-    return Boolean(originBody.origin?.recovery_mode);
+    if (!originBody.origin?.recovery_mode) {
+      return null;
+    }
+    const nextAction = originBody.next_action?.trim();
+    return nextAction || DEFAULT_APPLE_RECOVERY_GUIDANCE;
   } catch {
-    return false;
+    return null;
   }
 }
 
-function normalizeSchedulingErrorSpeech(
-  message: string | undefined,
-  fallback: string,
-): string {
+function isRecoverySchedulingError(message: string | undefined): boolean {
   const normalized = (message ?? "").trim();
-  if (
+  return (
     normalized === "Primary Apple/iCloud calendar is not configured." ||
     normalized === "Apple/iCloud calendar settings are incomplete." ||
     normalized === "Appointment calendar connection not found." ||
     normalized === "Apple calendar target URL was not found."
-  ) {
-    return "Apple reconnect still needs one more step. Open Apple setup in CalSync, confirm the recovered calendar, and save a fresh app-specific password before I can help with the household calendar.";
+  );
+}
+
+async function normalizeSchedulingErrorSpeech(
+  message: string | undefined,
+  fallback: string,
+  env: WorkerEnv,
+  requestId: string,
+): Promise<string> {
+  const normalized = (message ?? "").trim();
+  if (isRecoverySchedulingError(normalized)) {
+    const recoveryGuidance = await loadAppleRecoveryGuidance(env, requestId);
+    if (recoveryGuidance) {
+      return `Apple reconnect still needs one more step. ${recoveryGuidance}`;
+    }
+    return `Apple reconnect still needs one more step. ${DEFAULT_APPLE_RECOVERY_GUIDANCE}`;
   }
   return normalized || fallback;
 }
@@ -403,9 +424,11 @@ async function handleCreateIntent(
     };
     if (!originResponse.ok) {
       return alexaResponse({
-        speech: normalizeSchedulingErrorSpeech(
+        speech: await normalizeSchedulingErrorSpeech(
           originBody.message ?? originBody.detail,
           "I could not create that appointment.",
+          env,
+          requestId,
         ),
         shouldEndSession: true,
       });
@@ -446,9 +469,11 @@ async function handleFindAvailabilityIntent(
     const originBody = (await originResponse.json()) as AlexaAvailabilityResponse;
     if (!originResponse.ok) {
       return alexaResponse({
-        speech: normalizeSchedulingErrorSpeech(
+        speech: await normalizeSchedulingErrorSpeech(
           originBody.message ?? originBody.detail,
           "I could not look up availability right now.",
+          env,
+          requestId,
         ),
         shouldEndSession: true,
       });
@@ -501,9 +526,11 @@ async function handleListIntent(
     };
     if (!originResponse.ok) {
       return alexaResponse({
-        speech: normalizeSchedulingErrorSpeech(
+        speech: await normalizeSchedulingErrorSpeech(
           originBody.message ?? originBody.detail,
           "I could not look up that date right now.",
+          env,
+          requestId,
         ),
         shouldEndSession: true,
       });
@@ -556,9 +583,11 @@ async function handleNextAppointmentIntent(
     };
     if (!originResponse.ok) {
       return alexaResponse({
-        speech: normalizeSchedulingErrorSpeech(
+        speech: await normalizeSchedulingErrorSpeech(
           originBody.message ?? originBody.detail,
           "I could not look up your next appointment right now.",
+          env,
+          requestId,
         ),
         shouldEndSession: true,
       });
@@ -627,9 +656,11 @@ async function handleCancelIntent(
     };
     if (!originResponse.ok) {
       return alexaResponse({
-        speech: normalizeSchedulingErrorSpeech(
+        speech: await normalizeSchedulingErrorSpeech(
           originBody.message ?? originBody.detail,
           "I could not cancel that appointment right now.",
+          env,
+          requestId,
         ),
         shouldEndSession: true,
       });
@@ -719,9 +750,11 @@ async function handleRescheduleIntent(
     };
     if (!originResponse.ok) {
       return alexaResponse({
-        speech: normalizeSchedulingErrorSpeech(
+        speech: await normalizeSchedulingErrorSpeech(
           originBody.message ?? originBody.detail,
           "I could not move that appointment right now.",
+          env,
+          requestId,
         ),
         shouldEndSession: true,
       });
@@ -760,9 +793,11 @@ async function findMatchingAppointment(
     if (!originResponse.ok) {
       return {
         response: alexaResponse({
-          speech: normalizeSchedulingErrorSpeech(
+          speech: await normalizeSchedulingErrorSpeech(
             originBody.message ?? originBody.detail,
             "I could not look up that date right now.",
+            env,
+            requestId,
           ),
           shouldEndSession: true,
         }),
@@ -835,9 +870,11 @@ async function fetchAppointmentDetail(
     if (!originResponse.ok) {
       return {
         response: alexaResponse({
-          speech: normalizeSchedulingErrorSpeech(
+          speech: await normalizeSchedulingErrorSpeech(
             originBody.message ?? originBody.detail,
             "I could not read that appointment right now.",
+            env,
+            requestId,
           ),
           shouldEndSession: true,
         }),

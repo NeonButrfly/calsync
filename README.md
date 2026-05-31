@@ -419,6 +419,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Auto-load the recommended Apple recovery hint on reconnect: issue `#81`
 - Align Apple recovery guidance with the new auto-loaded reconnect flow: issue `#82`
 - Legacy Apple encrypted-secret recovery diagnostics: issue `#108`
+- Align Alexa Worker recovery guidance with the live Apple reconnect flow: issue `#107`
 - One-time legacy Apple secret recovery with the original CalSync encryption key: issue `#113`
 - Align original-key Apple recovery guidance with the in-product setup flow: issue `#114`
 - Keep the entire root workspace blocked when no calendar is connected: issue `#83`

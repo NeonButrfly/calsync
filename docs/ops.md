@@ -603,6 +603,9 @@ Recovery note:
 - Alexa setup, the Connections Alexa panel, and the Alexa simulator now mirror that same legacy Apple encrypted-secret recovery state instead of falling back to fresh-password-only guidance
 - issue `#110`
 - blocked root workspace copy, booking blockers, stale appointment edit/cancel blockers, and appointment API recovery guidance now mirror that same legacy Apple encrypted-secret recovery state instead of falling back to fresh-password-only guidance
+- issue `#107`
+- the Alexa Worker code now follows origin readiness guidance for Apple reconnect, so launch, help, fallback, and recovery-error speech can stay aligned with the original-key Apple recovery flow once the Worker is redeployed
+- that edge redeploy is still blocked in this environment because Cloudflare auth is not currently available through local Wrangler or the Pi host
 
 ## Current follow-up item
 
