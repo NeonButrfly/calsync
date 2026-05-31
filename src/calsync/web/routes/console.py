@@ -2717,6 +2717,25 @@ def edit_appointment_page(appointment_id: str, request: Request):
         appointment = service.get_detail(appointment_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    calendar_options = _calendar_options(
+        service,
+        selected_calendar_url=appointment.calendar_url,
+    )
+    recovery_mode = (
+        not calendar_options
+        and _booking_setup_recovery_mode(operator_settings=OperatorSettingsService())
+    )
+    if recovery_mode:
+        return _build_appointment_edit_blocked_response(
+            request,
+            appointment=appointment,
+            blocked_title="Apple reconnect still blocks appointment editing.",
+            blocked_body=(
+                "Open Apple setup, confirm the loaded recovered calendar, and save a "
+                "fresh app-specific password before changing stale appointment rows."
+            ),
+            status_code=400,
+        )
     return _templates.TemplateResponse(
         request,
         "appointment_edit.html",
@@ -2735,11 +2754,9 @@ def edit_appointment_page(appointment_id: str, request: Request):
                 "target_calendar_url": appointment.calendar_url or "",
                 "all_day": appointment.all_day,
             },
-            "calendar_options": _calendar_options(
-                service,
-                selected_calendar_url=appointment.calendar_url,
-            ),
+            "calendar_options": calendar_options,
             "error_message": None,
+            "blocked_state": None,
             "window_options": _window_options(
                 selected_window="week",
                 show_cancelled=False,
@@ -2764,6 +2781,29 @@ def edit_appointment_from_console(
     target_calendar_url: str = Form(""),
     all_day: bool = Form(False),
 ):
+    service = AppointmentService()
+    recovery_mode = (
+        not _calendar_options(
+            service,
+            selected_calendar_url=target_calendar_url or None,
+        )
+        and _booking_setup_recovery_mode(operator_settings=OperatorSettingsService())
+    )
+    if recovery_mode:
+        try:
+            appointment = service.get_detail(appointment_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return _build_appointment_edit_blocked_response(
+            request,
+            appointment=appointment,
+            blocked_title="Apple reconnect still blocks appointment editing.",
+            blocked_body=(
+                "Open Apple setup, confirm the loaded recovered calendar, and save a "
+                "fresh app-specific password before changing stale appointment rows."
+            ),
+            status_code=400,
+        )
     payload = UpdateAppointmentRequest(
         title=title,
         date=date_value,
@@ -2776,7 +2816,6 @@ def edit_appointment_from_console(
         target_calendar_url=target_calendar_url or None,
         all_day=all_day,
     )
-    service = AppointmentService()
     try:
         service.update(appointment_id, payload, actor="console")
         return RedirectResponse(
@@ -2810,6 +2849,7 @@ def edit_appointment_from_console(
                     selected_calendar_url=target_calendar_url or None,
                 ),
                 "error_message": str(exc),
+                "blocked_state": None,
                 "window_options": _window_options(
                     selected_window="week",
                     show_cancelled=False,
@@ -2843,6 +2883,7 @@ def edit_appointment_from_console(
                     selected_calendar_url=target_calendar_url or None,
                 ),
                 "error_message": str(exc),
+                "blocked_state": None,
                 "window_options": _window_options(
                     selected_window="week",
                     show_cancelled=False,
@@ -2854,8 +2895,27 @@ def edit_appointment_from_console(
 
 
 @router.post("/appointments/{appointment_id}/cancel")
-def cancel_appointment_from_console(appointment_id: str):
+def cancel_appointment_from_console(appointment_id: str, request: Request):
     service = AppointmentService()
+    recovery_mode = (
+        not _calendar_options(service, selected_calendar_url=None)
+        and _booking_setup_recovery_mode(operator_settings=OperatorSettingsService())
+    )
+    if recovery_mode:
+        try:
+            appointment = service.get_detail(appointment_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return _build_appointment_edit_blocked_response(
+            request,
+            appointment=appointment,
+            blocked_title="Apple reconnect still blocks appointment cancellation.",
+            blocked_body=(
+                "Open Apple setup, confirm the loaded recovered calendar, and save a "
+                "fresh app-specific password before cancelling stale appointment rows."
+            ),
+            status_code=400,
+        )
     try:
         service.cancel(appointment_id, actor="console")
     except ValueError as exc:
@@ -3018,6 +3078,49 @@ def _build_console_context(
         "hero_ready": any_calendar_ready,
         "readiness": readiness,
     }
+
+
+def _build_appointment_edit_blocked_response(
+    request: Request,
+    *,
+    appointment: AppointmentDetailResponse,
+    blocked_title: str,
+    blocked_body: str,
+    status_code: int,
+):
+    return _templates.TemplateResponse(
+        request,
+        "appointment_edit.html",
+        {
+            "request": request,
+            "appointment": appointment,
+            "form_values": {
+                "title": appointment.title,
+                "date": appointment.date,
+                "start_time": appointment.start_time,
+                "end_time": appointment.end_time,
+                "timezone": appointment.timezone,
+                "location": appointment.location or "",
+                "notes": appointment.notes or "",
+                "attendees_text": appointment.attendees_text or "",
+                "target_calendar_url": appointment.calendar_url or "",
+                "all_day": appointment.all_day,
+            },
+            "calendar_options": [],
+            "error_message": None,
+            "blocked_state": {
+                "title": blocked_title,
+                "body": blocked_body,
+                "schedule_href": f"/?view=week&appointment_id={appointment.appointment_id}",
+            },
+            "window_options": _window_options(
+                selected_window="week",
+                show_cancelled=False,
+                selected_appointment_id=appointment.appointment_id,
+            ),
+        },
+        status_code=status_code,
+    )
 
 
 def _booking_setup_recovery_mode(

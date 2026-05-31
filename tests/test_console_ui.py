@@ -2291,6 +2291,171 @@ def test_console_edit_flow_prefills_and_updates(monkeypatch) -> None:
     assert "Dentist Follow-up" in response.text
 
 
+def test_console_edit_page_points_to_apple_reconnect_when_recovery_hints_exist(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    original_build_apple_client = AppointmentService._build_apple_client
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Telemedicine Post-Op",
+            "date": "2026-12-09",
+            "start_time": "12:40",
+            "end_time": "13:10",
+            "timezone": "America/Anchorage",
+        },
+    )
+    appointment_id = create_response.json()["appointment_id"]
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        original_build_apple_client,
+    )
+
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    edit_page = client.get(f"/appointments/{appointment_id}/edit")
+
+    assert edit_page.status_code == 400
+    assert "Apple reconnect still blocks appointment editing." in edit_page.text
+    assert (
+        "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before changing stale appointment rows."
+        in edit_page.text
+    )
+    assert "Update appointment" not in edit_page.text
+    assert "Save changes" not in edit_page.text
+    assert 'href="/calendar/setup"' in edit_page.text
+    assert 'href="/connections"' in edit_page.text
+
+
+def test_console_edit_submit_points_to_apple_reconnect_when_recovery_hints_exist(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    original_build_apple_client = AppointmentService._build_apple_client
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Telemedicine Post-Op",
+            "date": "2026-12-09",
+            "start_time": "12:40",
+            "end_time": "13:10",
+            "timezone": "America/Anchorage",
+        },
+    )
+    appointment_id = create_response.json()["appointment_id"]
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        original_build_apple_client,
+    )
+
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        f"/appointments/{appointment_id}/edit",
+        data={
+            "title": "Telemedicine Post-Op",
+            "date_value": "2026-12-09",
+            "start_time": "12:40",
+            "end_time": "13:10",
+            "timezone": "America/Anchorage",
+            "location": "",
+            "notes": "",
+            "attendees_text": "",
+            "target_calendar_url": "",
+            "all_day": "false",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Apple reconnect still blocks appointment editing." in response.text
+    assert "Apple calendar target URL was not found." not in response.text
+    assert 'href="/calendar/setup"' in response.text
+    assert 'href="/connections"' in response.text
+
+
 def test_console_cancel_flow_marks_appointment_cancelled(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     monkeypatch.setattr(
@@ -2321,6 +2486,79 @@ def test_console_cancel_flow_marks_appointment_cancelled(monkeypatch) -> None:
     assert response.status_code == 200
     assert "Appointment cancelled on the connected calendar." in response.text
     assert "Follow-up" not in response.text
+
+
+def test_console_cancel_submit_points_to_apple_reconnect_when_recovery_hints_exist(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    original_build_apple_client = AppointmentService._build_apple_client
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Telemedicine Post-Op",
+            "date": "2026-12-09",
+            "start_time": "12:40",
+            "end_time": "13:10",
+            "timezone": "America/Anchorage",
+        },
+    )
+    appointment_id = create_response.json()["appointment_id"]
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        original_build_apple_client,
+    )
+
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(f"/appointments/{appointment_id}/cancel")
+
+    assert response.status_code == 400
+    assert "Apple reconnect still blocks appointment cancellation." in response.text
+    assert "Apple calendar target URL was not found." not in response.text
+    assert 'href="/calendar/setup"' in response.text
+    assert 'href="/connections"' in response.text
 
 
 def test_console_hides_cancelled_by_default_but_can_show_them_for_reference(monkeypatch) -> None:

@@ -627,6 +627,19 @@ Expected behavior:
 - in that same state, the blocked response should not fall back to `Primary Apple/iCloud calendar is not configured.`
 - when no recovery hint exists, blocked direct appointment-create responses can keep the more generic `Connect a writable calendar before creating appointments from the schedule workspace.` wording
 
+## Appointment Edit And Cancel Recovery Requirement
+
+- GitHub issue: `#105`
+- interpreted requirement: when the live deployment is in Apple recovery mode, stale deep-link appointment edit and cancel routes should stop exposing a working editor or a raw missing-target error
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no writable calendar is connected, `GET /appointments/{appointment_id}/edit` should stop at an Apple reconnect blocker instead of rendering a real edit form
+- in that same state, direct `POST /appointments/{appointment_id}/edit` should point operators to Apple reconnect instead of falling through to `Apple calendar target URL was not found.`
+- in that same state, direct `POST /appointments/{appointment_id}/cancel` should point operators to Apple reconnect instead of falling through to `Apple calendar target URL was not found.`
+- the blocked deep-link state should expose direct operator actions into Apple setup and Connections
+- blank-install disconnected states can keep their current more generic missing-calendar behavior when no recovery hint exists
+
 ## Alexa Recovery Scheduling Error Requirement
 
 - GitHub issue: `#102`

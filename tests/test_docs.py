@@ -71,6 +71,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#102" in readme_content
     assert "#103" in readme_content
     assert "#104" in readme_content
+    assert "#105" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -196,6 +197,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "public booking flow now also aligns its blocked availability, request, and target-card copy with apple reconnect when legacy recovery hints already exist" in readme_content
     assert "public booking flow now also aligns blocked direct submit errors with apple reconnect when legacy recovery hints already exist" in readme_content
     assert "root schedule workspace now also aligns blocked direct appointment-create submit errors with apple reconnect when legacy recovery hints already exist" in readme_content
+    assert "stale deep-link appointment edit and cancel routes now also align with apple reconnect when legacy recovery hints already exist" in readme_content
     assert "alexa scheduling intents now also align blocked recovery-mode voice errors with apple reconnect when legacy recovery hints already exist" in readme_content
     assert "alexa launch, help, and fallback guidance now also align with apple reconnect when legacy recovery hints already exist" in readme_content
     assert "root workspace now also blocks the empty schedule board and detail panel clearly when no writable calendar is connected" in readme_content
@@ -276,6 +278,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#102" in ops_content
     assert "#103" in ops_content
     assert "#104" in ops_content
+    assert "#105" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -356,6 +359,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "keeps the public booking page aligned with that same apple recovery flow" in ops_content
     assert "keeps blocked public booking submit responses aligned with that same apple recovery flow" in ops_content
     assert "keeps blocked root appointment-create submit responses aligned with that same apple recovery flow" in ops_content
+    assert "keeps stale deep-link appointment edit and cancel routes aligned with that same apple recovery flow" in ops_content
     assert "keeps blocked alexa scheduling responses aligned with that same apple recovery flow" in ops_content
     assert "keeps blocked alexa read intents aligned with that same apple recovery flow" in ops_content
     assert "keeps alexa launch, help, and fallback guidance aligned with that same apple recovery flow" in ops_content
@@ -582,6 +586,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "alexa recovery scheduling error requirement" in prompt_content
     assert "alexa recovery read-intent requirement" in prompt_content
     assert "alexa recovery guidance-intent requirement" in prompt_content
+    assert "appointment edit and cancel recovery requirement" in prompt_content
     assert "root no-calendar schedule-sync requirement" in prompt_content
     assert "apple setup no-account truthfulness requirement" in prompt_content
     assert "should not show broken helper copy or capability language that overstates the currently connected live state" in prompt_content
@@ -623,6 +628,10 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "blocked `post /book/{slug}` responses should use that same apple reconnect submit guidance" in prompt_content
     assert "when legacy apple recovery hints exist and no writable calendar is connected, blocked `post /appointments` responses should say apple reconnect still blocks write actions" in prompt_content
     assert "the blocked response should not fall back to `primary apple/icloud calendar is not configured.`" in prompt_content
+    assert "when legacy apple recovery hints exist and no writable calendar is connected, `get /appointments/{appointment_id}/edit` should stop at an apple reconnect blocker instead of rendering a real edit form" in prompt_content
+    assert "direct `post /appointments/{appointment_id}/edit` should point operators to apple reconnect instead of falling through to `apple calendar target url was not found.`" in prompt_content
+    assert "direct `post /appointments/{appointment_id}/cancel` should point operators to apple reconnect instead of falling through to `apple calendar target url was not found.`" in prompt_content
+    assert "the blocked deep-link state should expose direct operator actions into apple setup and connections" in prompt_content
     assert "when legacy apple recovery hints exist and no writable calendar is connected, blocked alexa scheduling intents should point to apple reconnect and the need for a fresh app-specific password" in prompt_content
     assert "simulator and live voice scheduling responses should not fall back to `primary apple/icloud calendar is not configured.`" in prompt_content
     assert "when legacy apple recovery hints exist and no writable calendar is connected, `get /api/appointments` should not surface stale local appointment rows as live calendar truth" in prompt_content

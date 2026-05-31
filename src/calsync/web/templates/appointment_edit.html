@@ -11,11 +11,19 @@
       <main class="editor-card panel">
         <div class="editor-topbar">
           <div>
+            {% if blocked_state %}
+            <p class="eyebrow">Blocked</p>
+            <h1>{{ blocked_state.title }}</h1>
+            <p class="hero-copy">
+              {{ blocked_state.body }}
+            </p>
+            {% else %}
             <p class="eyebrow">Edit</p>
             <h1>Update appointment</h1>
             <p class="hero-copy">
               Keep the connected calendar accurate without leaving CalSync.
             </p>
+            {% endif %}
           </div>
           <div class="filter-row" role="tablist" aria-label="Schedule windows">
             {% for option in window_options %}
@@ -33,6 +41,18 @@
         <section class="flash flash--error">{{ error_message }}</section>
         {% endif %}
 
+        {% if blocked_state %}
+        <section class="panel panel--subtle">
+          <p class="eyebrow">Blocked</p>
+          <h2>{{ blocked_state.title }}</h2>
+          <p>{{ blocked_state.body }}</p>
+          <div class="action-row">
+            <a class="button-link" href="/calendar/setup">Open Apple setup</a>
+            <a class="button-link button-link--secondary" href="/connections">Open Connections</a>
+            <a class="button-link button-link--secondary" href="{{ blocked_state.schedule_href }}">Back to schedule</a>
+          </div>
+        </section>
+        {% else %}
         <form class="form-grid" method="post" action="/appointments/{{ appointment.appointment_id }}/edit">
           <label>
             <span>Calendar</span>
@@ -85,6 +105,7 @@
             <a class="button-link button-link--secondary" href="/?view=week&appointment_id={{ appointment.appointment_id }}">Back to schedule</a>
           </div>
         </form>
+        {% endif %}
       </main>
     </div>
   </body>
