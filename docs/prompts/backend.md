@@ -638,6 +638,20 @@ Expected behavior:
 - in that same state, simulator and live voice scheduling responses should not fall back to `Primary Apple/iCloud calendar is not configured.`
 - blank-install disconnected states can keep more generic calendar-not-ready voice guidance when no recovery hint exists
 
+## Alexa Recovery Read-Intent Requirement
+
+- GitHub issue: `#103`
+- interpreted requirement: when the live deployment is in Apple recovery mode, Alexa read and lookup intents should stop surfacing stale local appointment state or generic empty-search fallbacks as if the household calendar were still live
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no writable calendar is connected, `GET /api/appointments` should not surface stale local appointment rows as live calendar truth
+- in that same state, `GET /api/appointments/{appointment_id}` should not expose stale local appointment detail
+- in that same state, `GET /api/availability` should not fall back to generic no-opening results
+- blocked Alexa list, next, availability, cancel, and reschedule flows should all point to Apple reconnect and the need for a fresh app-specific password
+- simulator and live voice read intents should not fall back to stale local appointments, `I could not find...`, or `I could not find an opening...` when Apple reconnect is still the real blocker
+- blank-install disconnected states can keep more generic calendar-not-ready behavior when no recovery hint exists
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

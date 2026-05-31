@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, `#73`, `#76`, `#77`, `#78`, `#79`, `#80`, `#81`, `#82`, `#83`, `#84`, `#85`, `#86`, `#87`, `#88`, `#89`, `#90`, `#91`, `#92`, `#93`, `#94`, `#95`, `#96`, `#97`, `#98`, `#99`, `#100`, `#101`, and `#102` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, `#73`, `#76`, `#77`, `#78`, `#79`, `#80`, `#81`, `#82`, `#83`, `#84`, `#85`, `#86`, `#87`, `#88`, `#89`, `#90`, `#91`, `#92`, `#93`, `#94`, `#95`, `#96`, `#97`, `#98`, `#99`, `#100`, `#101`, `#102`, and `#103` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -105,6 +105,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - recovery-aware public booking submit errors, so blocked direct booking requests now point to Apple reconnect instead of a stale generic no-target error when legacy hints already exist
 - recovery-aware root appointment submit errors, so blocked direct schedule-workspace create requests now point to Apple reconnect instead of a raw Apple config error when legacy hints already exist
 - recovery-aware Alexa scheduling errors, so blocked simulator and voice scheduling intents now point to Apple reconnect instead of speaking a raw Apple config error when legacy hints already exist
+- recovery-aware Alexa read intents, so blocked simulator and voice list, next, availability, cancel, and reschedule flows no longer leak stale local appointments or generic search fallbacks when Apple reconnect is still the real blocker
 - a first availability finder across the workspace, edge API, and Alexa so CalSync can suggest open appointment windows instead of only listing busy ones
 
 ### Endpoints
