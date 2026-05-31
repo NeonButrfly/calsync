@@ -159,7 +159,7 @@
                 <article class="detail-card">
                   <p class="eyebrow">Status</p>
                   <strong>{% if apple_runtime.ready %}Ready{% else %}Needs setup{% endif %}</strong>
-                  <span>{% if apple_runtime.ready %}Apple read/write is available to the scheduling brain.{% elif legacy_apple_recovery_hints.source != "missing" %}Recovered Apple hints are ready. Apple setup already opens with the recommended calendar loaded, so add a fresh app-specific password and save.{% else %}Apple credentials or target details are still incomplete.{% endif %}</span>
+                  <span>{% if apple_runtime.ready %}Apple read/write is available to the scheduling brain.{% elif legacy_apple_recovery_hints.source != "missing" and legacy_apple_recovery_hints.can_reuse_saved_password %}Recovered Apple hints are ready, and the preserved encrypted password is reusable with the current CalSync key. Open Apple setup to validate or save the loaded reconnect path.{% elif legacy_apple_recovery_hints.source != "missing" and legacy_apple_recovery_hints.encrypted_secret_present %}Recovered Apple hints are ready, but the preserved encrypted password needs the original CalSync encryption key. Open Apple setup and restore that key or enter a fresh app-specific password.{% elif legacy_apple_recovery_hints.source != "missing" %}Recovered Apple hints are ready. Apple setup already opens with the recommended calendar loaded, so add a fresh app-specific password and save.{% else %}Apple credentials or target details are still incomplete.{% endif %}</span>
                 </article>
                 <article class="detail-card">
                   <p class="eyebrow">Connected accounts</p>
@@ -176,6 +176,13 @@
                   <strong>{{ apple_calendar_catalog|length }}</strong>
                   <span>Saved Apple calendars available to the workspace and Alexa.</span>
                 </article>
+                {% if legacy_apple_recovery_hints.encrypted_secret_present %}
+                <article class="detail-card">
+                  <p class="eyebrow">Recovered password</p>
+                  <strong>{% if legacy_apple_recovery_hints.can_reuse_saved_password %}Reusable now{% else %}Needs original key{% endif %}</strong>
+                  <span>{{ legacy_apple_recovery_hints.encrypted_secret_detail }}</span>
+                </article>
+                {% endif %}
               </div>
               {% if apple_targets %}
               <div class="detail-stack">

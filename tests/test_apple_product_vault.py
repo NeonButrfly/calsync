@@ -168,6 +168,81 @@ def test_readiness_service_points_to_apple_reconnect_when_legacy_hints_exist() -
     )
 
 
+def test_readiness_service_mentions_reusable_legacy_apple_secret() -> None:
+    settings = _settings()
+    operator_settings = OperatorSettingsService(settings=settings)
+    recovered_secret = operator_settings._fernet.encrypt(b"apple-secret-123").decode(
+        "utf-8"
+    )
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "credential_secret_encrypted": recovered_secret,
+            "recommended_calendar_name": "Calendar",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Calendar",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+
+    readiness = ReadinessService(settings=settings).build()
+
+    assert (
+        readiness["next_action"]
+        == "Open Apple setup and save the loaded recovered Apple calendar. The preserved Apple app-specific password is reusable with the current CalSync encryption key."
+    )
+
+
+def test_readiness_service_mentions_original_key_when_legacy_secret_mismatches() -> None:
+    settings = _settings()
+    operator_settings = OperatorSettingsService(settings=settings)
+    other_settings = settings.model_copy(update={"encryption_key": "different-test-key"})
+    encrypted_with_other_key = OperatorSettingsService(
+        settings=other_settings
+    )._fernet.encrypt(b"apple-secret-123").decode("utf-8")
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "credential_secret_encrypted": encrypted_with_other_key,
+            "recommended_calendar_name": "Calendar",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Calendar",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+
+    readiness = ReadinessService(settings=settings).build()
+
+    assert (
+        readiness["next_action"]
+        == "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password so CalSync can reconnect the real household calendar."
+    )
+
+
 def test_appointment_service_uses_matching_apple_account_for_selected_calendar(
     monkeypatch,
 ) -> None:

@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import json
 import tempfile
 from datetime import UTC, datetime, timedelta
@@ -8,6 +10,7 @@ from uuid import uuid4
 from zipfile import ZipFile
 from zoneinfo import ZoneInfo
 
+from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 
 from calsync.config import get_settings
@@ -1507,6 +1510,57 @@ def test_connections_page_shows_apple_recovery_guidance_when_legacy_hints_exist(
     assert "open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password" in response.text
 
 
+def test_connections_page_shows_reusable_legacy_apple_secret_state(monkeypatch) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    service = OperatorSettingsService(settings=get_settings())
+    recovered_secret = service._fernet.encrypt(b"apple-secret-123").decode("utf-8")
+    service.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "credential_secret_encrypted": recovered_secret,
+            "recommended_calendar_name": "Calendar",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Calendar",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/connections")
+
+    assert response.status_code == 200
+    assert "preserved encrypted password is reusable with the current CalSync key" in response.text
+    assert "Recovered password" in response.text
+    assert "Reusable now" in response.text
+    assert "The preserved Apple app-specific password is reusable with the current CalSync encryption key." in response.text
+
+
 def test_connections_page_shows_checklist_and_verification_state(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     service = OperatorSettingsService(settings=get_settings())
@@ -2115,11 +2169,14 @@ def test_connections_page_can_import_legacy_backup_apple_hints(monkeypatch) -> N
 
     assert response.status_code == 200
     assert "Legacy Apple recovery hints imported from backup." in response.text
+    assert "needs the original CalSync encryption key or a fresh manual replacement" in response.text
 
     service = OperatorSettingsService(settings=get_settings())
     described = service.describe_legacy_apple_recovery_hints()
     assert described["account_username"] == "kaymayers9@gmail.com"
     assert described["recommended_calendar_name"] == "Family"
+    assert described["encrypted_secret_present"] is True
+    assert described["encrypted_secret_status"] == "needs_original_key"
 
 
 def test_connections_google_refresh_updates_live_calendar_catalog(monkeypatch) -> None:
@@ -3849,6 +3906,122 @@ def test_calendar_setup_page_shows_recovered_legacy_apple_hints(monkeypatch) -> 
     assert "The recommended recovered Apple account and calendar hint are already loaded below." in response.text
     assert 'value="https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/"' in response.text
     assert "Load this calendar into setup form" in response.text
+
+
+def test_calendar_setup_page_surfaces_legacy_secret_key_mismatch(monkeypatch) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    mismatched_secret = Fernet(
+        base64.urlsafe_b64encode(hashlib.sha256(b"different-test-key").digest())
+    ).encrypt(b"apple-secret-123").decode("utf-8")
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "credential_secret_encrypted": mismatched_secret,
+            "recommended_calendar_name": "Calendar",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Calendar",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/calendar/setup")
+
+    assert response.status_code == 200
+    assert "Recovered hint loaded" in response.text
+    assert "the preserved encrypted password needs the original CalSync encryption key" in response.text
+    assert "Recovered password:" in response.text
+    assert "needs the original CalSync encryption key or a fresh manual replacement" in response.text
+
+
+def test_calendar_setup_save_can_use_recovered_legacy_secret_without_retyping(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    recovered_secret = operator_settings._fernet.encrypt(b"apple-secret-123").decode(
+        "utf-8"
+    )
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "credential_secret_encrypted": recovered_secret,
+            "recommended_calendar_name": "Calendar",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Calendar",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/calendar/setup",
+        data={
+            "apple_account_label": "kaymayers9@gmail.com",
+            "apple_username": "kaymayers9@gmail.com",
+            "apple_app_specific_password": "",
+            "apple_primary_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+            "apple_primary_calendar_name": "Calendar",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Apple calendar settings saved securely." in response.text
+    saved_settings = OperatorSettingsService(settings=get_settings()).get_apple_calendar_settings()
+    assert saved_settings["app_specific_password"] == "apple-secret-123"
 
 
 def test_calendar_setup_page_can_prefill_form_from_recovered_legacy_hint(monkeypatch) -> None:

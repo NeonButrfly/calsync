@@ -67,6 +67,9 @@ class LegacyBackupRecoveryService:
             "account_username": account_username,
             "principal_url": str(provider_metadata.get("principal_url") or ""),
             "calendar_home_url": str(provider_metadata.get("calendar_home_url") or ""),
+            "credential_secret_encrypted": str(
+                primary_account.get("credential_secret_encrypted") or ""
+            ).strip(),
             "recommended_calendar_name": str(recommended["calendar_name"]),
             "recommended_calendar_url": str(recommended["calendar_url"]),
             "calendar_count": len(normalized_calendars),

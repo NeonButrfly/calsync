@@ -1037,6 +1037,18 @@ Expected behavior:
 - `/connections` should no longer expose a primary action that suggests the default recovered Apple hint still needs to be manually loaded first
 - operators should still be able to switch to another recovered calendar from inside `/calendar/setup` if the recommended reconnect target is not the one they want
 
+## Legacy Apple Encrypted Secret Recovery Requirement
+
+- GitHub issue: `#108`
+- interpreted requirement: when a preserved legacy Apple backup contains an encrypted app-specific password, CalSync should preserve that secret safely, detect whether the current encryption key can reuse it, and surface the truthful recovery state instead of silently dropping it
+
+Expected behavior:
+
+- importing a legacy Apple backup should retain the presence of `credential_secret_encrypted` alongside the existing calendar hints
+- when the current CalSync `encryption_key` can decrypt that preserved Apple secret, `/calendar/setup` should allow validate/save without forcing the operator to retype the password
+- when the current CalSync `encryption_key` cannot decrypt that preserved Apple secret, `/calendar/setup`, `/connections`, and shared readiness guidance should say the original key is needed or a fresh manual app-specific password must be entered
+- these encrypted-secret diagnostics must not falsely mark Apple connected or ready before a real save succeeds
+
 ## Root Workspace Stale Detail Blocking Requirement
 
 - GitHub issue: `#83`

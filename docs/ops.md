@@ -589,6 +589,11 @@ Important boundary:
 - do use the Worker as the ChatGPT-first public edge surface
 - keep raw tokens on the Pi and only store token hashes in Cloudflare KV
 
+Recovery note:
+
+- issue `#108`
+- legacy Apple encrypted-secret recovery diagnostics now show on `/calendar/setup`, `/connections`, and shared readiness guidance whether the preserved Apple password is reusable with the current key or still needs the original key
+
 ## Current follow-up item
 
 The live edge path works today, but automatic Pi-to-Cloudflare token-hash sync still wants one more production nicety:

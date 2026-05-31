@@ -111,6 +111,7 @@ class ReadinessService:
                 "has_saved_provider_state": False,
                 "has_saved_non_provider_state": False,
                 "has_legacy_apple_recovery_hints": False,
+                "legacy_apple_secret_status": "missing",
             }
 
         has_saved_provider_state = any(
@@ -136,6 +137,9 @@ class ReadinessService:
             "has_saved_non_provider_state": bool(has_saved_non_provider_state),
             "has_legacy_apple_recovery_hints": bool(
                 legacy_apple_recovery.get("source") != "missing"
+            ),
+            "legacy_apple_secret_status": str(
+                legacy_apple_recovery.get("encrypted_secret_status") or "missing"
             ),
         }
 
@@ -181,6 +185,16 @@ class ReadinessService:
     ) -> str:
         if not origin["any_calendar_ready"]:
             if operator_settings_footprint.get("has_legacy_apple_recovery_hints", False):
+                if (
+                    operator_settings_footprint.get("legacy_apple_secret_status")
+                    == "reusable_with_current_key"
+                ):
+                    return "Open Apple setup and save the loaded recovered Apple calendar. The preserved Apple app-specific password is reusable with the current CalSync encryption key."
+                if (
+                    operator_settings_footprint.get("legacy_apple_secret_status")
+                    == "needs_original_key"
+                ):
+                    return "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password so CalSync can reconnect the real household calendar."
                 return "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password so CalSync can reconnect the real household calendar."
             if operator_settings_footprint.get(
                 "has_saved_non_provider_state", False

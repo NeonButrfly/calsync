@@ -84,7 +84,7 @@
                   <input
                     name="apple_app_specific_password"
                     type="password"
-                    placeholder="{% if apple_settings.password_saved %}Saved securely. Leave blank to keep it.{% else %}Paste an Apple app-specific password{% endif %}"
+                    placeholder="{% if apple_settings.source == 'legacy_recovery_hints' and legacy_recovery_hints.can_reuse_saved_password %}Recovered securely. Leave blank to use it.{% elif apple_settings.password_saved %}Saved securely. Leave blank to keep it.{% else %}Paste an Apple app-specific password{% endif %}"
                   />
                 </label>
                 <label>
@@ -103,7 +103,15 @@
                 </label>
                 {% if apple_settings.source == "legacy_recovery_hints" %}
                 <p class="appointment-detail">
-                  {% if recommended_recovered_hint_loaded %}
+                  {% if legacy_recovery_hints.can_reuse_saved_password and recommended_recovered_hint_loaded %}
+                  The recommended recovered Apple account, calendar, and encrypted password are already loaded below. Validate or save to reconnect, or paste a fresh app-specific password to replace the recovered one.
+                  {% elif legacy_recovery_hints.can_reuse_saved_password %}
+                  The recovered Apple account, calendar, and encrypted password are already loaded below. Validate or save to reconnect, or paste a fresh app-specific password to replace the recovered one.
+                  {% elif legacy_recovery_hints.encrypted_secret_present and recommended_recovered_hint_loaded %}
+                  The recommended recovered Apple account and calendar hint are already loaded below, but the preserved encrypted password needs the original CalSync encryption key. Restore that key or add a fresh app-specific password to reconnect this calendar path for real.
+                  {% elif legacy_recovery_hints.encrypted_secret_present %}
+                  The recovered Apple account and calendar hint are already loaded below, but the preserved encrypted password needs the original CalSync encryption key. Restore that key or add a fresh app-specific password to reconnect this calendar path for real.
+                  {% elif recommended_recovered_hint_loaded %}
                   The recommended recovered Apple account and calendar hint are already loaded below. Add a fresh app-specific password, then save to reconnect this calendar path for real.
                   {% else %}
                   The recovered Apple account and calendar hint are loaded below. Add a fresh app-specific password, then save to reconnect this calendar path for real.
@@ -169,10 +177,13 @@
                 <article class="detail-card">
                   <p class="eyebrow">Recovered from legacy backup</p>
                   <strong>{{ legacy_recovery_hints.account_username }}</strong>
-                  <span>Use these recovered Apple details to finish setup with a fresh app-specific password.</span>
+                  <span>{% if legacy_recovery_hints.can_reuse_saved_password %}Use these recovered Apple details and the reusable encrypted password to finish setup without retyping the secret, or paste a fresh one if you want to replace it.{% elif legacy_recovery_hints.encrypted_secret_present %}Use these recovered Apple details to finish setup. The preserved encrypted password needs the original CalSync encryption key or a fresh manual replacement.{% else %}Use these recovered Apple details to finish setup with a fresh app-specific password.{% endif %}</span>
                   <p class="appointment-detail"><strong>Imported from:</strong> {{ legacy_recovery_hints.source_filename }}</p>
                   <p class="appointment-detail"><strong>Recommended writable hint:</strong> {{ legacy_recovery_hints.recommended_calendar_name }} · {{ legacy_recovery_hints.recommended_calendar_url }}</p>
                   <p class="appointment-detail"><strong>Calendar home:</strong> {{ legacy_recovery_hints.calendar_home_url }}</p>
+                  {% if legacy_recovery_hints.encrypted_secret_present %}
+                  <p class="appointment-detail"><strong>Recovered password:</strong> {{ legacy_recovery_hints.encrypted_secret_detail }}</p>
+                  {% endif %}
                   <div class="action-row">
                     {% if recommended_recovered_hint_loaded %}
                     <span class="appointment-detail"><strong>Setup form:</strong> Recommended hint already loaded below.</span>

@@ -168,6 +168,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "recovery-aware apple messaging across readiness, connections, and apple setup" in readme_content
     assert "safe apple setup validation before reconnect save" in readme_content
     assert "legacy apple recovery hint ranking that now prefers the real recovered writable booking target over a merely enabled personal-reference calendar" in readme_content
+    assert "legacy apple encrypted-secret recovery state now tells operators whether the preserved apple password is reusable with the current key or still needs the original key" in readme_content
     assert "recovery-aware apple reconnect actions on `/` and `/booking/setup`" in readme_content
     assert "recovery-aware apple reconnect messaging across the blocked root workspace panels" in readme_content
     assert "recovery-aware apple reconnect guidance on alexa setup and connections" in readme_content
@@ -282,6 +283,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#104" in ops_content
     assert "#105" in ops_content
     assert "#106" in ops_content
+    assert "#108" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -351,6 +353,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "surfaces recovered legacy apple hints on `/calendar/setup`" in ops_content
     assert "load a recovered apple calendar hint directly into the `/calendar/setup` form" in ops_content
     assert "safe apple setup validation before reconnect save" in ops_content
+    assert "legacy apple encrypted-secret recovery diagnostics now show on `/calendar/setup`, `/connections`, and shared readiness guidance whether the preserved apple password is reusable with the current key or still needs the original key" in ops_content
     assert "recovery-aware apple hint ranking that prefers true writable booking targets" in ops_content
     assert "keeps blocked operator surfaces on `/` and `/booking/setup` aligned with that apple recovery flow" in ops_content
     assert "keeps the blocked root schedule, detail, create, and availability panels aligned with that same apple recovery flow" in ops_content
@@ -567,6 +570,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "legacy apple backup recovery requirement" in prompt_content
     assert "legacy apple recovery form prefill requirement" in prompt_content
     assert "apple recovery guidance requirement" in prompt_content
+    assert "legacy apple encrypted secret recovery requirement" in prompt_content
     assert "apple setup validation requirement" in prompt_content
     assert "legacy apple recommended target requirement" in prompt_content
     assert "alexa save-only action truthfulness requirement" in prompt_content
@@ -614,6 +618,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "`/calendar/setup` should expose a visible `validate apple connection` action alongside save so the reconnect flow is not blind" in prompt_content
     assert "legacy apple recovery extraction should rank explicit `writable_booking_target` calendars ahead of generic enabled calendars when choosing the recommended reconnect hint" in prompt_content
     assert "when no apple account is connected yet and legacy apple recovery hints exist, `get /calendar/setup` should auto-load the recommended recovered apple hint into the setup form" in prompt_content
+    assert "when the current calsync `encryption_key` can decrypt that preserved apple secret, `/calendar/setup` should allow validate/save without forcing the operator to retype the password" in prompt_content
+    assert "when the current calsync `encryption_key` cannot decrypt that preserved apple secret, `/calendar/setup`, `/connections`, and shared readiness guidance should say the original key is needed or a fresh manual app-specific password must be entered" in prompt_content
     assert "shared readiness guidance should tell operators to open apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password" in prompt_content
     assert "the root workspace action stack on `/` should include a direct apple setup action alongside the other operator links" in prompt_content
     assert "`/booking/setup` should also expose direct operator actions into apple setup and connections in that recovery-shaped blocked state" in prompt_content

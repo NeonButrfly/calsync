@@ -34,6 +34,7 @@ def test_legacy_backup_recovery_parses_zipped_apple_hints() -> None:
         == "https://p52-caldav.icloud.com:443/112135872/calendars/"
     )
     assert recovery["principal_url"] == "https://caldav.icloud.com/112135872/principal/"
+    assert recovery["credential_secret_encrypted"] == "secret"
     assert recovery["recommended_calendar_name"] == "Family"
     assert (
         recovery["recommended_calendar_url"]

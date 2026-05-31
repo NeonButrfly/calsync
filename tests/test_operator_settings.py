@@ -206,6 +206,84 @@ def test_operator_settings_can_store_legacy_apple_recovery_hints() -> None:
     assert described["account_username"] == "kaymayers9@gmail.com"
     assert described["recommended_calendar_name"] == "Calendar"
     assert described["calendars"][0]["is_writable_hint"] is True
+    assert described["encrypted_secret_present"] is False
+    assert described["can_reuse_saved_password"] is False
+
+
+def test_operator_settings_can_describe_reusable_legacy_apple_secret() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+    recovered_secret = service._fernet.encrypt(b"apple-secret-123").decode("utf-8")
+
+    service.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "credential_secret_encrypted": recovered_secret,
+            "recommended_calendar_name": "Calendar",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Calendar",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+
+    described = service.describe_legacy_apple_recovery_hints()
+
+    assert described["encrypted_secret_present"] is True
+    assert described["encrypted_secret_status"] == "reusable_with_current_key"
+    assert described["can_reuse_saved_password"] is True
+    assert service.get_legacy_apple_recovered_password() == "apple-secret-123"
+
+
+def test_operator_settings_can_describe_legacy_apple_secret_that_needs_original_key() -> None:
+    settings = _settings()
+    service = OperatorSettingsService(settings=settings)
+    other_settings = settings.model_copy(update={"encryption_key": "different-test-key"})
+    other_service = OperatorSettingsService(settings=other_settings)
+    encrypted_with_other_key = other_service._fernet.encrypt(b"apple-secret-123").decode(
+        "utf-8"
+    )
+
+    service.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "credential_secret_encrypted": encrypted_with_other_key,
+            "recommended_calendar_name": "Calendar",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Calendar",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+
+    described = service.describe_legacy_apple_recovery_hints()
+
+    assert described["encrypted_secret_present"] is True
+    assert described["encrypted_secret_status"] == "needs_original_key"
+    assert described["can_reuse_saved_password"] is False
+    assert service.get_legacy_apple_recovered_password() is None
 
 
 def test_operator_settings_encrypts_apple_calendar_values_at_rest() -> None:

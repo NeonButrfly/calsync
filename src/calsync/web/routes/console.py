@@ -958,7 +958,7 @@ def _prefill_apple_settings_from_legacy_hints(
         "username": str(legacy_recovery_hints.get("account_username") or ""),
         "primary_calendar_url": selected_url,
         "primary_calendar_name": str(selected_hint.get("calendar_name") or ""),
-        "password_saved": False,
+        "password_saved": bool(legacy_recovery_hints.get("can_reuse_saved_password")),
         "source": "legacy_recovery_hints",
     }
 
@@ -991,9 +991,38 @@ def _build_pending_apple_setup_state(
         "username": normalized_username,
         "primary_calendar_url": normalized_calendar_url,
         "primary_calendar_name": apple_primary_calendar_name.strip(),
-        "password_saved": False,
+        "password_saved": bool(
+            source == "legacy_recovery_hints"
+            and legacy_recovery_hints.get("can_reuse_saved_password")
+        ),
         "source": source,
     }
+
+
+def _resolve_legacy_apple_recovery_password(
+    *,
+    operator_settings: OperatorSettingsService,
+    legacy_recovery_hints: dict[str, object],
+    apple_username: str,
+    apple_primary_calendar_url: str,
+) -> str:
+    if not bool(legacy_recovery_hints.get("can_reuse_saved_password")):
+        return ""
+    normalized_username = apple_username.strip().lower()
+    normalized_calendar_url = apple_primary_calendar_url.strip()
+    if not normalized_username or not normalized_calendar_url:
+        return ""
+    if normalized_username != str(
+        legacy_recovery_hints.get("account_username") or ""
+    ).strip().lower():
+        return ""
+    if not any(
+        isinstance(item, dict)
+        and str(item.get("calendar_url") or "").strip() == normalized_calendar_url
+        for item in legacy_recovery_hints.get("calendars", [])
+    ):
+        return ""
+    return str(operator_settings.get_legacy_apple_recovered_password() or "").strip()
 
 
 def _build_pending_apple_validation_config(
@@ -1040,11 +1069,31 @@ def _describe_calendar_setup_source_card(
             "detail": "Apple calendar setup is ready for the live scheduling brain.",
         }
     if str(apple_settings.get("source") or "") == "legacy_recovery_hints":
+        if bool(legacy_recovery_hints.get("can_reuse_saved_password")):
+            return {
+                "label": "Recovered secret ready",
+                "detail": "The recommended recovered Apple calendar and preserved encrypted password are already loaded into setup. Validate or save to reconnect, or paste a fresh app-specific password to replace it.",
+            }
+        if bool(legacy_recovery_hints.get("encrypted_secret_present")):
+            return {
+                "label": "Recovered hint loaded",
+                "detail": "The recommended recovered Apple calendar is already loaded into setup, but the preserved encrypted password needs the original CalSync encryption key. Restore that key or enter a fresh app-specific password to reconnect.",
+            }
         return {
             "label": "Recovered hint loaded",
             "detail": "The recommended recovered Apple calendar is already loaded into setup. Add a fresh app-specific password to reconnect.",
         }
     if str(legacy_recovery_hints.get("source") or "") != "missing":
+        if bool(legacy_recovery_hints.get("can_reuse_saved_password")):
+            return {
+                "label": "Recovered secret available",
+                "detail": "Legacy Apple backup hints are ready, and the preserved encrypted password is reusable with the current CalSync key. Open Apple setup to validate or save the loaded reconnect path.",
+            }
+        if bool(legacy_recovery_hints.get("encrypted_secret_present")):
+            return {
+                "label": "Recovered hint available",
+                "detail": "Legacy Apple backup hints are ready, but the preserved encrypted password needs the original CalSync encryption key. Open Apple setup and restore that key or enter a fresh app-specific password.",
+            }
         return {
             "label": "Recovered hint available",
             "detail": "Legacy Apple backup hints are ready. Load the right calendar into setup and save a fresh app-specific password to reconnect.",
@@ -1124,7 +1173,17 @@ async def connections_import_legacy_backup(
             filename=backup_file.filename or "legacy-backup",
         )
         operator_settings.set_legacy_apple_recovery_hints(hints)
-        flash_message = "Legacy Apple recovery hints imported from backup."
+        described_hints = operator_settings.describe_legacy_apple_recovery_hints()
+        if described_hints.get("can_reuse_saved_password"):
+            flash_message = (
+                "Legacy Apple recovery hints imported from backup. The preserved encrypted Apple password is reusable with the current CalSync key."
+            )
+        elif described_hints.get("encrypted_secret_present"):
+            flash_message = (
+                "Legacy Apple recovery hints imported from backup. The preserved encrypted Apple password still needs the original CalSync encryption key or a fresh manual replacement."
+            )
+        else:
+            flash_message = "Legacy Apple recovery hints imported from backup."
         error_message = None
     except ValueError as exc:
         flash_message = None
@@ -1365,11 +1424,18 @@ def calendar_setup_update(
     apple_primary_calendar_name: str = Form(""),
 ):
     operator_settings = OperatorSettingsService()
+    legacy_recovery_hints = operator_settings.describe_legacy_apple_recovery_hints()
+    resolved_password = apple_app_specific_password.strip() or _resolve_legacy_apple_recovery_password(
+        operator_settings=operator_settings,
+        legacy_recovery_hints=legacy_recovery_hints,
+        apple_username=apple_username,
+        apple_primary_calendar_url=apple_primary_calendar_url,
+    )
     try:
         operator_settings.set_apple_calendar_settings(
             account_label=apple_account_label,
             username=apple_username,
-            app_specific_password=apple_app_specific_password,
+            app_specific_password=resolved_password,
             primary_calendar_url=apple_primary_calendar_url,
             primary_calendar_name=apple_primary_calendar_name,
             preserve_existing_password=True,
@@ -1391,7 +1457,7 @@ def calendar_setup_update(
         _build_calendar_setup_context(
             request,
             apple_settings=apple_settings,
-            legacy_recovery_hints=operator_settings.describe_legacy_apple_recovery_hints(),
+            legacy_recovery_hints=legacy_recovery_hints,
             runtime_service=runtime_service,
             runtime_config=runtime_config,
             flash_message=flash_message,
@@ -1415,6 +1481,12 @@ def calendar_setup_validate(
         operator_settings=operator_settings
     )
     legacy_recovery_hints = operator_settings.describe_legacy_apple_recovery_hints()
+    resolved_password = apple_app_specific_password.strip() or _resolve_legacy_apple_recovery_password(
+        operator_settings=operator_settings,
+        legacy_recovery_hints=legacy_recovery_hints,
+        apple_username=apple_username,
+        apple_primary_calendar_url=apple_primary_calendar_url,
+    )
     apple_settings = _build_pending_apple_setup_state(
         apple_account_label=apple_account_label,
         apple_username=apple_username,
@@ -1426,7 +1498,7 @@ def calendar_setup_validate(
         config = _build_pending_apple_validation_config(
             apple_account_label=apple_account_label,
             apple_username=apple_username,
-            apple_app_specific_password=apple_app_specific_password,
+            apple_app_specific_password=resolved_password,
             apple_primary_calendar_url=apple_primary_calendar_url,
             apple_primary_calendar_name=apple_primary_calendar_name,
         )
@@ -3699,7 +3771,11 @@ def _build_connections_context(
                 "Apple credentials and a writable target are available."
                 if apple_runtime["ready"]
                 else (
-                    "Recovered Apple hints are ready. Apple setup already opens with the recommended calendar loaded, so add a fresh app-specific password and save."
+                    "Recovered Apple hints are ready, and the preserved encrypted password is reusable with the current CalSync key. Open Apple setup to validate or save the loaded reconnect path."
+                    if legacy_apple_recovery_hints.get("can_reuse_saved_password")
+                    else "Recovered Apple hints are ready, but the preserved encrypted password needs the original CalSync encryption key. Open Apple setup and restore that key or enter a fresh app-specific password."
+                    if legacy_apple_recovery_hints.get("encrypted_secret_present")
+                    else "Recovered Apple hints are ready. Apple setup already opens with the recommended calendar loaded, so add a fresh app-specific password and save."
                     if legacy_apple_recovery_hints.get("source") != "missing"
                     else "Save the household Apple connection to unlock the first live calendar path."
                 )

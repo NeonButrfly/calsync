@@ -153,6 +153,9 @@ class OperatorSettingsService:
             "account_username": str(hints.get("account_username") or "").strip(),
             "principal_url": str(hints.get("principal_url") or "").strip(),
             "calendar_home_url": str(hints.get("calendar_home_url") or "").strip(),
+            "credential_secret_encrypted": str(
+                hints.get("credential_secret_encrypted") or ""
+            ).strip(),
             "recommended_calendar_name": str(
                 hints.get("recommended_calendar_name") or ""
             ).strip(),
@@ -200,6 +203,10 @@ class OperatorSettingsService:
                 "account_username": "",
                 "principal_url": "",
                 "calendar_home_url": "",
+                "encrypted_secret_present": False,
+                "encrypted_secret_status": "missing",
+                "encrypted_secret_detail": "",
+                "can_reuse_saved_password": False,
                 "recommended_calendar_name": "",
                 "recommended_calendar_url": "",
                 "calendar_count": 0,
@@ -216,6 +223,30 @@ class OperatorSettingsService:
             for item in payload.get("calendars", [])
             if isinstance(item, dict)
         ]
+        encrypted_secret = str(payload.get("credential_secret_encrypted") or "").strip()
+        encrypted_secret_present = bool(encrypted_secret)
+        encrypted_secret_status = "missing"
+        encrypted_secret_detail = ""
+        if encrypted_secret_present:
+            try:
+                recovered_secret = self._fernet.decrypt(
+                    encrypted_secret.encode("utf-8")
+                ).decode("utf-8")
+                if recovered_secret.strip():
+                    encrypted_secret_status = "reusable_with_current_key"
+                    encrypted_secret_detail = (
+                        "The preserved Apple app-specific password is reusable with the current CalSync encryption key."
+                    )
+                else:
+                    encrypted_secret_status = "needs_original_key"
+                    encrypted_secret_detail = (
+                        "The preserved Apple app-specific password was empty after decryption. Save a fresh app-specific password."
+                    )
+            except Exception:
+                encrypted_secret_status = "needs_original_key"
+                encrypted_secret_detail = (
+                    "The preserved Apple app-specific password needs the original CalSync encryption key or a fresh manual replacement."
+                )
         return {
             "source": "product_vault",
             "source_filename": str(payload.get("source_filename") or ""),
@@ -223,11 +254,31 @@ class OperatorSettingsService:
             "account_username": str(payload.get("account_username") or ""),
             "principal_url": str(payload.get("principal_url") or ""),
             "calendar_home_url": str(payload.get("calendar_home_url") or ""),
+            "encrypted_secret_present": encrypted_secret_present,
+            "encrypted_secret_status": encrypted_secret_status,
+            "encrypted_secret_detail": encrypted_secret_detail,
+            "can_reuse_saved_password": (
+                encrypted_secret_status == "reusable_with_current_key"
+            ),
             "recommended_calendar_name": str(payload.get("recommended_calendar_name") or ""),
             "recommended_calendar_url": str(payload.get("recommended_calendar_url") or ""),
             "calendar_count": int(payload.get("calendar_count") or len(calendars)),
             "calendars": calendars,
         }
+
+    def get_legacy_apple_recovered_password(self) -> str | None:
+        payload = self.get_legacy_apple_recovery_hints()
+        encrypted_secret = str(payload.get("credential_secret_encrypted") or "").strip()
+        if not encrypted_secret:
+            return None
+        try:
+            recovered_secret = self._fernet.decrypt(
+                encrypted_secret.encode("utf-8")
+            ).decode("utf-8")
+        except Exception:
+            return None
+        normalized_secret = recovered_secret.strip()
+        return normalized_secret or None
 
     def set_desired_alexa_settings(
         self,

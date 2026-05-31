@@ -412,6 +412,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Prefer true writable Apple targets in legacy recovery hints: issue `#80`
 - Auto-load the recommended Apple recovery hint on reconnect: issue `#81`
 - Align Apple recovery guidance with the new auto-loaded reconnect flow: issue `#82`
+- Legacy Apple encrypted-secret recovery diagnostics: issue `#108`
 - Keep the entire root workspace blocked when no calendar is connected: issue `#83`
 - Keep Alexa guidance aligned with account-linking readiness: issue `#84`
 - Keep Alexa Step 4 turn-on summary aligned with live prerequisites: issue `#85`
@@ -432,6 +433,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Align public booking submit errors with Apple reconnect: issue `#100`
 - Align root appointment submit errors with Apple reconnect: issue `#101`
 - Align Alexa recovery-mode scheduling errors with Apple reconnect: issue `#102`
+- Legacy Apple encrypted-secret recovery state now tells operators whether the preserved Apple password is reusable with the current key or still needs the original key: issue `#108`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`
