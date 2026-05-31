@@ -8,6 +8,9 @@ from calsync.schemas.appointments import (
     CreateAppointmentRequest,
     UpdateAppointmentRequest,
 )
+from calsync.services.apple_recovery_guidance import (
+    describe_legacy_apple_recovery_action,
+)
 from calsync.services.appointments import AppointmentService
 from calsync.services.apple_caldav import AppleCalDAVError
 from calsync.services.google_calendar import GoogleCalendarError
@@ -30,10 +33,14 @@ def _recovery_mode() -> bool:
 
 
 def _recovery_guidance_detail() -> str:
+    legacy_hints = OperatorSettingsService().describe_legacy_apple_recovery_hints()
+    action = describe_legacy_apple_recovery_action(
+        legacy_hints,
+        opener="Open Apple setup in CalSync",
+    )
     return (
-        "Apple reconnect still needs one more step. Open Apple setup in CalSync, "
-        "confirm the recovered calendar, and save a fresh app-specific password "
-        "before I can help with the household calendar."
+        "Apple reconnect still needs one more step. "
+        f"{action} before I can help with the household calendar."
     )
 
 

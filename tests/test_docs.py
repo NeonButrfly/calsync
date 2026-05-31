@@ -181,6 +181,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "recovery-aware root appointment submit errors" in readme_content
     assert "recovery-aware alexa scheduling errors" in readme_content
     assert "recovery-aware alexa read intents" in readme_content
+    assert "non-alexa recovery guidance now mirrors the legacy apple encrypted-secret state across blocked root, booking, stale edit/cancel, and appointment api responses" in readme_content
     assert "alexa recovery guidance now mirrors the legacy apple encrypted-secret state across alexa setup, connections, and the simulator" in readme_content
     assert "voice-specific next guidance on alexa-focused setup surfaces" in readme_content
     assert "shared alexa account-linking readiness on `/connections`" in readme_content
@@ -284,6 +285,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#104" in ops_content
     assert "#105" in ops_content
     assert "#106" in ops_content
+    assert "#110" in ops_content
     assert "#109" in ops_content
     assert "#108" in ops_content
     assert "#31" in ops_content
@@ -356,6 +358,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "load a recovered apple calendar hint directly into the `/calendar/setup` form" in ops_content
     assert "safe apple setup validation before reconnect save" in ops_content
     assert "legacy apple encrypted-secret recovery diagnostics now show on `/calendar/setup`, `/connections`, and shared readiness guidance whether the preserved apple password is reusable with the current key or still needs the original key" in ops_content
+    assert "blocked root workspace copy, booking blockers, stale appointment edit/cancel blockers, and appointment api recovery guidance now mirror that same legacy apple encrypted-secret recovery state instead of falling back to fresh-password-only guidance" in ops_content
     assert "alexa setup, the connections alexa panel, and the alexa simulator now mirror that same legacy apple encrypted-secret recovery state instead of falling back to fresh-password-only guidance" in ops_content
     assert "recovery-aware apple hint ranking that prefers true writable booking targets" in ops_content
     assert "keeps blocked operator surfaces on `/` and `/booking/setup` aligned with that apple recovery flow" in ops_content
@@ -626,6 +629,9 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "when the preserved apple password is reusable with the current key, `get /alexa/setup`, the alexa panel on `get /connections`, and `get /alexa/simulator` should point operators to validate or save the already-loaded recovered calendar" in prompt_content
     assert "when the preserved apple password still needs the original key, those same alexa surfaces should tell operators to restore the original calsync encryption key or save a fresh manual app-specific password before the remaining alexa steps" in prompt_content
     assert "the alexa simulator readiness copy and empty selector helper text should follow the same reusable-versus-original-key distinction so voice rehearsal guidance does not drift behind apple setup and connections" in prompt_content
+    assert "blocked root workspace messaging, blocked booking flows, and stale appointment edit/cancel blockers should all distinguish between reusable preserved apple secrets, original-key-needed recovery, and the older fresh-password-only recovery case" in prompt_content
+    assert "recovery-mode public booking and booking-setup messages should point to the original calsync encryption key when that is the real current blocker" in prompt_content
+    assert "recovery-mode appointment api responses should use the same reusable-versus-original-key distinction instead of only saying to confirm the recovered calendar and save a fresh password" in prompt_content
     assert "shared readiness guidance should tell operators to open apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password" in prompt_content
     assert "the root workspace action stack on `/` should include a direct apple setup action alongside the other operator links" in prompt_content
     assert "`/booking/setup` should also expose direct operator actions into apple setup and connections in that recovery-shaped blocked state" in prompt_content

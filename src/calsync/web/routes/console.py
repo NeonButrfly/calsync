@@ -22,6 +22,9 @@ from calsync.schemas.appointments import (
     CreateAppointmentRequest,
     UpdateAppointmentRequest,
 )
+from calsync.services.apple_recovery_guidance import (
+    describe_legacy_apple_recovery_action,
+)
 from calsync.services.apple_caldav import (
     AppleCalDAVClient,
     AppleCalDAVConfig,
@@ -284,7 +287,8 @@ def _handle_public_booking_submit(
                 booking_form_values=booking_form_values,
                 flash_message=None,
                 error_message=_describe_public_booking_submit_error(
-                    recovery_mode=recovery_mode
+                    recovery_mode=recovery_mode,
+                    legacy_apple_recovery_hints=operator_settings.describe_legacy_apple_recovery_hints(),
                 ),
                 booking_confirmation=None,
             ),
@@ -421,6 +425,7 @@ def _build_booking_setup_context(
     )
     booking_setup_block_message = _describe_booking_setup_block_message(
         recovery_mode=booking_setup_recovery_mode,
+        legacy_apple_recovery_hints=legacy_apple_recovery_hints,
     )
     return {
         "request": request,
@@ -462,7 +467,10 @@ def booking_setup_update(
             selected_calendar_url=target_calendar_url.strip() or None,
         ):
             raise ValueError(
-                _describe_booking_setup_save_error(recovery_mode=recovery_mode)
+                _describe_booking_setup_save_error(
+                    recovery_mode=recovery_mode,
+                    legacy_apple_recovery_hints=operator_settings.describe_legacy_apple_recovery_hints(),
+                )
             )
         if booking_slug.strip():
             operator_settings.upsert_public_booking_type(
@@ -531,7 +539,10 @@ def booking_type_create(
             or None,
         ):
             raise ValueError(
-                _describe_booking_setup_type_error(recovery_mode=recovery_mode)
+                _describe_booking_setup_type_error(
+                    recovery_mode=recovery_mode,
+                    legacy_apple_recovery_hints=operator_settings.describe_legacy_apple_recovery_hints(),
+                )
             )
         operator_settings.upsert_public_booking_type(
             slug=requested_slug,
@@ -865,7 +876,8 @@ def calendar_setup_page(
             if not auto_loaded_recovery_hint:
                 flash_message = (
                     "Recovered Apple details loaded into the setup form. "
-                    "Add a fresh app-specific password to finish reconnecting."
+                    f"{describe_legacy_apple_recovery_action(legacy_recovery_hints)} "
+                    "to finish reconnecting."
                 )
         except ValueError as exc:
             error_message = str(exc)
@@ -2703,7 +2715,8 @@ def create_appointment_from_console(
                 selected_detail=selected_detail,
                 flash_message=None,
                 error_message=_describe_console_submit_error(
-                    recovery_mode=recovery_mode
+                    recovery_mode=recovery_mode,
+                    legacy_apple_recovery_hints=OperatorSettingsService().describe_legacy_apple_recovery_hints(),
                 ),
                 form_values={
                     "title": title,
@@ -2807,8 +2820,8 @@ def edit_appointment_page(appointment_id: str, request: Request):
             appointment=appointment,
             blocked_title="Apple reconnect still blocks appointment editing.",
             blocked_body=(
-                "Open Apple setup, confirm the loaded recovered calendar, and save a "
-                "fresh app-specific password before changing stale appointment rows."
+                f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=OperatorSettingsService().describe_legacy_apple_recovery_hints())} "
+                "before changing stale appointment rows."
             ),
             status_code=400,
         )
@@ -2866,6 +2879,9 @@ def edit_appointment_from_console(
         and _booking_setup_recovery_mode(operator_settings=OperatorSettingsService())
     )
     if recovery_mode:
+        legacy_apple_recovery_hints = (
+            OperatorSettingsService().describe_legacy_apple_recovery_hints()
+        )
         try:
             appointment = service.get_detail(appointment_id)
         except ValueError as exc:
@@ -2875,8 +2891,8 @@ def edit_appointment_from_console(
             appointment=appointment,
             blocked_title="Apple reconnect still blocks appointment editing.",
             blocked_body=(
-                "Open Apple setup, confirm the loaded recovered calendar, and save a "
-                "fresh app-specific password before changing stale appointment rows."
+                f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=legacy_apple_recovery_hints)} "
+                "before changing stale appointment rows."
             ),
             status_code=400,
         )
@@ -2978,6 +2994,9 @@ def cancel_appointment_from_console(appointment_id: str, request: Request):
         and _booking_setup_recovery_mode(operator_settings=OperatorSettingsService())
     )
     if recovery_mode:
+        legacy_apple_recovery_hints = (
+            OperatorSettingsService().describe_legacy_apple_recovery_hints()
+        )
         try:
             appointment = service.get_detail(appointment_id)
         except ValueError as exc:
@@ -2987,8 +3006,8 @@ def cancel_appointment_from_console(appointment_id: str, request: Request):
             appointment=appointment,
             blocked_title="Apple reconnect still blocks appointment cancellation.",
             blocked_body=(
-                "Open Apple setup, confirm the loaded recovered calendar, and save a "
-                "fresh app-specific password before cancelling stale appointment rows."
+                f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=legacy_apple_recovery_hints)} "
+                "before cancelling stale appointment rows."
             ),
             status_code=400,
         )
@@ -3076,7 +3095,9 @@ def _build_console_context(
             None
             if create_ready
             else (
-                "Apple reconnect still blocks write actions. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before creating appointments from the schedule workspace."
+                "Apple reconnect still blocks write actions. "
+                f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=legacy_recovery_hints)} "
+                "before creating appointments from the schedule workspace."
                 if root_recovery_mode
                 else "Connect a writable calendar before creating appointments from the schedule workspace."
             )
@@ -3087,7 +3108,9 @@ def _build_console_context(
             None
             if schedule_ready
             else (
-                "Apple reconnect still blocks live schedule sync. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before expecting a real household schedule here."
+                "Apple reconnect still blocks live schedule sync. "
+                f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=legacy_recovery_hints)} "
+                "before expecting a real household schedule here."
                 if root_recovery_mode
                 else "Connect a writable calendar before CalSync can show a real live schedule window."
             )
@@ -3096,7 +3119,9 @@ def _build_console_context(
             None
             if schedule_ready
             else (
-                "Apple reconnect still blocks appointment detail. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before expecting appointment activity here."
+                "Apple reconnect still blocks appointment detail. "
+                f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=legacy_recovery_hints)} "
+                "before expecting appointment activity here."
                 if root_recovery_mode
                 else "Choose a calendar connection before expecting appointment detail or activity here."
             )
@@ -3106,7 +3131,9 @@ def _build_console_context(
             None
             if availability_ready
             else (
-                "Apple reconnect still blocks availability search. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before searching for open time from the schedule workspace."
+                "Apple reconnect still blocks availability search. "
+                f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=legacy_recovery_hints)} "
+                "before searching for open time from the schedule workspace."
                 if root_recovery_mode
                 else "Connect a writable calendar before searching for open time from the schedule workspace."
             )
@@ -3142,6 +3169,7 @@ def _build_console_context(
         ),
         "workspace_capabilities": _workspace_capabilities(
             readiness,
+            legacy_apple_recovery_hints=legacy_recovery_hints,
             recovery_mode=root_recovery_mode,
         ),
         "selected_appointment": _serialize_detail(visible_selected_detail),
@@ -3207,53 +3235,122 @@ def _booking_setup_recovery_mode(
     return str(legacy_apple_recovery_hints.get("source") or "missing") != "missing"
 
 
-def _describe_booking_setup_block_message(*, recovery_mode: bool) -> str:
+def _describe_non_alexa_recovery_action(
+    *,
+    legacy_apple_recovery_hints: dict[str, object],
+) -> str:
+    return describe_legacy_apple_recovery_action(legacy_apple_recovery_hints)
+
+
+def _describe_booking_setup_block_message(
+    *,
+    recovery_mode: bool,
+    legacy_apple_recovery_hints: dict[str, object],
+) -> str:
     if recovery_mode:
-        return "Apple reconnect still blocks booking setup. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before configuring public booking."
+        return (
+            "Apple reconnect still blocks booking setup. "
+            f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=legacy_apple_recovery_hints)} "
+            "before configuring public booking."
+        )
     return "Connect a writable calendar before configuring public booking settings or creating shareable booking types."
 
 
-def _describe_console_submit_error(*, recovery_mode: bool) -> str:
+def _describe_console_submit_error(
+    *,
+    recovery_mode: bool,
+    legacy_apple_recovery_hints: dict[str, object],
+) -> str:
     if recovery_mode:
-        return "Apple reconnect still blocks write actions. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before creating appointments from the schedule workspace."
+        return (
+            "Apple reconnect still blocks write actions. "
+            f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=legacy_apple_recovery_hints)} "
+            "before creating appointments from the schedule workspace."
+        )
     return "Connect a writable calendar before creating appointments from the schedule workspace."
 
 
-def _describe_booking_setup_save_error(*, recovery_mode: bool) -> str:
+def _describe_booking_setup_save_error(
+    *,
+    recovery_mode: bool,
+    legacy_apple_recovery_hints: dict[str, object],
+) -> str:
     if recovery_mode:
-        return "Apple reconnect still blocks saving booking setup. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before saving public booking settings."
+        return (
+            "Apple reconnect still blocks saving booking setup. "
+            f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=legacy_apple_recovery_hints)} "
+            "before saving public booking settings."
+        )
     return "Connect a writable calendar before saving public booking settings."
 
 
-def _describe_booking_setup_type_error(*, recovery_mode: bool) -> str:
+def _describe_booking_setup_type_error(
+    *,
+    recovery_mode: bool,
+    legacy_apple_recovery_hints: dict[str, object],
+) -> str:
     if recovery_mode:
-        return "Apple reconnect still blocks new booking types. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before creating public booking types."
+        return (
+            "Apple reconnect still blocks new booking types. "
+            f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=legacy_apple_recovery_hints)} "
+            "before creating public booking types."
+        )
     return "Connect a writable calendar before creating public booking types."
 
 
-def _describe_public_booking_availability_block_message(*, recovery_mode: bool) -> str:
+def _describe_public_booking_availability_block_message(
+    *,
+    recovery_mode: bool,
+    legacy_apple_recovery_hints: dict[str, object],
+) -> str:
     if recovery_mode:
-        return "Apple reconnect still blocks public booking availability. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before invitees can search for open time."
+        return (
+            "Apple reconnect still blocks public booking availability. "
+            f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=legacy_apple_recovery_hints)} "
+            "before invitees can search for open time."
+        )
     return "Connect a writable calendar before public booking can search for open time."
 
 
-def _describe_public_booking_not_ready_message(*, recovery_mode: bool) -> str:
+def _describe_public_booking_not_ready_message(
+    *,
+    recovery_mode: bool,
+    legacy_apple_recovery_hints: dict[str, object],
+) -> str:
     if recovery_mode:
-        return "Apple reconnect still blocks public booking. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before invitees can request time."
+        return (
+            "Apple reconnect still blocks public booking. "
+            f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=legacy_apple_recovery_hints)} "
+            "before invitees can request time."
+        )
     return "CalSync needs one writable calendar target before invitees can request time."
 
 
-def _describe_public_booking_submit_error(*, recovery_mode: bool) -> str:
+def _describe_public_booking_submit_error(
+    *,
+    recovery_mode: bool,
+    legacy_apple_recovery_hints: dict[str, object],
+) -> str:
     if recovery_mode:
-        return "Apple reconnect still blocks public booking requests. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before invitees can request time."
+        return (
+            "Apple reconnect still blocks public booking requests. "
+            f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=legacy_apple_recovery_hints)} "
+            "before invitees can request time."
+        )
     return "No writable calendar target is ready for public booking yet."
 
 
-def _describe_public_booking_target_status(*, recovery_mode: bool) -> tuple[str, str]:
+def _describe_public_booking_target_status(
+    *,
+    recovery_mode: bool,
+    legacy_apple_recovery_hints: dict[str, object],
+) -> tuple[str, str]:
     if recovery_mode:
         return (
             "Apple reconnect still needed",
-            "Recovered Apple hints are ready. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before this public booking flow can go live.",
+            "Recovered Apple hints are ready. "
+            f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=legacy_apple_recovery_hints)} "
+            "before this public booking flow can go live.",
         )
     return (
         "Not ready yet",
@@ -3291,7 +3388,8 @@ def _build_booking_context(
     availability_results: list[AvailabilitySlot] = []
     availability_error: str | None = None
     target_status, target_message = _describe_public_booking_target_status(
-        recovery_mode=recovery_mode
+        recovery_mode=recovery_mode,
+        legacy_apple_recovery_hints=OperatorSettingsService().describe_legacy_apple_recovery_hints(),
     )
     if target is not None:
         try:
@@ -3324,7 +3422,8 @@ def _build_booking_context(
             None
             if target is not None
             else _describe_public_booking_availability_block_message(
-                recovery_mode=recovery_mode
+                recovery_mode=recovery_mode,
+                legacy_apple_recovery_hints=OperatorSettingsService().describe_legacy_apple_recovery_hints(),
             )
         ),
         "availability_results": _serialize_booking_slots(availability_results),
@@ -3341,7 +3440,8 @@ def _build_booking_context(
             else target_message
         ),
         "public_booking_not_ready_message": _describe_public_booking_not_ready_message(
-            recovery_mode=recovery_mode
+            recovery_mode=recovery_mode,
+            legacy_apple_recovery_hints=OperatorSettingsService().describe_legacy_apple_recovery_hints(),
         ),
     }
 
@@ -3479,6 +3579,7 @@ def _build_month_board(
 def _workspace_capabilities(
     readiness: dict[str, object],
     *,
+    legacy_apple_recovery_hints: dict[str, object],
     recovery_mode: bool = False,
 ) -> list[str]:
     origin = readiness.get("origin", {})
@@ -3493,7 +3594,7 @@ def _workspace_capabilities(
         items.insert(
             0,
             (
-                "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password to unlock create, edit, and cancel appointments."
+                f"{_describe_non_alexa_recovery_action(legacy_apple_recovery_hints=legacy_apple_recovery_hints)} to unlock create, edit, and cancel appointments."
                 if recovery_mode
                 else "Connect a writable calendar to unlock create, edit, and cancel appointments."
             ),

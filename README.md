@@ -433,6 +433,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Align public booking submit errors with Apple reconnect: issue `#100`
 - Align root appointment submit errors with Apple reconnect: issue `#101`
 - Align Alexa recovery-mode scheduling errors with Apple reconnect: issue `#102`
+- Non-Alexa recovery guidance now mirrors the legacy Apple encrypted-secret state across blocked root, booking, stale edit/cancel, and appointment API responses: issue `#110`
 - Alexa recovery guidance now mirrors the legacy Apple encrypted-secret state across Alexa setup, Connections, and the simulator: issue `#109`
 - Legacy Apple encrypted-secret recovery state now tells operators whether the preserved Apple password is reusable with the current key or still needs the original key: issue `#108`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`

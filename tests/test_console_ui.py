@@ -286,6 +286,81 @@ def test_console_root_points_to_apple_reconnect_when_legacy_hints_exist(
     )
 
 
+def test_console_root_points_to_original_key_recovery_when_preserved_secret_needs_old_key(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    mismatched_secret = Fernet(
+        base64.urlsafe_b64encode(hashlib.sha256(b"different-test-key").digest())
+    ).encrypt(b"apple-secret-123").decode("utf-8")
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "credential_secret_encrypted": mismatched_secret,
+            "recommended_calendar_name": "Calendar",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Calendar",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/6824BCB8-8CEE-4733-9208-4741C62E266C/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert (
+        "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password so CalSync can reconnect the real household calendar."
+        in response.text
+    )
+    assert (
+        "Apple reconnect still blocks live schedule sync. Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before expecting a real household schedule here."
+        in response.text
+    )
+    assert (
+        "Apple reconnect still blocks write actions. Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before creating appointments from the schedule workspace."
+        in response.text
+    )
+    assert (
+        "Apple reconnect still blocks availability search. Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before searching for open time from the schedule workspace."
+        in response.text
+    )
+    assert (
+        "Apple reconnect still blocks appointment detail. Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before expecting appointment activity here."
+        in response.text
+    )
+    assert (
+        "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password to unlock create, edit, and cancel appointments."
+        in response.text
+    )
+
+
 def test_console_create_submit_rejects_without_calendar_target(
     monkeypatch,
 ) -> None:
@@ -610,6 +685,70 @@ def test_booking_page_points_to_apple_reconnect_when_recovery_hints_exist(
     assert (
         "CalSync needs one writable calendar target before invitees can request time."
         not in response.text
+    )
+
+
+def test_booking_page_points_to_original_key_recovery_when_preserved_secret_needs_old_key(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    mismatched_secret = Fernet(
+        base64.urlsafe_b64encode(hashlib.sha256(b"different-test-key").digest())
+    ).encrypt(b"apple-secret-123").decode("utf-8")
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "credential_secret_encrypted": mismatched_secret,
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/book")
+
+    assert response.status_code == 200
+    assert "Apple reconnect still needed" in response.text
+    assert (
+        "Recovered Apple hints are ready. Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before this public booking flow can go live."
+        in response.text
+    )
+    assert (
+        "Apple reconnect still blocks public booking availability. Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before invitees can search for open time."
+        in response.text
+    )
+    assert (
+        "Apple reconnect still blocks public booking. Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before invitees can request time."
+        in response.text
     )
 
 
@@ -2546,6 +2685,86 @@ def test_console_edit_page_points_to_apple_reconnect_when_recovery_hints_exist(
     assert "Save changes" not in edit_page.text
     assert 'href="/calendar/setup"' in edit_page.text
     assert 'href="/connections"' in edit_page.text
+
+
+def test_console_edit_page_points_to_original_key_recovery_when_preserved_secret_needs_old_key(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    original_build_apple_client = AppointmentService._build_apple_client
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Telemedicine Post-Op",
+            "date": "2026-12-09",
+            "start_time": "12:40",
+            "end_time": "13:10",
+            "timezone": "America/Anchorage",
+        },
+    )
+    appointment_id = create_response.json()["appointment_id"]
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        original_build_apple_client,
+    )
+
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    mismatched_secret = Fernet(
+        base64.urlsafe_b64encode(hashlib.sha256(b"different-test-key").digest())
+    ).encrypt(b"apple-secret-123").decode("utf-8")
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "credential_secret_encrypted": mismatched_secret,
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    recovery_app = create_app()
+    recovery_client = TestClient(recovery_app)
+
+    edit_page = recovery_client.get(f"/appointments/{appointment_id}/edit")
+
+    assert edit_page.status_code == 400
+    assert "Apple reconnect still blocks appointment editing." in edit_page.text
+    assert (
+        "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before changing stale appointment rows."
+        in edit_page.text
+    )
 
 
 def test_console_edit_submit_points_to_apple_reconnect_when_recovery_hints_exist(

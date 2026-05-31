@@ -1061,6 +1061,17 @@ Expected behavior:
 - when no preserved encrypted password exists, those Alexa surfaces can keep the older recovery wording about confirming the loaded recovered calendar and saving a fresh app-specific password
 - the Alexa simulator readiness copy and empty selector helper text should follow the same reusable-versus-original-key distinction so voice rehearsal guidance does not drift behind Apple setup and Connections
 
+## Non-Alexa Encrypted Secret Recovery Guidance Requirement
+
+- GitHub issue: `#110`
+- interpreted requirement: when legacy Apple recovery hints exist and no writable calendar is connected, the rest of the recovery-mode app should mirror the preserved encrypted-secret state instead of always acting like a fresh password is the only next step
+
+Expected behavior:
+
+- blocked root workspace messaging, blocked booking flows, and stale appointment edit/cancel blockers should all distinguish between reusable preserved Apple secrets, original-key-needed recovery, and the older fresh-password-only recovery case
+- recovery-mode public booking and booking-setup messages should point to the original CalSync encryption key when that is the real current blocker
+- recovery-mode appointment API responses should use the same reusable-versus-original-key distinction instead of only saying to confirm the recovered calendar and save a fresh password
+
 ## Root Workspace Stale Detail Blocking Requirement
 
 - GitHub issue: `#83`

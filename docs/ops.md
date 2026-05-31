@@ -595,6 +595,8 @@ Recovery note:
 - legacy Apple encrypted-secret recovery diagnostics now show on `/calendar/setup`, `/connections`, and shared readiness guidance whether the preserved Apple password is reusable with the current key or still needs the original key
 - issue `#109`
 - Alexa setup, the Connections Alexa panel, and the Alexa simulator now mirror that same legacy Apple encrypted-secret recovery state instead of falling back to fresh-password-only guidance
+- issue `#110`
+- blocked root workspace copy, booking blockers, stale appointment edit/cancel blockers, and appointment API recovery guidance now mirror that same legacy Apple encrypted-secret recovery state instead of falling back to fresh-password-only guidance
 
 ## Current follow-up item
 
