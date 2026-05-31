@@ -6,12 +6,16 @@ from calsync.config import Settings
 from calsync.db import _get_engine_for_url, _get_session_factory_for_url
 from calsync.models import Base
 from calsync.services.appointments import AppointmentService
+from calsync.services.channel_tokens import ChannelTokenManager
 from calsync.services.operator_settings import OperatorSettingsService
 from calsync.services.readiness import ReadinessService
 
 
 def _settings() -> Settings:
     db_path = Path(tempfile.gettempdir()) / f"calsync-apple-vault-{uuid4()}.db"
+    runtime_path = (
+        Path(tempfile.gettempdir()) / f"calsync-channel-tokens-{uuid4()}.json"
+    )
     settings = Settings.model_construct(
         app_host="0.0.0.0",
         app_port=3080,
@@ -26,7 +30,7 @@ def _settings() -> Settings:
         cloudflare_account_id=None,
         cloudflare_api_token=None,
         cloudflare_token_kv_namespace_id=None,
-        channel_token_runtime_path=".runtime/channel-tokens.json",
+        channel_token_runtime_path=str(runtime_path),
         edge_base_url="",
         cloudflare_edge_worker_name="edge-calsync",
     )
@@ -87,12 +91,20 @@ def test_readiness_service_uses_product_vault_apple_settings() -> None:
 def test_readiness_service_mentions_saved_desired_alexa_drift() -> None:
     settings = _settings()
     operator_settings = OperatorSettingsService(settings=settings)
+    ChannelTokenManager(runtime_path=settings.channel_token_runtime_path).bootstrap_channel(
+        "chatgpt"
+    )
     operator_settings.set_apple_calendar_settings(
         account_label="Family",
         username="family@example.com",
         app_specific_password="apple-secret-123",
         primary_calendar_url="https://caldav.icloud.com/family/",
         primary_calendar_name="Family",
+    )
+    operator_settings.set_alexa_account_linking_settings(link_code="Family123")
+    operator_settings.set_cloudflare_worker_credentials(
+        account_id="acct-123",
+        api_token="token-123",
     )
     operator_settings.set_desired_alexa_settings(
         enable_alexa=True,
@@ -107,6 +119,29 @@ def test_readiness_service_mentions_saved_desired_alexa_drift() -> None:
         "amzn1.ask.skill.real"
     ]
     assert "Desired Alexa settings are saved" in readiness["next_action"]
+
+
+def test_readiness_service_points_to_account_linking_and_cloudflare_before_edge_enablement() -> None:
+    settings = _settings()
+    operator_settings = OperatorSettingsService(settings=settings)
+    ChannelTokenManager(runtime_path=settings.channel_token_runtime_path).bootstrap_channel(
+        "chatgpt"
+    )
+    operator_settings.set_apple_calendar_settings(
+        account_label="Family",
+        username="family@example.com",
+        app_specific_password="apple-secret-123",
+        primary_calendar_url="https://caldav.icloud.com/family/",
+        primary_calendar_name="Family",
+    )
+
+    readiness = ReadinessService(settings=settings).build()
+
+    assert readiness["origin"]["any_calendar_ready"] is True
+    assert (
+        readiness["next_action"]
+        == "Save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
+    )
 
 
 def test_readiness_service_points_to_restore_when_non_provider_settings_exist() -> None:

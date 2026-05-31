@@ -19,6 +19,7 @@ from calsync.main import create_app
 from calsync.models import Base
 from calsync.services.appointments import AppointmentService
 from calsync.services.apple_caldav import AppleCalDAVError
+from calsync.services.channel_tokens import ChannelTokenManager
 from calsync.services.operator_settings import OperatorSettingsService
 
 
@@ -1575,6 +1576,10 @@ def test_booking_setup_can_delete_an_existing_booking_type(
 def test_connections_page_renders_provider_summary(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     service = OperatorSettingsService(settings=get_settings())
+    ChannelTokenManager(
+        runtime_path=get_settings().channel_token_runtime_path
+    ).bootstrap_channel("chatgpt")
+    service.set_alexa_account_linking_settings(link_code="Family123")
     service.set_google_oauth_settings(
         client_id="google-client-id",
         client_secret="google-client-secret",
@@ -1609,6 +1614,10 @@ def test_connections_page_renders_provider_summary(monkeypatch) -> None:
     assert "Save the shared Microsoft OAuth app before browser account connect is available." in response.text
     assert "Google:</strong> already usable for live scheduling" in response.text
     assert "Microsoft:</strong> save the shared Microsoft OAuth app before browser account connect is available" in response.text
+    assert (
+        "Readiness guidance:</strong> Save Cloudflare Worker access so CalSync can turn on the live Alexa route and skill allowlist from the product."
+        in response.text
+    )
     assert 'href="/auth/microsoft/start"' not in response.text
 
 

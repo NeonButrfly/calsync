@@ -601,6 +601,8 @@ Recovery note:
 - recovery-aware product messaging now points operators to enter that original key on Apple setup instead of implying the deployment key itself must be restored globally first
 - issue `#115`
 - once Apple is fully reconnected and writable again, `/connections` must stop rendering the stale `Recovered password / Needs original key` blocker card and instead prioritize the live connected Apple state
+- issue `#116`
+- once Apple is fully reconnected and writable again, shared readiness must point to the earliest real Alexa blockers like household account linking and Cloudflare Worker access instead of jumping straight to generic edge enablement
 - issue `#109`
 - Alexa setup, the Connections Alexa panel, and the Alexa simulator now mirror that same legacy Apple encrypted-secret recovery state instead of falling back to fresh-password-only guidance
 - issue `#110`

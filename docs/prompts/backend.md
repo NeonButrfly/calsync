@@ -1084,6 +1084,18 @@ Expected behavior:
 - the stale `Recovered password` card should not render while Apple is already connected and writable, even if preserved legacy recovery metadata still exists in operator settings
 - legacy encrypted-secret diagnostics can still render in recovery mode before the reconnect is complete
 
+## Shared Alexa Readiness Requirement
+
+- GitHub issue: `#116`
+- interpreted requirement: once Apple is already connected and writable again, shared readiness should name the earliest real Alexa blockers instead of skipping straight to generic edge enablement
+
+Expected behavior:
+
+- when a writable calendar is ready but Alexa account linking and Cloudflare Worker access are still missing, `GET /api/readiness` should tell operators to save a household link code and Cloudflare Worker access
+- when account linking is ready but Cloudflare Worker access is still missing, shared readiness should say to save Cloudflare Worker access
+- when Cloudflare Worker access is ready but account linking is still missing, shared readiness should say to save a household link code
+- shared surfaces like `GET /connections` that print `readiness.next_action` should stay aligned automatically once the readiness API is corrected
+
 ## Alexa Encrypted Secret Recovery Guidance Requirement
 
 - GitHub issue: `#109`

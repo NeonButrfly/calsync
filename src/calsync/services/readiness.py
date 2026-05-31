@@ -141,6 +141,12 @@ class ReadinessService:
             "legacy_apple_secret_status": str(
                 legacy_apple_recovery.get("encrypted_secret_status") or "missing"
             ),
+            "cloudflare_worker_access_ready": bool(
+                cloudflare.get("api_token_saved")
+            ),
+            "alexa_account_linking_configured": bool(
+                account_linking.get("configured")
+            ),
         }
 
     def _fetch_edge_status(self) -> dict[str, Any]:
@@ -213,19 +219,37 @@ class ReadinessService:
         live_skill_ids_configured = bool(
             edge.get("alexa", {}).get("skill_ids_configured", False)
         )
+        if not channel_tokens.get("chatgpt", False):
+            return "Bootstrap the ChatGPT channel token so the edge Worker can authenticate app requests."
+        account_linking_ready = bool(
+            operator_settings_footprint.get(
+                "alexa_account_linking_configured", False
+            )
+        )
+        cloudflare_ready = bool(
+            operator_settings_footprint.get(
+                "cloudflare_worker_access_ready", False
+            )
+        )
+        if not account_linking_ready and not cloudflare_ready:
+            return "Save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
+        if not cloudflare_ready:
+            return "Save Cloudflare Worker access so CalSync can turn on the live Alexa route and skill allowlist from the product."
+        if not account_linking_ready:
+            return "Save a household link code so Alexa account linking can hand the live skill a bearer token."
+        if not desired_alexa.get("saved"):
+            return "Save the Alexa plan and your real skill ID so CalSync knows what the live Worker should allow."
         if desired_alexa.get("saved") and (
             not edge.get("reachable", False)
             or desired_enabled != live_enabled
             or bool(desired_skill_ids) != live_skill_ids_configured
         ):
             return "Desired Alexa settings are saved in CalSync and still need to be applied to the live edge Worker."
-        if not channel_tokens.get("chatgpt", False):
-            return "Bootstrap the ChatGPT channel token so the edge Worker can authenticate app requests."
         if not edge.get("reachable", False):
             return "Check the edge Worker deployment so channel and Alexa status can be verified live."
         if not edge.get("alexa", {}).get("enabled", False):
-            return "Alexa still needs to be enabled on the edge Worker before real voice requests can flow."
-        if not edge.get("alexa", {}).get("skill_ids_configured", False):
+            return "Apply the saved Alexa settings so the live edge Worker enables the voice route."
+        if not edge.get("alexa", {}).get("skill_ids_configured", False) or not desired_skill_ids:
             return "Add the real Alexa skill ID to the edge Worker allowlist before turning voice access on."
         if not channel_tokens.get("alexa", False):
             return "Bootstrap the Alexa channel token on the origin so voice-origin calls can be authenticated."

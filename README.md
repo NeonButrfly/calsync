@@ -423,6 +423,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - One-time legacy Apple secret recovery with the original CalSync encryption key: issue `#113`
 - Align original-key Apple recovery guidance with the in-product setup flow: issue `#114`
 - Hide stale Apple recovery-secret blocker copy on `/connections` after live reconnect: issue `#115`
+- Align shared Alexa readiness with the real Cloudflare and account-linking blockers after Apple reconnect: issue `#116`
 - Keep the entire root workspace blocked when no calendar is connected: issue `#83`
 - Keep Alexa guidance aligned with account-linking readiness: issue `#84`
 - Keep Alexa Step 4 turn-on summary aligned with live prerequisites: issue `#85`
