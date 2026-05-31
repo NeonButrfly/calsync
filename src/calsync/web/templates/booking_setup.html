@@ -137,7 +137,7 @@
                   <span>Booking target</span>
                   <select name="target_calendar_url"{% if not booking_setup_ready %} disabled{% endif %}>
                     {% if not booking_setup_ready %}
-                    <option value="">No writable calendars connected yet</option>
+                    <option value="">{{ calendar_placeholder_label }}</option>
                     {% endif %}
                     {% for option in calendar_options %}
                     <option value="{{ option.value }}"{% if option.is_selected %} selected{% endif %}>{{ option.label }}</option>

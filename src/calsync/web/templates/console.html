@@ -403,7 +403,7 @@
                   <span>Calendar</span>
                   <select name="target_calendar_url"{% if not create_ready %} disabled{% endif %}>
                     {% if not calendar_options %}
-                    <option value="" selected>No writable calendars connected yet</option>
+                    <option value="" selected>{{ calendar_placeholder_label }}</option>
                     {% endif %}
                     {% for option in calendar_options %}
                     <option value="{{ option.value }}"{% if option.is_selected %} selected{% endif %}>{{ option.label }}</option>

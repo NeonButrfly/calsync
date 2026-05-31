@@ -1084,6 +1084,17 @@ Expected behavior:
 - if no writable calendar is connected and legacy Apple recovery hints exist, the root target card should show the recommended recovered Apple calendar name instead of `No calendar selected`
 - in the original-key-needed recovery branch, that same target card should explain that the recovered Apple target is already loaded in setup and still needs the original CalSync encryption key or a fresh app-specific password
 
+## Blocked Target Selector Recovery Requirement
+
+- GitHub issue: `#112`
+- interpreted requirement: when a disabled calendar target selector is blocked only because Apple reconnect is still incomplete, it should not read like a blank install if the recovered target is already known
+
+Expected behavior:
+
+- if no writable calendar is connected and no legacy Apple recovery hints exist, disabled target selectors may continue to say `No writable calendars connected yet`
+- if no writable calendar is connected and legacy Apple recovery hints exist, the disabled target selectors on the root workspace create form and `/booking/setup` should name the recommended recovered Apple target instead of the generic empty text
+- in the original-key-needed branch, those selector labels should mention that Apple setup still needs the original CalSync encryption key or a fresh app-specific password
+
 ## Root Workspace Stale Detail Blocking Requirement
 
 - GitHub issue: `#83`

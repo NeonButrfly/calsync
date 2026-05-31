@@ -366,6 +366,11 @@ def test_console_root_points_to_original_key_recovery_when_preserved_secret_need
     )
     assert "No calendar selected" not in response.text
     assert "Not connected" not in response.text
+    assert (
+        "Calendar loaded in Apple setup: restore original key or save fresh password in Apple setup"
+        in response.text
+    )
+    assert "No writable calendars connected yet" not in response.text
 
 
 def test_console_create_submit_rejects_without_calendar_target(
@@ -1028,6 +1033,10 @@ def test_booking_setup_page_points_to_apple_reconnect_when_recovery_hints_exist(
     assert (
         '<strong>No writable target yet</strong>\n'
         '                  <span>Apple reconnect still blocks booking setup. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before configuring public booking.</span>'
+        in response.text
+    )
+    assert (
+        "Family loaded in Apple setup: save fresh password in Apple setup to reconnect"
         in response.text
     )
     assert '<a class="text-action" href="/calendar/setup">Open Apple setup</a>' in response.text

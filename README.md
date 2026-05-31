@@ -207,6 +207,7 @@ The root page now acts as the first family scheduling UX:
 - that Alexa scheduling intents now also align blocked recovery-mode voice errors with Apple reconnect when legacy recovery hints already exist
 - that Alexa launch, help, and fallback guidance now also align with Apple reconnect when legacy recovery hints already exist, so the public simulator stops coaching blocked calendar reads or writes
 - that the root workspace default-target card now also shows the loaded recovered Apple target instead of `No calendar selected` when legacy recovery hints already exist but reconnect is still blocked
+- that blocked root and booking-setup target selectors now also name the loaded recovered Apple target instead of falling back to `No writable calendars connected yet` while reconnect is still blocked
 - that booking setup now also blocks its save and create actions clearly when no writable calendar is connected, so operators do not accidentally save disconnected public-booking defaults
 - that booking setup flow now supports multiple named booking types, each with its own public slug and shareable invitee-facing URL
 - that default `/book` route now becomes a booking-type chooser when multiple public booking types exist, while keeping direct `/book/{slug}` links for focused flows

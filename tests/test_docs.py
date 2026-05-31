@@ -206,6 +206,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "alexa scheduling intents now also align blocked recovery-mode voice errors with apple reconnect when legacy recovery hints already exist" in readme_content
     assert "alexa launch, help, and fallback guidance now also align with apple reconnect when legacy recovery hints already exist" in readme_content
     assert "root workspace default-target card now also shows the loaded recovered apple target instead of `no calendar selected` when legacy recovery hints already exist but reconnect is still blocked" in readme_content
+    assert "blocked root and booking-setup target selectors now also name the loaded recovered apple target instead of falling back to `no writable calendars connected yet` while reconnect is still blocked" in readme_content
     assert "root workspace now also blocks the empty schedule board and detail panel clearly when no writable calendar is connected" in readme_content
     assert "disconnected root workspace now also blocks stale hero stats, next-up copy, and selected appointment detail" in readme_content
     assert "apple setup page now also stays truthful when no apple account exists" in readme_content
@@ -378,6 +379,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "keeps blocked alexa read intents aligned with that same apple recovery flow" in ops_content
     assert "keeps alexa launch, help, and fallback guidance aligned with that same apple recovery flow" in ops_content
     assert "keeps the root workspace default-target card aligned with that same apple recovery flow" in ops_content
+    assert "keeps blocked root and booking-setup target selectors aligned with that same apple recovery flow" in ops_content
     assert "voice-specific next guidance for alexa setup and connections voice panels" in ops_content
     assert "exposes alexa account-linking readiness on `/connections`" in ops_content
     assert "keeps the shared alexa desired-settings card on `/connections` truthful" in ops_content
@@ -580,6 +582,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "apple recovery guidance requirement" in prompt_content
     assert "legacy apple encrypted secret recovery requirement" in prompt_content
     assert "root default target recovery requirement" in prompt_content
+    assert "blocked target selector recovery requirement" in prompt_content
     assert "apple setup validation requirement" in prompt_content
     assert "legacy apple recommended target requirement" in prompt_content
     assert "alexa save-only action truthfulness requirement" in prompt_content
@@ -673,6 +676,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "the worker should rely on a safe recovery-mode readiness signal instead of guessing from raw provider error text" in prompt_content
     assert "when legacy apple recovery hints exist and the recommended recovered calendar is already loaded into apple setup, the root workspace should stop reading like an empty target state" in prompt_content
     assert "if no writable calendar is connected and legacy apple recovery hints exist, the root target card should show the recommended recovered apple calendar name instead of `no calendar selected`" in prompt_content
+    assert "if no writable calendar is connected and legacy apple recovery hints exist, the disabled target selectors on the root workspace create form and `/booking/setup` should name the recommended recovered apple target instead of the generic empty text" in prompt_content
     assert "when `any_calendar_ready` is false, the root workspace should keep the hero summary in a clearly blocked state instead of showing stale appointment counts or a stale next-up appointment" in prompt_content
     assert "the alexa voice panel on `/connections` should show whether account linking is ready or still needs setup" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit account-linking readiness row" in prompt_content

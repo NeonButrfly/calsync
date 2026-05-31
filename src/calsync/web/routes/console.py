@@ -431,6 +431,10 @@ def _build_booking_setup_context(
         "request": request,
         "booking_settings": booking_settings,
         "calendar_options": calendar_options,
+        "calendar_placeholder_label": _disabled_target_placeholder_label(
+            legacy_apple_recovery_hints=legacy_apple_recovery_hints,
+            recovery_mode=booking_setup_recovery_mode,
+        ),
         "booking_types": operator_settings.describe_public_booking_types(),
         "flash_message": flash_message,
         "error_message": error_message,
@@ -3148,6 +3152,10 @@ def _build_console_context(
         "availability_searched": availability_searched,
         "calendar_label": calendar_label,
         "account_label": account_label,
+        "calendar_placeholder_label": _disabled_target_placeholder_label(
+            legacy_apple_recovery_hints=legacy_recovery_hints,
+            recovery_mode=root_recovery_mode,
+        ),
         "calendar_options": calendar_options,
         "selected_window": selected_window,
         "show_cancelled": show_cancelled,
@@ -3278,6 +3286,28 @@ def _root_target_card_labels(
             "password to reconnect."
         )
     return calendar_label, account_label
+
+
+def _disabled_target_placeholder_label(
+    *,
+    legacy_apple_recovery_hints: dict[str, object],
+    recovery_mode: bool,
+) -> str:
+    if not recovery_mode:
+        return "No writable calendars connected yet"
+
+    recommended_name = str(
+        legacy_apple_recovery_hints.get("recommended_calendar_name")
+        or legacy_apple_recovery_hints.get("calendar_name")
+        or "Recovered Apple target"
+    ).strip()
+    if bool(legacy_apple_recovery_hints.get("can_reuse_saved_password")):
+        detail = "validate or save in Apple setup to reconnect"
+    elif bool(legacy_apple_recovery_hints.get("encrypted_secret_present")):
+        detail = "restore original key or save fresh password in Apple setup"
+    else:
+        detail = "save fresh password in Apple setup to reconnect"
+    return f"{recommended_name} loaded in Apple setup: {detail}"
 
 
 def _describe_booking_setup_block_message(
