@@ -1120,6 +1120,18 @@ Expected behavior:
 - once the desired Alexa plan has been saved, the next-step guidance can advance to Cloudflare Worker access or live edge apply work
 - this branch should only override the older Cloudflare-only guidance after the account-linking prerequisite has already been satisfied
 
+## Alexa Skill-ID Form Guidance Requirement
+
+- GitHub issue: `#119`
+- interpreted requirement: when the live product asks operators to save the Alexa plan and real skill ID, the save forms themselves should explain where that real skill ID comes from
+
+Expected behavior:
+
+- `GET /alexa/setup` should tell operators to import the skill package in the Alexa developer console, copy the generated real Alexa skill ID, and paste it into `Allowed skill IDs`
+- `GET /connections` should surface the same guidance or point operators back to Alexa setup for the fuller turn-on flow
+- the `Allowed skill IDs` field should not read like unexplained low-level config when no skill ID has been saved yet
+- this guidance should stay aligned with the repo Alexa README and skill-package instructions that already describe copying the generated skill ID after import
+
 ## Alexa Encrypted Secret Recovery Guidance Requirement
 
 - GitHub issue: `#109`

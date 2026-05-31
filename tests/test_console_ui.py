@@ -2027,6 +2027,10 @@ def test_connections_page_shows_ready_account_linking_state(monkeypatch) -> None
         "Save the Alexa plan and your real skill ID, then save Cloudflare Worker access so CalSync can turn on the live Alexa route and skill allowlist from the product."
         in response.text
     )
+    assert (
+        "Copy the real Alexa skill ID from the Alexa developer console after you import the package, then paste it here."
+        in response.text
+    )
 
 
 def test_connections_page_can_save_desired_alexa_settings(monkeypatch) -> None:
@@ -3657,6 +3661,10 @@ def test_alexa_setup_page_renders_operator_steps(monkeypatch) -> None:
     assert 'name="cloudflare_api_token"' in response.text
     assert "Cloudflare worker access" in response.text
     assert 'name="allowed_skill_ids"' in response.text
+    assert (
+        "After you import the skill package in the Alexa developer console, copy the generated real Alexa skill ID and paste it here."
+        in response.text
+    )
     assert "Apply edge settings" in response.text
     assert (
         "This will save the desired Alexa plan in CalSync and update the live edge Worker now."

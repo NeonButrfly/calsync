@@ -441,6 +441,9 @@
                   <span>Allowed skill IDs</span>
                   <textarea name="allowed_skill_ids" rows="3">{{ desired_alexa_settings.allowed_skill_ids | join(", ") }}</textarea>
                 </label>
+                <p class="appointment-detail">
+                  Copy the real Alexa skill ID from the Alexa developer console after you import the package, then paste it here. Use Alexa setup if you want the fuller step-by-step turn-on flow.
+                </p>
                 <p class="appointment-detail">{{ alexa_action_copy.helper_message }}</p>
                 <div class="action-row">
                   <button type="submit">{{ alexa_action_copy.connections_button_label }}</button>
