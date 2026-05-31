@@ -28,6 +28,11 @@ class OperatorSettingsService:
         ).digest()
         self._fernet = Fernet(base64.urlsafe_b64encode(key_material))
 
+    @staticmethod
+    def _build_fernet_for_key(encryption_key: str) -> Fernet:
+        key_material = hashlib.sha256(encryption_key.encode("utf-8")).digest()
+        return Fernet(base64.urlsafe_b64encode(key_material))
+
     def set_value(self, key: str, value: str) -> None:
         normalized_key = key.strip()
         if not normalized_key:
@@ -266,17 +271,29 @@ class OperatorSettingsService:
             "calendars": calendars,
         }
 
-    def get_legacy_apple_recovered_password(self) -> str | None:
+    def get_legacy_apple_recovered_password(
+        self,
+        *,
+        original_encryption_key: str | None = None,
+    ) -> str | None:
         payload = self.get_legacy_apple_recovery_hints()
         encrypted_secret = str(payload.get("credential_secret_encrypted") or "").strip()
         if not encrypted_secret:
             return None
         try:
-            recovered_secret = self._fernet.decrypt(
-                encrypted_secret.encode("utf-8")
-            ).decode("utf-8")
+            recovered_secret = self._fernet.decrypt(encrypted_secret.encode("utf-8")).decode(
+                "utf-8"
+            )
         except Exception:
-            return None
+            normalized_original_key = str(original_encryption_key or "").strip()
+            if not normalized_original_key:
+                return None
+            try:
+                recovered_secret = self._build_fernet_for_key(
+                    normalized_original_key
+                ).decrypt(encrypted_secret.encode("utf-8")).decode("utf-8")
+            except Exception:
+                return None
         normalized_secret = recovered_secret.strip()
         return normalized_secret or None
 

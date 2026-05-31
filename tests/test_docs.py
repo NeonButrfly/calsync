@@ -169,6 +169,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "safe apple setup validation before reconnect save" in readme_content
     assert "legacy apple recovery hint ranking that now prefers the real recovered writable booking target over a merely enabled personal-reference calendar" in readme_content
     assert "legacy apple encrypted-secret recovery state now tells operators whether the preserved apple password is reusable with the current key or still needs the original key" in readme_content
+    assert "one-time legacy-secret recovery with the original calsync encryption key" in readme_content
     assert "recovery-aware apple reconnect actions on `/` and `/booking/setup`" in readme_content
     assert "recovery-aware apple reconnect messaging across the blocked root workspace panels" in readme_content
     assert "recovery-aware apple reconnect guidance on alexa setup and connections" in readme_content
@@ -290,6 +291,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#110" in ops_content
     assert "#109" in ops_content
     assert "#108" in ops_content
+    assert "#113" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -360,6 +362,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "load a recovered apple calendar hint directly into the `/calendar/setup` form" in ops_content
     assert "safe apple setup validation before reconnect save" in ops_content
     assert "legacy apple encrypted-secret recovery diagnostics now show on `/calendar/setup`, `/connections`, and shared readiness guidance whether the preserved apple password is reusable with the current key or still needs the original key" in ops_content
+    assert "`/calendar/setup` now also accepts a one-time original calsync encryption key so operators can recover a preserved apple app-specific password from a legacy backup and re-save it under the current deployment key" in ops_content
     assert "blocked root workspace copy, booking blockers, stale appointment edit/cancel blockers, and appointment api recovery guidance now mirror that same legacy apple encrypted-secret recovery state instead of falling back to fresh-password-only guidance" in ops_content
     assert "alexa setup, the connections alexa panel, and the alexa simulator now mirror that same legacy apple encrypted-secret recovery state instead of falling back to fresh-password-only guidance" in ops_content
     assert "recovery-aware apple hint ranking that prefers true writable booking targets" in ops_content
@@ -480,6 +483,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#77" in prompt_content
     assert "#78" in prompt_content
     assert "#79" in prompt_content
+    assert "#113" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -632,6 +636,9 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "when no apple account is connected yet and legacy apple recovery hints exist, `get /calendar/setup` should auto-load the recommended recovered apple hint into the setup form" in prompt_content
     assert "when the current calsync `encryption_key` can decrypt that preserved apple secret, `/calendar/setup` should allow validate/save without forcing the operator to retype the password" in prompt_content
     assert "when the current calsync `encryption_key` cannot decrypt that preserved apple secret, `/calendar/setup`, `/connections`, and shared readiness guidance should say the original key is needed or a fresh manual app-specific password must be entered" in prompt_content
+    assert "when the preserved apple password still needs the original key, `get /calendar/setup` should expose a one-time `original calsync encryption key` field" in prompt_content
+    assert "`post /calendar/setup/validate` should accept that original key, decrypt the preserved apple secret if the key is correct, and validate the loaded recovered calendar without persisting the key itself" in prompt_content
+    assert "`post /calendar/setup` should accept that original key, decrypt the preserved apple secret if the key is correct, and save the apple account by re-encrypting the recovered password under the current deployment key" in prompt_content
     assert "when the preserved apple password is reusable with the current key, `get /alexa/setup`, the alexa panel on `get /connections`, and `get /alexa/simulator` should point operators to validate or save the already-loaded recovered calendar" in prompt_content
     assert "when the preserved apple password still needs the original key, those same alexa surfaces should tell operators to restore the original calsync encryption key or save a fresh manual app-specific password before the remaining alexa steps" in prompt_content
     assert "the alexa simulator readiness copy and empty selector helper text should follow the same reusable-versus-original-key distinction so voice rehearsal guidance does not drift behind apple setup and connections" in prompt_content

@@ -373,6 +373,8 @@ The API will not create calendar events until the Apple settings are populated.
 
 If you do not want Apple calendar credentials to live only in host env, the product now exposes `GET /calendar/setup`. That page stores the Apple username, app-specific password, primary calendar URL, calendar name, and account label securely in the product vault, encrypted at rest with `ENCRYPTION_KEY`.
 
+That Apple setup flow now also supports one-time legacy-secret recovery with the original CalSync encryption key when a preserved Apple app-specific password came from an older Pi backup and cannot be decrypted by the current deployment key.
+
 That same setup surface now also supports more than one Apple account plus `POST /calendar/setup/calendars`, which lets operators add more Apple calendar targets per account and choose which one should be the default destination for new appointments.
 
 If you want Google scheduling without host-only secret edits, the product now exposes `GET /google/setup`. That page stores the shared Google OAuth client ID and secret securely in the product vault, then uses `GET /auth/google/start` and `GET /auth/google/callback` for the browser-based connect flow. Once connected, CalSync saves the Google refresh token, discovers calendars, and surfaces those writable Google targets in the same target-calendar picker used by the workspace. The same page can now manage multiple connected Google accounts under that one shared OAuth app, refresh calendar discovery per account, and disconnect one account while leaving the shared OAuth app in place.
@@ -415,6 +417,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Auto-load the recommended Apple recovery hint on reconnect: issue `#81`
 - Align Apple recovery guidance with the new auto-loaded reconnect flow: issue `#82`
 - Legacy Apple encrypted-secret recovery diagnostics: issue `#108`
+- One-time legacy Apple secret recovery with the original CalSync encryption key: issue `#113`
 - Keep the entire root workspace blocked when no calendar is connected: issue `#83`
 - Keep Alexa guidance aligned with account-linking readiness: issue `#84`
 - Keep Alexa Step 4 turn-on summary aligned with live prerequisites: issue `#85`

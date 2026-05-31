@@ -1049,6 +1049,18 @@ Expected behavior:
 - when the current CalSync `encryption_key` cannot decrypt that preserved Apple secret, `/calendar/setup`, `/connections`, and shared readiness guidance should say the original key is needed or a fresh manual app-specific password must be entered
 - these encrypted-secret diagnostics must not falsely mark Apple connected or ready before a real save succeeds
 
+## Legacy Apple Original-Key Recovery Requirement
+
+- GitHub issue: `#113`
+- interpreted requirement: when a preserved legacy Apple app-specific password still needs the original CalSync encryption key, Apple setup should let operators enter that original key once so CalSync can recover the secret and re-save it under the current deployment key
+
+Expected behavior:
+
+- when the preserved Apple password still needs the original key, `GET /calendar/setup` should expose a one-time `Original CalSync encryption key` field alongside the existing Apple reconnect form
+- `POST /calendar/setup/validate` should accept that original key, decrypt the preserved Apple secret if the key is correct, and validate the loaded recovered calendar without persisting the key itself
+- `POST /calendar/setup` should accept that original key, decrypt the preserved Apple secret if the key is correct, and save the Apple account by re-encrypting the recovered password under the current deployment key
+- if the supplied original key is wrong, Apple setup should return a clear recovery-specific error instead of falling back to the generic missing-password error
+
 ## Alexa Encrypted Secret Recovery Guidance Requirement
 
 - GitHub issue: `#109`

@@ -1021,9 +1021,8 @@ def _resolve_legacy_apple_recovery_password(
     legacy_recovery_hints: dict[str, object],
     apple_username: str,
     apple_primary_calendar_url: str,
+    original_encryption_key: str = "",
 ) -> str:
-    if not bool(legacy_recovery_hints.get("can_reuse_saved_password")):
-        return ""
     normalized_username = apple_username.strip().lower()
     normalized_calendar_url = apple_primary_calendar_url.strip()
     if not normalized_username or not normalized_calendar_url:
@@ -1038,7 +1037,21 @@ def _resolve_legacy_apple_recovery_password(
         for item in legacy_recovery_hints.get("calendars", [])
     ):
         return ""
-    return str(operator_settings.get_legacy_apple_recovered_password() or "").strip()
+    recovered_password = operator_settings.get_legacy_apple_recovered_password()
+    if recovered_password:
+        return str(recovered_password).strip()
+    normalized_original_key = original_encryption_key.strip()
+    if not normalized_original_key:
+        return ""
+    recovered_password = operator_settings.get_legacy_apple_recovered_password(
+        original_encryption_key=normalized_original_key
+    )
+    if recovered_password:
+        return str(recovered_password).strip()
+    raise ValueError(
+        "Original CalSync encryption key could not decrypt the preserved Apple password. "
+        "Enter the right original key or paste a fresh app-specific password."
+    )
 
 
 def _build_pending_apple_validation_config(
@@ -1436,18 +1449,20 @@ def calendar_setup_update(
     apple_account_label: str = Form(""),
     apple_username: str = Form(""),
     apple_app_specific_password: str = Form(""),
+    apple_original_encryption_key: str = Form(""),
     apple_primary_calendar_url: str = Form(""),
     apple_primary_calendar_name: str = Form(""),
 ):
     operator_settings = OperatorSettingsService()
     legacy_recovery_hints = operator_settings.describe_legacy_apple_recovery_hints()
-    resolved_password = apple_app_specific_password.strip() or _resolve_legacy_apple_recovery_password(
-        operator_settings=operator_settings,
-        legacy_recovery_hints=legacy_recovery_hints,
-        apple_username=apple_username,
-        apple_primary_calendar_url=apple_primary_calendar_url,
-    )
     try:
+        resolved_password = apple_app_specific_password.strip() or _resolve_legacy_apple_recovery_password(
+            operator_settings=operator_settings,
+            legacy_recovery_hints=legacy_recovery_hints,
+            apple_username=apple_username,
+            apple_primary_calendar_url=apple_primary_calendar_url,
+            original_encryption_key=apple_original_encryption_key,
+        )
         operator_settings.set_apple_calendar_settings(
             account_label=apple_account_label,
             username=apple_username,
@@ -1489,6 +1504,7 @@ def calendar_setup_validate(
     apple_account_label: str = Form(""),
     apple_username: str = Form(""),
     apple_app_specific_password: str = Form(""),
+    apple_original_encryption_key: str = Form(""),
     apple_primary_calendar_url: str = Form(""),
     apple_primary_calendar_name: str = Form(""),
 ):
@@ -1497,12 +1513,6 @@ def calendar_setup_validate(
         operator_settings=operator_settings
     )
     legacy_recovery_hints = operator_settings.describe_legacy_apple_recovery_hints()
-    resolved_password = apple_app_specific_password.strip() or _resolve_legacy_apple_recovery_password(
-        operator_settings=operator_settings,
-        legacy_recovery_hints=legacy_recovery_hints,
-        apple_username=apple_username,
-        apple_primary_calendar_url=apple_primary_calendar_url,
-    )
     apple_settings = _build_pending_apple_setup_state(
         apple_account_label=apple_account_label,
         apple_username=apple_username,
@@ -1511,6 +1521,13 @@ def calendar_setup_validate(
         legacy_recovery_hints=legacy_recovery_hints,
     )
     try:
+        resolved_password = apple_app_specific_password.strip() or _resolve_legacy_apple_recovery_password(
+            operator_settings=operator_settings,
+            legacy_recovery_hints=legacy_recovery_hints,
+            apple_username=apple_username,
+            apple_primary_calendar_url=apple_primary_calendar_url,
+            original_encryption_key=apple_original_encryption_key,
+        )
         config = _build_pending_apple_validation_config(
             apple_account_label=apple_account_label,
             apple_username=apple_username,
