@@ -161,6 +161,7 @@ def test_readiness_service_points_to_apple_reconnect_when_legacy_hints_exist() -
     readiness = ReadinessService(settings=settings).build()
 
     assert readiness["origin"]["apple_ready"] is False
+    assert readiness["origin"]["recovery_mode"] is True
     assert (
         readiness["next_action"]
         == "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password so CalSync can reconnect the real household calendar."

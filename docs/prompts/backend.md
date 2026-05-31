@@ -652,6 +652,18 @@ Expected behavior:
 - simulator and live voice read intents should not fall back to stale local appointments, `I could not find...`, or `I could not find an opening...` when Apple reconnect is still the real blocker
 - blank-install disconnected states can keep more generic calendar-not-ready behavior when no recovery hint exists
 
+## Alexa Recovery Guidance-Intent Requirement
+
+- GitHub issue: `#104`
+- interpreted requirement: when the live deployment is in Apple recovery mode, Alexa launch, help, and fallback guidance should stop coaching blocked calendar reads or writes as if the household calendar were already usable
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no writable calendar is connected, LaunchRequest, `AMAZON.HelpIntent`, and `AMAZON.FallbackIntent` should all point to Apple reconnect and the need for a fresh app-specific password
+- the public simulator guidance intents should not keep coaching blocked create or read flows when Apple reconnect is still the real blocker
+- the Worker should rely on a safe recovery-mode readiness signal instead of guessing from raw provider error text
+- blank-install disconnected states can keep more generic calendar-not-ready guidance when no recovery hint exists
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

@@ -32,6 +32,7 @@ class ReadinessService:
         microsoft = self.microsoft_runtime_config.resolve()
         desired_alexa = self._load_desired_alexa_settings()
         operator_settings_footprint = self._load_operator_settings_footprint()
+        any_calendar_ready = bool(apple["ready"] or google["ready"] or microsoft["ready"])
         primary_account_label = (
             apple["account_label"]
             if apple["ready"]
@@ -50,7 +51,13 @@ class ReadinessService:
             "apple_ready": bool(apple["ready"]),
             "google_ready": bool(google["ready"]),
             "microsoft_ready": bool(microsoft["ready"]),
-            "any_calendar_ready": bool(apple["ready"] or google["ready"] or microsoft["ready"]),
+            "any_calendar_ready": any_calendar_ready,
+            "recovery_mode": bool(
+                not any_calendar_ready
+                and operator_settings_footprint.get(
+                    "has_legacy_apple_recovery_hints", False
+                )
+            ),
             "account_label": primary_account_label,
             "calendar_name": primary_calendar_name,
             "default_timezone": self.settings.default_timezone,

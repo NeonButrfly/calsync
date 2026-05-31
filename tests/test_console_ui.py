@@ -4247,6 +4247,77 @@ def test_alexa_simulator_page_points_to_apple_reconnect_when_recovery_hints_exis
     assert "Reschedule moves can target a named calendar after a writable calendar path is connected." not in response.text
 
 
+def test_alexa_simulator_run_points_guidance_intents_to_apple_reconnect_when_recovery_hints_exist(
+    monkeypatch,
+) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+
+    class ForbiddenAlexaSimulatorService:
+        def simulate(self, **_: object) -> dict[str, object]:
+            raise AssertionError("recovery-mode guidance intents should not call the edge simulator")
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.AlexaSimulatorService",
+        ForbiddenAlexaSimulatorService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    for request_type, intent_name in (
+        ("LaunchRequest", ""),
+        ("IntentRequest", "AMAZON.HelpIntent"),
+        ("IntentRequest", "AMAZON.FallbackIntent"),
+    ):
+        response = client.post(
+            "/alexa/simulator",
+            data={
+                "request_type": request_type,
+                "intent_name": intent_name,
+            },
+        )
+
+        assert response.status_code == 200
+        assert (
+            "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password so CalSync can reconnect the real household calendar."
+            in response.text
+        )
+
+
 def test_alexa_simulator_page_shows_simulated_response(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
 

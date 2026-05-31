@@ -73,6 +73,28 @@ function buildAccountLinkingValidationResponse(
   );
 }
 
+function buildReadinessResponse(
+  options?: {
+    anyCalendarReady?: boolean;
+    recoveryMode?: boolean;
+  },
+): Response {
+  return new Response(
+    JSON.stringify({
+      origin: {
+        any_calendar_ready: options?.anyCalendarReady ?? true,
+        recovery_mode: options?.recoveryMode ?? false,
+      },
+    }),
+    {
+      status: 200,
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+      },
+    },
+  );
+}
+
 describe("alexa worker adapter", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -81,10 +103,14 @@ describe("alexa worker adapter", () => {
 
   it("returns a welcome response for launch requests", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
-      expect(String(input)).toBe(
-        "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate",
-      );
-      return buildAccountLinkingValidationResponse();
+      const url = String(input);
+      if (url === "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate") {
+        return buildAccountLinkingValidationResponse();
+      }
+      if (url === "https://calsync.neonbutterfly.net/api/readiness") {
+        return buildReadinessResponse();
+      }
+      throw new Error(`Unexpected fetch ${url}`);
     });
     const request = buildAlexaRequest({
       session: {
@@ -103,7 +129,7 @@ describe("alexa worker adapter", () => {
     await waitOnExecutionContext(ctx);
 
     expect(alexaVerifierMock).toHaveBeenCalledOnce();
-    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       version: "1.0",
@@ -112,6 +138,51 @@ describe("alexa worker adapter", () => {
           text: expect.stringContaining("Welcome to CalSync"),
         },
         shouldEndSession: false,
+      },
+    });
+  });
+
+  it("returns Apple reconnect guidance for launch requests in recovery mode", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input) => {
+        const url = String(input);
+        if (url === "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate") {
+          return buildAccountLinkingValidationResponse();
+        }
+        if (url === "https://calsync.neonbutterfly.net/api/readiness") {
+          return buildReadinessResponse({
+            anyCalendarReady: false,
+            recoveryMode: true,
+          });
+        }
+        throw new Error(`Unexpected fetch ${url}`);
+      });
+    const request = buildAlexaRequest({
+      session: {
+        application: {
+          applicationId: "amzn1.ask.skill.test",
+        },
+      },
+      request: {
+        type: "LaunchRequest",
+        timestamp: new Date().toISOString(),
+      },
+    });
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, alexaEnv(), ctx);
+
+    await waitOnExecutionContext(ctx);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      response: {
+        outputSpeech: {
+          text: expect.stringContaining(
+            "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password",
+          ),
+        },
       },
     });
   });
@@ -178,6 +249,102 @@ describe("alexa worker adapter", () => {
     await expect(response.json()).resolves.toMatchObject({
       ok: false,
       message: "Alexa signature headers are required.",
+    });
+  });
+
+  it("returns Apple reconnect guidance for help intent in recovery mode", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input) => {
+        const url = String(input);
+        if (url === "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate") {
+          return buildAccountLinkingValidationResponse();
+        }
+        if (url === "https://calsync.neonbutterfly.net/api/readiness") {
+          return buildReadinessResponse({
+            anyCalendarReady: false,
+            recoveryMode: true,
+          });
+        }
+        throw new Error(`Unexpected fetch ${url}`);
+      });
+    const request = buildAlexaRequest({
+      session: {
+        application: {
+          applicationId: "amzn1.ask.skill.test",
+        },
+      },
+      request: {
+        type: "IntentRequest",
+        timestamp: new Date().toISOString(),
+        intent: {
+          name: "AMAZON.HelpIntent",
+        },
+      },
+    });
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, alexaEnv(), ctx);
+
+    await waitOnExecutionContext(ctx);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      response: {
+        outputSpeech: {
+          text: expect.stringContaining(
+            "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password",
+          ),
+        },
+      },
+    });
+  });
+
+  it("returns Apple reconnect guidance for fallback intent in recovery mode", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input) => {
+        const url = String(input);
+        if (url === "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate") {
+          return buildAccountLinkingValidationResponse();
+        }
+        if (url === "https://calsync.neonbutterfly.net/api/readiness") {
+          return buildReadinessResponse({
+            anyCalendarReady: false,
+            recoveryMode: true,
+          });
+        }
+        throw new Error(`Unexpected fetch ${url}`);
+      });
+    const request = buildAlexaRequest({
+      session: {
+        application: {
+          applicationId: "amzn1.ask.skill.test",
+        },
+      },
+      request: {
+        type: "IntentRequest",
+        timestamp: new Date().toISOString(),
+        intent: {
+          name: "AMAZON.FallbackIntent",
+        },
+      },
+    });
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, alexaEnv(), ctx);
+
+    await waitOnExecutionContext(ctx);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      response: {
+        outputSpeech: {
+          text: expect.stringContaining(
+            "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password",
+          ),
+        },
+      },
     });
   });
 

@@ -2432,21 +2432,33 @@ def alexa_simulator_run(
         "new_end_time": new_end_time,
         "new_calendar_name": new_calendar_name,
     }
-    try:
-        simulation_result = AlexaSimulatorService().simulate(
-            request_type=request_type,
-            intent_name=intent_name or None,
-            slots=slots,
-        )
-        error_message = None
-    except ValueError as exc:
-        simulation_result = None
-        error_message = str(exc)
     readiness = ReadinessService().build()
-    calendar_name_options = _calendar_name_options(service)
     legacy_apple_recovery_hints = (
         OperatorSettingsService().describe_legacy_apple_recovery_hints()
     )
+    recovery_mode = _alexa_recovery_mode(
+        readiness=readiness,
+        legacy_apple_recovery_hints=legacy_apple_recovery_hints,
+    )
+    if _should_use_alexa_recovery_guidance_intent(
+        request_type=request_type,
+        intent_name=intent_name or None,
+        recovery_mode=recovery_mode,
+    ):
+        simulation_result = _alexa_recovery_guidance_simulation_result()
+        error_message = None
+    else:
+        try:
+            simulation_result = AlexaSimulatorService().simulate(
+                request_type=request_type,
+                intent_name=intent_name or None,
+                slots=slots,
+            )
+            error_message = None
+        except ValueError as exc:
+            simulation_result = None
+            error_message = str(exc)
+    calendar_name_options = _calendar_name_options(service)
 
     return _templates.TemplateResponse(
         request,
@@ -2457,10 +2469,7 @@ def alexa_simulator_run(
             "simulator_state": _describe_alexa_simulator_state(
                 readiness=readiness,
                 calendar_name_options=calendar_name_options,
-                recovery_mode=_alexa_recovery_mode(
-                    readiness=readiness,
-                    legacy_apple_recovery_hints=legacy_apple_recovery_hints,
-                ),
+                recovery_mode=recovery_mode,
             ),
             "simulation_result": simulation_result,
             "error_message": error_message,
@@ -4174,6 +4183,48 @@ def _alexa_recovery_mode(
         not bool(origin.get("any_calendar_ready"))
         and str(legacy_apple_recovery_hints.get("source") or "missing") != "missing"
     )
+
+
+def _should_use_alexa_recovery_guidance_intent(
+    *,
+    request_type: str,
+    intent_name: str | None,
+    recovery_mode: bool,
+) -> bool:
+    if not recovery_mode:
+        return False
+    return request_type == "LaunchRequest" or intent_name in {
+        "AMAZON.HelpIntent",
+        "AMAZON.FallbackIntent",
+    }
+
+
+def _alexa_recovery_guidance_simulation_result() -> dict[str, object]:
+    speech = (
+        "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh "
+        "app-specific password so CalSync can reconnect the real household calendar."
+    )
+    return {
+        "ok": True,
+        "speech": speech,
+        "card_type": "Simple",
+        "should_end_session": False,
+        "raw_response": {
+            "version": "1.0",
+            "response": {
+                "outputSpeech": {
+                    "type": "PlainText",
+                    "text": speech,
+                },
+                "card": {
+                    "type": "Simple",
+                    "title": "CalSync",
+                    "content": speech,
+                },
+                "shouldEndSession": False,
+            },
+        },
+    }
 
 
 def _describe_alexa_simulator_state(

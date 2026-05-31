@@ -86,6 +86,16 @@ interface AlexaSpeechOptions {
   linkAccount?: boolean;
 }
 
+interface AlexaReadinessResponse {
+  origin?: {
+    any_calendar_ready?: boolean;
+    recovery_mode?: boolean;
+  };
+}
+
+const APPLE_RECOVERY_GUIDANCE =
+  "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password so CalSync can reconnect the real household calendar.";
+
 export async function handleAlexaRequest(
   request: Request,
   env: WorkerEnv,
@@ -166,6 +176,15 @@ async function dispatchAlexaPayload(
     }
   }
   if (requestType === "LaunchRequest") {
+    const recoveryMode = await isAppleRecoveryMode(env, requestId);
+    if (recoveryMode) {
+      return alexaResponse({
+        speech: APPLE_RECOVERY_GUIDANCE,
+        reprompt:
+          "Open Apple setup in CalSync, confirm the loaded recovered Apple calendar, and save a fresh app-specific password.",
+        shouldEndSession: false,
+      });
+    }
     return alexaResponse({
       speech:
         "Welcome to CalSync. You can ask what is on the calendar for a day, or create a new appointment.",
@@ -194,6 +213,12 @@ async function dispatchAlexaPayload(
 
   switch (intentName) {
     case "AMAZON.HelpIntent":
+      if (await isAppleRecoveryMode(env, requestId)) {
+        return alexaResponse({
+          speech: APPLE_RECOVERY_GUIDANCE,
+          shouldEndSession: false,
+        });
+      }
       return alexaResponse({
         speech:
           "You can say, create an appointment called dentist on June first at ten A M ending at eleven A M. You can also say, what appointments do I have on Monday.",
@@ -206,6 +231,12 @@ async function dispatchAlexaPayload(
         shouldEndSession: true,
       });
     case "AMAZON.FallbackIntent":
+      if (await isAppleRecoveryMode(env, requestId)) {
+        return alexaResponse({
+          speech: APPLE_RECOVERY_GUIDANCE,
+          shouldEndSession: false,
+        });
+      }
       return alexaResponse({
         speech:
           "I can help you create an appointment or read the calendar for a date.",
@@ -278,6 +309,27 @@ async function ensureLinkedAccount(
       speech: "CalSync could not verify account linking right now.",
       shouldEndSession: true,
     });
+  }
+}
+
+async function isAppleRecoveryMode(
+  env: WorkerEnv,
+  requestId: string,
+): Promise<boolean> {
+  try {
+    const originResponse = await callOriginJson(env, {
+      method: "GET",
+      path: "/api/readiness",
+      channel: "alexa",
+      requestId,
+    });
+    if (!originResponse.ok) {
+      return false;
+    }
+    const originBody = (await originResponse.json()) as AlexaReadinessResponse;
+    return Boolean(originBody.origin?.recovery_mode);
+  } catch {
+    return false;
   }
 }
 
