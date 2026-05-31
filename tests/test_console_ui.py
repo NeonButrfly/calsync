@@ -336,32 +336,32 @@ def test_console_root_points_to_original_key_recovery_when_preserved_secret_need
 
     assert response.status_code == 200
     assert (
-        "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password so CalSync can reconnect the real household calendar."
+        "Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password so CalSync can reconnect the real household calendar."
         in response.text
     )
     assert (
-        "Apple reconnect still blocks live schedule sync. Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before expecting a real household schedule here."
+        "Apple reconnect still blocks live schedule sync. Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password before expecting a real household schedule here."
         in response.text
     )
     assert (
-        "Apple reconnect still blocks write actions. Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before creating appointments from the schedule workspace."
+        "Apple reconnect still blocks write actions. Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password before creating appointments from the schedule workspace."
         in response.text
     )
     assert (
-        "Apple reconnect still blocks availability search. Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before searching for open time from the schedule workspace."
+        "Apple reconnect still blocks availability search. Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password before searching for open time from the schedule workspace."
         in response.text
     )
     assert (
-        "Apple reconnect still blocks appointment detail. Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before expecting appointment activity here."
+        "Apple reconnect still blocks appointment detail. Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password before expecting appointment activity here."
         in response.text
     )
     assert (
-        "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password to unlock create, edit, and cancel appointments."
+        "Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password to unlock create, edit, and cancel appointments."
         in response.text
     )
     assert "<strong>Calendar</strong>" in response.text
     assert (
-        "Recovered Apple target loaded in setup. Restore the original CalSync encryption key or save a fresh app-specific password."
+        "Recovered Apple target loaded in setup. Enter the original CalSync encryption key there or save a fresh app-specific password."
         in response.text
     )
     assert "No calendar selected" not in response.text
@@ -751,15 +751,15 @@ def test_booking_page_points_to_original_key_recovery_when_preserved_secret_need
     assert response.status_code == 200
     assert "Apple reconnect still needed" in response.text
     assert (
-        "Recovered Apple hints are ready. Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before this public booking flow can go live."
+        "Recovered Apple hints are ready. Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password before this public booking flow can go live."
         in response.text
     )
     assert (
-        "Apple reconnect still blocks public booking availability. Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before invitees can search for open time."
+        "Apple reconnect still blocks public booking availability. Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password before invitees can search for open time."
         in response.text
     )
     assert (
-        "Apple reconnect still blocks public booking. Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before invitees can request time."
+        "Apple reconnect still blocks public booking. Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password before invitees can request time."
         in response.text
     )
 
@@ -2194,7 +2194,7 @@ def test_alexa_setup_page_points_to_original_key_recovery_when_preserved_secret_
 
     assert response.status_code == 200
     assert (
-        "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
+        "Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
         in response.text
     )
     assert (
@@ -2350,15 +2350,15 @@ def test_connections_page_points_alexa_to_original_key_recovery_when_preserved_s
 
     assert response.status_code == 200
     assert (
-        "Recovered Apple hints are ready, but the preserved encrypted password needs the original CalSync encryption key. Open Apple setup and restore that key or enter a fresh app-specific password so Alexa has a real household schedule to read and write."
+        "Recovered Apple hints are ready, but the preserved encrypted password needs the original CalSync encryption key. Open Apple setup and enter that key there or enter a fresh app-specific password so Alexa has a real household schedule to read and write."
         in response.text
     )
     assert (
-        "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
+        "Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password, then save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
         in response.text
     )
     assert (
-        "<strong>Alexa:</strong> open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password, then save a household link code and Cloudflare Worker access from the Alexa setup page."
+        "<strong>Alexa:</strong> open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password, then save a household link code and Cloudflare Worker access from the Alexa setup page."
         in response.text
     )
 
@@ -2778,7 +2778,7 @@ def test_console_edit_page_points_to_original_key_recovery_when_preserved_secret
     assert edit_page.status_code == 400
     assert "Apple reconnect still blocks appointment editing." in edit_page.text
     assert (
-        "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before changing stale appointment rows."
+        "Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password before changing stale appointment rows."
         in edit_page.text
     )
 
@@ -5214,19 +5214,19 @@ def test_alexa_simulator_page_points_to_original_key_recovery_when_preserved_sec
     assert response.status_code == 200
     assert "Apple reconnect still blocks meaningful scheduling tests" in response.text
     assert (
-        "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password before expecting meaningful scheduling-intent results."
+        "Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password before expecting meaningful scheduling-intent results."
         in response.text
     )
     assert (
-        "Recovered Apple hints are already loaded into Apple setup. You can still preview LaunchRequest and the general voice shape, but scheduling intents become useful after you restore the original CalSync encryption key or save a fresh app-specific password on the recovered Apple calendar."
+        "Recovered Apple hints are already loaded into Apple setup. You can still preview LaunchRequest and the general voice shape, but scheduling intents become useful after you enter the original CalSync encryption key there or save a fresh app-specific password on the recovered Apple calendar."
         in response.text
     )
     assert (
-        "Open Apple setup, then restore the original CalSync encryption key or save a fresh app-specific password before named calendar targeting appears here."
+        "Open Apple setup, then enter the original CalSync encryption key there or save a fresh app-specific password before named calendar targeting appears here."
         in response.text
     )
     assert (
-        "Open Apple setup, then restore the original CalSync encryption key or save a fresh app-specific password before reschedule moves can target a named calendar here."
+        "Open Apple setup, then enter the original CalSync encryption key there or save a fresh app-specific password before reschedule moves can target a named calendar here."
         in response.text
     )
 

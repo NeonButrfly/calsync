@@ -1106,7 +1106,7 @@ def _describe_calendar_setup_source_card(
         if bool(legacy_recovery_hints.get("encrypted_secret_present")):
             return {
                 "label": "Recovered hint loaded",
-                "detail": "The recommended recovered Apple calendar is already loaded into setup, but the preserved encrypted password needs the original CalSync encryption key. Restore that key or enter a fresh app-specific password to reconnect.",
+                "detail": "The recommended recovered Apple calendar is already loaded into setup, but the preserved encrypted password needs the original CalSync encryption key. Enter that key below or enter a fresh app-specific password to reconnect.",
             }
         return {
             "label": "Recovered hint loaded",
@@ -1121,7 +1121,7 @@ def _describe_calendar_setup_source_card(
         if bool(legacy_recovery_hints.get("encrypted_secret_present")):
             return {
                 "label": "Recovered hint available",
-                "detail": "Legacy Apple backup hints are ready, but the preserved encrypted password needs the original CalSync encryption key. Open Apple setup and restore that key or enter a fresh app-specific password.",
+                "detail": "Legacy Apple backup hints are ready, but the preserved encrypted password needs the original CalSync encryption key. Open Apple setup and enter that key there or enter a fresh app-specific password.",
             }
         return {
             "label": "Recovered hint available",
@@ -3294,8 +3294,8 @@ def _root_target_card_labels(
         )
     elif bool(legacy_apple_recovery_hints.get("encrypted_secret_present")):
         account_label = (
-            "Recovered Apple target loaded in setup. Restore the original CalSync "
-            "encryption key or save a fresh app-specific password."
+            "Recovered Apple target loaded in setup. Enter the original CalSync "
+            "encryption key there or save a fresh app-specific password."
         )
     else:
         account_label = (
@@ -3963,7 +3963,7 @@ def _build_connections_context(
                 else (
                     "Recovered Apple hints are ready, and the preserved encrypted password is reusable with the current CalSync key. Open Apple setup to validate or save the loaded reconnect path."
                     if legacy_apple_recovery_hints.get("can_reuse_saved_password")
-                    else "Recovered Apple hints are ready, but the preserved encrypted password needs the original CalSync encryption key. Open Apple setup and restore that key or enter a fresh app-specific password."
+                    else "Recovered Apple hints are ready, but the preserved encrypted password needs the original CalSync encryption key. Open Apple setup and enter that key there or enter a fresh app-specific password."
                     if legacy_apple_recovery_hints.get("encrypted_secret_present")
                     else "Recovered Apple hints are ready. Apple setup already opens with the recommended calendar loaded, so add a fresh app-specific password and save."
                     if legacy_apple_recovery_hints.get("source") != "missing"
@@ -4607,8 +4607,8 @@ def _describe_alexa_apple_recovery_action(
             "Open Apple setup and validate or save the loaded recovered calendar"
         )
     elif bool(legacy_apple_recovery_hints.get("encrypted_secret_present")):
-        action = (
-            "Open Apple setup, then either restore the original CalSync encryption key "
+                action = (
+            "Open Apple setup, then either enter the original CalSync encryption key there "
             "or save a fresh app-specific password"
         )
     else:
@@ -4634,7 +4634,7 @@ def _describe_alexa_apple_recovery_guidance_speech(
         )
     if bool(legacy_apple_recovery_hints.get("encrypted_secret_present")):
         return (
-            "Open Apple setup, then either restore the original CalSync encryption key "
+            "Open Apple setup, then either enter the original CalSync encryption key there "
             "or save a fresh app-specific password so CalSync can reconnect the real "
             "household calendar."
         )
@@ -4658,7 +4658,7 @@ def _describe_alexa_simulator_recovery_detail(
         return (
             "Recovered Apple hints are already loaded into Apple setup. You can still "
             "preview LaunchRequest and the general voice shape, but scheduling intents "
-            "become useful after you restore the original CalSync encryption key or save "
+            "become useful after you enter the original CalSync encryption key there or save "
             "a fresh app-specific password on the recovered Apple calendar."
         )
     return (
@@ -4678,7 +4678,7 @@ def _describe_alexa_simulator_selector_guidance(
         action = "validate or save the loaded recovered calendar"
     elif bool(legacy_apple_recovery_hints.get("encrypted_secret_present")):
         action = (
-            "restore the original CalSync encryption key or save a fresh app-specific "
+            "enter the original CalSync encryption key there or save a fresh app-specific "
             "password"
         )
     else:

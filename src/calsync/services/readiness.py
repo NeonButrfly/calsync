@@ -194,7 +194,7 @@ class ReadinessService:
                     operator_settings_footprint.get("legacy_apple_secret_status")
                     == "needs_original_key"
                 ):
-                    return "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password so CalSync can reconnect the real household calendar."
+                    return "Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password so CalSync can reconnect the real household calendar."
                 return "Open Apple setup, confirm the loaded recovered Apple calendar, and save a fresh app-specific password so CalSync can reconnect the real household calendar."
             if operator_settings_footprint.get(
                 "has_saved_non_provider_state", False

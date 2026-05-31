@@ -239,7 +239,7 @@ def test_readiness_service_mentions_original_key_when_legacy_secret_mismatches()
 
     assert (
         readiness["next_action"]
-        == "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password so CalSync can reconnect the real household calendar."
+        == "Open Apple setup, then either enter the original CalSync encryption key there or save a fresh app-specific password so CalSync can reconnect the real household calendar."
     )
 
 

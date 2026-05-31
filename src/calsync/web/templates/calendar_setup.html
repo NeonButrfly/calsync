@@ -118,9 +118,9 @@
                   {% elif legacy_recovery_hints.can_reuse_saved_password %}
                   The recovered Apple account, calendar, and encrypted password are already loaded below. Validate or save to reconnect, or paste a fresh app-specific password to replace the recovered one.
                   {% elif legacy_recovery_hints.encrypted_secret_present and recommended_recovered_hint_loaded %}
-                  The recommended recovered Apple account and calendar hint are already loaded below, but the preserved encrypted password needs the original CalSync encryption key. Restore that key or add a fresh app-specific password to reconnect this calendar path for real.
+                  The recommended recovered Apple account and calendar hint are already loaded below, but the preserved encrypted password needs the original CalSync encryption key. Enter that key below or add a fresh app-specific password to reconnect this calendar path for real.
                   {% elif legacy_recovery_hints.encrypted_secret_present %}
-                  The recovered Apple account and calendar hint are already loaded below, but the preserved encrypted password needs the original CalSync encryption key. Restore that key or add a fresh app-specific password to reconnect this calendar path for real.
+                  The recovered Apple account and calendar hint are already loaded below, but the preserved encrypted password needs the original CalSync encryption key. Enter that key below or add a fresh app-specific password to reconnect this calendar path for real.
                   <br />
                   You can paste the original CalSync encryption key below for one-time secret recovery without changing the live deployment key.
                   {% elif recommended_recovered_hint_loaded %}

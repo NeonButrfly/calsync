@@ -1830,5 +1830,5 @@ def test_create_appointment_points_to_original_key_recovery_when_preserved_secre
     assert response.status_code == 400
     assert (
         response.json()["detail"]
-        == "Apple reconnect still needs one more step. Open Apple setup in CalSync, then either restore the original CalSync encryption key or save a fresh app-specific password before I can help with the household calendar."
+        == "Apple reconnect still needs one more step. Open Apple setup in CalSync, then either enter the original CalSync encryption key there or save a fresh app-specific password before I can help with the household calendar."
     )

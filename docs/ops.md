@@ -597,6 +597,8 @@ Recovery note:
 - legacy Apple encrypted-secret recovery diagnostics now show on `/calendar/setup`, `/connections`, and shared readiness guidance whether the preserved Apple password is reusable with the current key or still needs the original key
 - issue `#113`
 - `/calendar/setup` now also accepts a one-time original CalSync encryption key so operators can recover a preserved Apple app-specific password from a legacy backup and re-save it under the current deployment key
+- issue `#114`
+- recovery-aware product messaging now points operators to enter that original key on Apple setup instead of implying the deployment key itself must be restored globally first
 - issue `#109`
 - Alexa setup, the Connections Alexa panel, and the Alexa simulator now mirror that same legacy Apple encrypted-secret recovery state instead of falling back to fresh-password-only guidance
 - issue `#110`

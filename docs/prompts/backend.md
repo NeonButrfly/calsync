@@ -1061,6 +1061,17 @@ Expected behavior:
 - `POST /calendar/setup` should accept that original key, decrypt the preserved Apple secret if the key is correct, and save the Apple account by re-encrypting the recovered password under the current deployment key
 - if the supplied original key is wrong, Apple setup should return a clear recovery-specific error instead of falling back to the generic missing-password error
 
+## Original-Key Recovery Guidance Requirement
+
+- GitHub issue: `#114`
+- interpreted requirement: once Apple setup supports one-time original-key recovery, recovery-mode guidance should stop implying that operators must globally restore the deployment encryption key
+
+Expected behavior:
+
+- original-key-needed recovery guidance should tell operators to open Apple setup and enter the original CalSync encryption key there, or save a fresh app-specific password
+- that wording should flow consistently through shared readiness, blocked root and booking messaging, recovery-mode appointment API responses, Alexa setup, Connections, and the Alexa simulator
+- Apple setup can still use more specific local wording like `Enter that key below` because the form field lives on that page
+
 ## Alexa Encrypted Secret Recovery Guidance Requirement
 
 - GitHub issue: `#109`
