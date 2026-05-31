@@ -627,6 +627,17 @@ Expected behavior:
 - in that same state, the blocked response should not fall back to `Primary Apple/iCloud calendar is not configured.`
 - when no recovery hint exists, blocked direct appointment-create responses can keep the more generic `Connect a writable calendar before creating appointments from the schedule workspace.` wording
 
+## Alexa Recovery Scheduling Error Requirement
+
+- GitHub issue: `#102`
+- interpreted requirement: when the live deployment is in Apple recovery mode, blocked Alexa scheduling intents should stop speaking the raw Apple config error
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no writable calendar is connected, blocked Alexa scheduling intents should point to Apple reconnect and the need for a fresh app-specific password
+- in that same state, simulator and live voice scheduling responses should not fall back to `Primary Apple/iCloud calendar is not configured.`
+- blank-install disconnected states can keep more generic calendar-not-ready voice guidance when no recovery hint exists
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

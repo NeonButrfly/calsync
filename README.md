@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, `#73`, `#76`, `#77`, `#78`, `#79`, `#80`, `#81`, `#82`, `#83`, `#84`, `#85`, `#86`, `#87`, `#88`, `#89`, `#90`, `#91`, `#92`, `#93`, `#94`, `#95`, `#96`, `#97`, `#98`, `#99`, `#100`, and `#101` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, `#73`, `#76`, `#77`, `#78`, `#79`, `#80`, `#81`, `#82`, `#83`, `#84`, `#85`, `#86`, `#87`, `#88`, `#89`, `#90`, `#91`, `#92`, `#93`, `#94`, `#95`, `#96`, `#97`, `#98`, `#99`, `#100`, `#101`, and `#102` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -104,6 +104,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - recovery-aware public booking guidance on `/book`, so blocked invitee-facing booking states now point to Apple reconnect instead of blank-install no-calendar wording when legacy hints already exist
 - recovery-aware public booking submit errors, so blocked direct booking requests now point to Apple reconnect instead of a stale generic no-target error when legacy hints already exist
 - recovery-aware root appointment submit errors, so blocked direct schedule-workspace create requests now point to Apple reconnect instead of a raw Apple config error when legacy hints already exist
+- recovery-aware Alexa scheduling errors, so blocked simulator and voice scheduling intents now point to Apple reconnect instead of speaking a raw Apple config error when legacy hints already exist
 - a first availability finder across the workspace, edge API, and Alexa so CalSync can suggest open appointment windows instead of only listing busy ones
 
 ### Endpoints
@@ -200,6 +201,7 @@ The root page now acts as the first family scheduling UX:
 - that public booking flow now also aligns its blocked availability, request, and target-card copy with Apple reconnect when legacy recovery hints already exist
 - that public booking flow now also aligns blocked direct submit errors with Apple reconnect when legacy recovery hints already exist
 - that root schedule workspace now also aligns blocked direct appointment-create submit errors with Apple reconnect when legacy recovery hints already exist
+- that Alexa scheduling intents now also align blocked recovery-mode voice errors with Apple reconnect when legacy recovery hints already exist
 - that booking setup now also blocks its save and create actions clearly when no writable calendar is connected, so operators do not accidentally save disconnected public-booking defaults
 - that booking setup flow now supports multiple named booking types, each with its own public slug and shareable invitee-facing URL
 - that default `/book` route now becomes a booking-type chooser when multiple public booking types exist, while keeping direct `/book/{slug}` links for focused flows
@@ -425,6 +427,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Align public booking recovery guidance with Apple reconnect: issue `#99`
 - Align public booking submit errors with Apple reconnect: issue `#100`
 - Align root appointment submit errors with Apple reconnect: issue `#101`
+- Align Alexa recovery-mode scheduling errors with Apple reconnect: issue `#102`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

@@ -254,6 +254,67 @@ describe("alexa worker adapter", () => {
     });
   });
 
+  it("normalizes Apple recovery errors for create intent", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input) => {
+        if (
+          String(input) ===
+          "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate"
+        ) {
+          return buildAccountLinkingValidationResponse();
+        }
+
+        return new Response(
+          JSON.stringify({
+            message: "Primary Apple/iCloud calendar is not configured.",
+          }),
+          {
+            status: 400,
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+            },
+          },
+        );
+      });
+    const request = buildAlexaRequest({
+      session: {
+        application: {
+          applicationId: "amzn1.ask.skill.test",
+        },
+      },
+      request: {
+        type: "IntentRequest",
+        timestamp: new Date().toISOString(),
+        intent: {
+          name: "CreateAppointmentIntent",
+          slots: {
+            title: { value: "Dentist" },
+            date: { value: "2026-06-01" },
+            start_time: { value: "10:00" },
+            end_time: { value: "11:00" },
+          },
+        },
+      },
+    });
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, alexaEnv(), ctx);
+
+    await waitOnExecutionContext(ctx);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      response: {
+        outputSpeech: {
+          text: expect.stringContaining(
+            "Apple reconnect still needs one more step.",
+          ),
+        },
+      },
+    });
+  });
+
   it("lists appointments for a requested date", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
@@ -482,6 +543,65 @@ describe("alexa worker adapter", () => {
         outputSpeech: {
           text: expect.stringContaining(
             "I found openings on Tuesday, June 2, 2026 at 10:00 AM and 11:00 AM",
+          ),
+        },
+      },
+    });
+  });
+
+  it("normalizes Apple recovery errors for availability intent", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input) => {
+        if (
+          String(input) ===
+          "https://calsync.neonbutterfly.net/api/alexa/account-linking/validate"
+        ) {
+          return buildAccountLinkingValidationResponse();
+        }
+
+        return new Response(
+          JSON.stringify({
+            message: "Primary Apple/iCloud calendar is not configured.",
+          }),
+          {
+            status: 400,
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+            },
+          },
+        );
+      });
+    const request = buildAlexaRequest({
+      session: {
+        application: {
+          applicationId: "amzn1.ask.skill.test",
+        },
+      },
+      request: {
+        type: "IntentRequest",
+        timestamp: new Date().toISOString(),
+        intent: {
+          name: "FindAvailabilityIntent",
+          slots: {
+            date: { value: "2026-06-02" },
+            duration_minutes: { value: "60" },
+          },
+        },
+      },
+    });
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, alexaEnv(), ctx);
+
+    await waitOnExecutionContext(ctx);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      response: {
+        outputSpeech: {
+          text: expect.stringContaining(
+            "Apple reconnect still needs one more step.",
           ),
         },
       },

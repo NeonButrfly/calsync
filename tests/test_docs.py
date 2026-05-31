@@ -68,6 +68,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#99" in readme_content
     assert "#100" in readme_content
     assert "#101" in readme_content
+    assert "#102" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -173,6 +174,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "recovery-aware public booking guidance on `/book`" in readme_content
     assert "recovery-aware public booking submit errors" in readme_content
     assert "recovery-aware root appointment submit errors" in readme_content
+    assert "recovery-aware alexa scheduling errors" in readme_content
     assert "voice-specific next guidance on alexa-focused setup surfaces" in readme_content
     assert "shared alexa account-linking readiness on `/connections`" in readme_content
     assert "an account-linking row in alexa step 4" in readme_content
@@ -191,6 +193,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "public booking flow now also aligns its blocked availability, request, and target-card copy with apple reconnect when legacy recovery hints already exist" in readme_content
     assert "public booking flow now also aligns blocked direct submit errors with apple reconnect when legacy recovery hints already exist" in readme_content
     assert "root schedule workspace now also aligns blocked direct appointment-create submit errors with apple reconnect when legacy recovery hints already exist" in readme_content
+    assert "alexa scheduling intents now also align blocked recovery-mode voice errors with apple reconnect when legacy recovery hints already exist" in readme_content
     assert "root workspace now also blocks the empty schedule board and detail panel clearly when no writable calendar is connected" in readme_content
     assert "disconnected root workspace now also blocks stale hero stats, next-up copy, and selected appointment detail" in readme_content
     assert "apple setup page now also stays truthful when no apple account exists" in readme_content
@@ -266,6 +269,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#99" in ops_content
     assert "#100" in ops_content
     assert "#101" in ops_content
+    assert "#102" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -346,6 +350,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "keeps the public booking page aligned with that same apple recovery flow" in ops_content
     assert "keeps blocked public booking submit responses aligned with that same apple recovery flow" in ops_content
     assert "keeps blocked root appointment-create submit responses aligned with that same apple recovery flow" in ops_content
+    assert "keeps blocked alexa scheduling responses aligned with that same apple recovery flow" in ops_content
     assert "voice-specific next guidance for alexa setup and connections voice panels" in ops_content
     assert "exposes alexa account-linking readiness on `/connections`" in ops_content
     assert "keeps the shared alexa desired-settings card on `/connections` truthful" in ops_content
@@ -566,6 +571,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "public booking recovery guidance requirement" in prompt_content
     assert "public booking submit error requirement" in prompt_content
     assert "root appointment submit error requirement" in prompt_content
+    assert "alexa recovery scheduling error requirement" in prompt_content
     assert "root no-calendar schedule-sync requirement" in prompt_content
     assert "apple setup no-account truthfulness requirement" in prompt_content
     assert "should not show broken helper copy or capability language that overstates the currently connected live state" in prompt_content
@@ -607,6 +613,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "blocked `post /book/{slug}` responses should use that same apple reconnect submit guidance" in prompt_content
     assert "when legacy apple recovery hints exist and no writable calendar is connected, blocked `post /appointments` responses should say apple reconnect still blocks write actions" in prompt_content
     assert "the blocked response should not fall back to `primary apple/icloud calendar is not configured.`" in prompt_content
+    assert "when legacy apple recovery hints exist and no writable calendar is connected, blocked alexa scheduling intents should point to apple reconnect and the need for a fresh app-specific password" in prompt_content
+    assert "simulator and live voice scheduling responses should not fall back to `primary apple/icloud calendar is not configured.`" in prompt_content
     assert "when `any_calendar_ready` is false, the root workspace should keep the hero summary in a clearly blocked state instead of showing stale appointment counts or a stale next-up appointment" in prompt_content
     assert "the alexa voice panel on `/connections` should show whether account linking is ready or still needs setup" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit account-linking readiness row" in prompt_content

@@ -281,6 +281,21 @@ async function ensureLinkedAccount(
   }
 }
 
+function normalizeSchedulingErrorSpeech(
+  message: string | undefined,
+  fallback: string,
+): string {
+  const normalized = (message ?? "").trim();
+  if (
+    normalized === "Primary Apple/iCloud calendar is not configured." ||
+    normalized === "Apple/iCloud calendar settings are incomplete." ||
+    normalized === "Appointment calendar connection not found."
+  ) {
+    return "Apple reconnect still needs one more step. Open Apple setup in CalSync, confirm the recovered calendar, and save a fresh app-specific password before I can help with the household calendar.";
+  }
+  return normalized || fallback;
+}
+
 async function handleCreateIntent(
   payload: AlexaEnvelope,
   env: WorkerEnv,
@@ -335,10 +350,10 @@ async function handleCreateIntent(
     };
     if (!originResponse.ok) {
       return alexaResponse({
-        speech:
-          originBody.message ??
-          originBody.detail ??
+        speech: normalizeSchedulingErrorSpeech(
+          originBody.message ?? originBody.detail,
           "I could not create that appointment.",
+        ),
         shouldEndSession: true,
       });
     }
@@ -378,10 +393,10 @@ async function handleFindAvailabilityIntent(
     const originBody = (await originResponse.json()) as AlexaAvailabilityResponse;
     if (!originResponse.ok) {
       return alexaResponse({
-        speech:
-          originBody.message ??
-          originBody.detail ??
+        speech: normalizeSchedulingErrorSpeech(
+          originBody.message ?? originBody.detail,
           "I could not look up availability right now.",
+        ),
         shouldEndSession: true,
       });
     }
@@ -433,10 +448,10 @@ async function handleListIntent(
     };
     if (!originResponse.ok) {
       return alexaResponse({
-        speech:
-          originBody.message ??
-          originBody.detail ??
+        speech: normalizeSchedulingErrorSpeech(
+          originBody.message ?? originBody.detail,
           "I could not look up that date right now.",
+        ),
         shouldEndSession: true,
       });
     }
@@ -488,10 +503,10 @@ async function handleNextAppointmentIntent(
     };
     if (!originResponse.ok) {
       return alexaResponse({
-        speech:
-          originBody.message ??
-          originBody.detail ??
+        speech: normalizeSchedulingErrorSpeech(
+          originBody.message ?? originBody.detail,
           "I could not look up your next appointment right now.",
+        ),
         shouldEndSession: true,
       });
     }
@@ -559,10 +574,10 @@ async function handleCancelIntent(
     };
     if (!originResponse.ok) {
       return alexaResponse({
-        speech:
-          originBody.message ??
-          originBody.detail ??
+        speech: normalizeSchedulingErrorSpeech(
+          originBody.message ?? originBody.detail,
           "I could not cancel that appointment right now.",
+        ),
         shouldEndSession: true,
       });
     }
@@ -651,10 +666,10 @@ async function handleRescheduleIntent(
     };
     if (!originResponse.ok) {
       return alexaResponse({
-        speech:
-          originBody.message ??
-          originBody.detail ??
+        speech: normalizeSchedulingErrorSpeech(
+          originBody.message ?? originBody.detail,
           "I could not move that appointment right now.",
+        ),
         shouldEndSession: true,
       });
     }
@@ -692,10 +707,10 @@ async function findMatchingAppointment(
     if (!originResponse.ok) {
       return {
         response: alexaResponse({
-          speech:
-            originBody.message ??
-            originBody.detail ??
+          speech: normalizeSchedulingErrorSpeech(
+            originBody.message ?? originBody.detail,
             "I could not look up that date right now.",
+          ),
           shouldEndSession: true,
         }),
       };
@@ -767,10 +782,10 @@ async function fetchAppointmentDetail(
     if (!originResponse.ok) {
       return {
         response: alexaResponse({
-          speech:
-            originBody.message ??
-            originBody.detail ??
+          speech: normalizeSchedulingErrorSpeech(
+            originBody.message ?? originBody.detail,
             "I could not read that appointment right now.",
+          ),
           shouldEndSession: true,
         }),
       };
