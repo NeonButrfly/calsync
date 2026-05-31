@@ -1072,6 +1072,18 @@ Expected behavior:
 - recovery-mode public booking and booking-setup messages should point to the original CalSync encryption key when that is the real current blocker
 - recovery-mode appointment API responses should use the same reusable-versus-original-key distinction instead of only saying to confirm the recovered calendar and save a fresh password
 
+## Root Default Target Recovery Requirement
+
+- GitHub issue: `#111`
+- interpreted requirement: when legacy Apple recovery hints exist and the recommended recovered calendar is already loaded into Apple setup, the root workspace should stop reading like an empty target state
+
+Expected behavior:
+
+- if a writable calendar is truly connected, the root target card should keep showing the live connected target
+- if no writable calendar is connected and no legacy Apple recovery hints exist, the root target card may continue to say `No calendar selected`
+- if no writable calendar is connected and legacy Apple recovery hints exist, the root target card should show the recommended recovered Apple calendar name instead of `No calendar selected`
+- in the original-key-needed recovery branch, that same target card should explain that the recovered Apple target is already loaded in setup and still needs the original CalSync encryption key or a fresh app-specific password
+
 ## Root Workspace Stale Detail Blocking Requirement
 
 - GitHub issue: `#83`

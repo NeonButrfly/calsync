@@ -359,6 +359,13 @@ def test_console_root_points_to_original_key_recovery_when_preserved_secret_need
         "Open Apple setup, then either restore the original CalSync encryption key or save a fresh app-specific password to unlock create, edit, and cancel appointments."
         in response.text
     )
+    assert "<strong>Calendar</strong>" in response.text
+    assert (
+        "Recovered Apple target loaded in setup. Restore the original CalSync encryption key or save a fresh app-specific password."
+        in response.text
+    )
+    assert "No calendar selected" not in response.text
+    assert "Not connected" not in response.text
 
 
 def test_console_create_submit_rejects_without_calendar_target(

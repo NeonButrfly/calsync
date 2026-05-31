@@ -3080,6 +3080,11 @@ def _build_console_context(
         not schedule_ready
         and str(legacy_recovery_hints.get("source") or "missing") != "missing"
     )
+    calendar_label, account_label = _root_target_card_labels(
+        service,
+        legacy_apple_recovery_hints=legacy_recovery_hints,
+        recovery_mode=root_recovery_mode,
+    )
     return {
         "request": request,
         "flash_message": flash_message,
@@ -3141,8 +3146,8 @@ def _build_console_context(
         "availability_results": _serialize_availability_results(availability_results),
         "availability_error": availability_error,
         "availability_searched": availability_searched,
-        "calendar_label": service.display_calendar_name,
-        "account_label": service.display_account_label,
+        "calendar_label": calendar_label,
+        "account_label": account_label,
         "calendar_options": calendar_options,
         "selected_window": selected_window,
         "show_cancelled": show_cancelled,
@@ -3240,6 +3245,39 @@ def _describe_non_alexa_recovery_action(
     legacy_apple_recovery_hints: dict[str, object],
 ) -> str:
     return describe_legacy_apple_recovery_action(legacy_apple_recovery_hints)
+
+
+def _root_target_card_labels(
+    service: AppointmentService,
+    *,
+    legacy_apple_recovery_hints: dict[str, object],
+    recovery_mode: bool,
+) -> tuple[str, str]:
+    if not recovery_mode:
+        return service.display_calendar_name, service.display_account_label
+
+    recommended_name = str(
+        legacy_apple_recovery_hints.get("recommended_calendar_name")
+        or legacy_apple_recovery_hints.get("calendar_name")
+        or ""
+    ).strip()
+    calendar_label = recommended_name or "Recovered Apple target"
+
+    if bool(legacy_apple_recovery_hints.get("can_reuse_saved_password")):
+        account_label = (
+            "Recovered Apple target loaded in setup. Validate or save to reconnect."
+        )
+    elif bool(legacy_apple_recovery_hints.get("encrypted_secret_present")):
+        account_label = (
+            "Recovered Apple target loaded in setup. Restore the original CalSync "
+            "encryption key or save a fresh app-specific password."
+        )
+    else:
+        account_label = (
+            "Recovered Apple target loaded in setup. Save a fresh app-specific "
+            "password to reconnect."
+        )
+    return calendar_label, account_label
 
 
 def _describe_booking_setup_block_message(
