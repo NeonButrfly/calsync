@@ -129,7 +129,7 @@
                   {% endfor %}
                 </select>
                 {% if not calendar_name_options %}
-                <small>Named calendar targeting will appear here after Apple, Google, or Microsoft setup is connected.</small>
+                <small>{% if simulator_state.recovery_mode %}Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before named calendar targeting appears here.{% else %}Named calendar targeting will appear here after Apple, Google, or Microsoft setup is connected.{% endif %}</small>
                 {% endif %}
               </label>
               <div class="two-up">
@@ -165,7 +165,7 @@
                   {% endfor %}
                 </select>
                 {% if not calendar_name_options %}
-                <small>Reschedule moves can target a named calendar after a writable calendar path is connected.</small>
+                <small>{% if simulator_state.recovery_mode %}Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before reschedule moves can target a named calendar here.{% else %}Reschedule moves can target a named calendar after a writable calendar path is connected.{% endif %}</small>
                 {% endif %}
               </label>
               <button type="submit">Run simulation</button>

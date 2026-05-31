@@ -582,6 +582,17 @@ Expected behavior:
 - the simulator readiness panel should expose direct operator actions into Apple setup and Connections in that recovery-shaped state
 - when no recovery hint exists, the simulator can keep the more generic missing-calendar wording used for a blank-install disconnected state
 
+## Alexa Simulator Selector Guidance Requirement
+
+- GitHub issue: `#98`
+- interpreted requirement: when the live deployment is in Apple recovery mode, the empty named-calendar helper text on the Alexa simulator should stop using blank-install setup wording
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no writable calendar is connected, the empty `Target calendar` helper copy on `GET /alexa/simulator` should tell operators to open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before named calendar targeting appears
+- in that same state, the empty `New calendar` helper copy on `GET /alexa/simulator` should tell operators to open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before reschedule moves can target a named calendar there
+- when no recovery hint exists, those empty selector helper lines can keep the more generic blank-install wording about named calendar targeting appearing after provider setup is connected
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

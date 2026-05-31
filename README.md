@@ -24,7 +24,7 @@ The previous full CalSync application was preserved on the `legacy/pre-chatgpt-b
 
 ## Current service slice
 
-Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, `#73`, `#76`, `#77`, `#78`, `#79`, `#80`, `#81`, `#82`, `#83`, `#84`, `#85`, `#86`, `#87`, `#88`, `#89`, `#90`, `#91`, `#92`, `#93`, `#94`, `#95`, `#96`, and `#97` are now backed by:
+Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43`, `#45`, `#46`, `#47`, `#48`, `#49`, `#50`, `#51`, `#52`, `#53`, `#54`, `#55`, `#56`, `#57`, `#58`, `#59`, `#60`, `#61`, `#62`, `#63`, `#64`, `#65`, `#66`, `#67`, `#68`, `#69`, `#70`, `#71`, `#72`, `#73`, `#76`, `#77`, `#78`, `#79`, `#80`, `#81`, `#82`, `#83`, `#84`, `#85`, `#86`, `#87`, `#88`, `#89`, `#90`, `#91`, `#92`, `#93`, `#94`, `#95`, `#96`, `#97`, and `#98` are now backed by:
 
 - FastAPI runtime on port `3080`
 - Postgres-backed local appointment storage
@@ -100,6 +100,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - truthful Google and Microsoft next-action summaries on `/connections`, so the shared finish-line panel now says to save the shared OAuth app first when browser connect is not actually available yet
 - a simulator readiness summary for no-calendar voice testing states, so `/alexa/simulator` explains when LaunchRequest is still useful and why scheduling-intent tests are still blocked
 - recovery-aware simulator readiness guidance on `/alexa/simulator`, so the voice testing page now points operators to Apple reconnect instead of falling back to blank-install no-calendar wording when legacy hints already exist
+- recovery-aware Alexa simulator selector guidance on `/alexa/simulator`, so empty target-calendar and reschedule-calendar helper text now points to Apple reconnect instead of blank-install setup wording when legacy hints already exist
 - a first availability finder across the workspace, edge API, and Alexa so CalSync can suggest open appointment windows instead of only listing busy ones
 
 ### Endpoints
@@ -202,6 +203,7 @@ The root page now acts as the first family scheduling UX:
 - a first in-product Cloudflare access form that stores Worker-management credentials securely in the product vault
 - a first in-product Alexa edge-settings form that can always save the desired Alexa state in the product vault, then apply Worker Alexa flags live when Cloudflare worker-management permission is configured
 - a first in-product Alexa simulator page that previews real voice responses before the final Amazon console turn-on
+- that Alexa simulator now also keeps its empty target-calendar and reschedule-calendar helper copy aligned with the Apple recovery path when legacy hints already exist
 
 ### Worker routes
 
@@ -413,6 +415,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Align booking setup recovery guidance end to end: issue `#95`
 - Align workspace capability summary with Apple reconnect: issue `#96`
 - Align Alexa simulator readiness with Apple reconnect: issue `#97`
+- Align Alexa simulator selector guidance with Apple reconnect: issue `#98`
 - Fix workspace planner copy regression and live capability messaging: issue `#62`
 - First family scheduling UX: issue `#39`
 - Scheduling workspace polish: issue `#40`

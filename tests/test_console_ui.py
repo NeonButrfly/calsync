@@ -3872,9 +3872,19 @@ def test_alexa_simulator_page_points_to_apple_reconnect_when_recovery_hints_exis
         "Recovered Apple hints are already loaded into Apple setup. You can still preview LaunchRequest and the general voice shape, but scheduling intents become useful after you save a fresh app-specific password on the recovered Apple calendar."
         in response.text
     )
+    assert (
+        "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before named calendar targeting appears here."
+        in response.text
+    )
+    assert (
+        "Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before reschedule moves can target a named calendar here."
+        in response.text
+    )
     assert '<a class="text-action" href="/calendar/setup">Open Apple setup</a>' in response.text
     assert "Calendar setup still blocks meaningful scheduling tests" not in response.text
     assert "No writable calendar is connected yet." not in response.text
+    assert "Named calendar targeting will appear here after Apple, Google, or Microsoft setup is connected." not in response.text
+    assert "Reschedule moves can target a named calendar after a writable calendar path is connected." not in response.text
 
 
 def test_alexa_simulator_page_shows_simulated_response(monkeypatch) -> None:

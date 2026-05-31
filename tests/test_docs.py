@@ -64,6 +64,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#95" in readme_content
     assert "#96" in readme_content
     assert "#97" in readme_content
+    assert "#98" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -165,6 +166,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "recovery-aware apple reconnect guidance through the full booking-setup operator flow" in readme_content
     assert "recovery-aware apple reconnect guidance in the root workspace capability summary" in readme_content
     assert "recovery-aware simulator readiness guidance on `/alexa/simulator`" in readme_content
+    assert "recovery-aware alexa simulator selector guidance on `/alexa/simulator`" in readme_content
     assert "voice-specific next guidance on alexa-focused setup surfaces" in readme_content
     assert "shared alexa account-linking readiness on `/connections`" in readme_content
     assert "an account-linking row in alexa step 4" in readme_content
@@ -251,6 +253,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#95" in ops_content
     assert "#96" in ops_content
     assert "#97" in ops_content
+    assert "#98" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -327,6 +330,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "keeps the booking setup target-behavior card plus blocked save and booking-type creation responses aligned with that same apple recovery flow" in ops_content
     assert "keeps the root `what works today` capability summary aligned with that same apple recovery flow" in ops_content
     assert "keeps the alexa simulator readiness panel aligned with that same apple recovery flow" in ops_content
+    assert "keeps the alexa simulator empty selector helper text aligned with that same apple recovery flow" in ops_content
     assert "voice-specific next guidance for alexa setup and connections voice panels" in ops_content
     assert "exposes alexa account-linking readiness on `/connections`" in ops_content
     assert "keeps the shared alexa desired-settings card on `/connections` truthful" in ops_content
@@ -543,6 +547,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "booking setup recovery guidance requirement" in prompt_content
     assert "workspace capability recovery guidance requirement" in prompt_content
     assert "alexa simulator recovery guidance requirement" in prompt_content
+    assert "alexa simulator selector guidance requirement" in prompt_content
     assert "root no-calendar schedule-sync requirement" in prompt_content
     assert "apple setup no-account truthfulness requirement" in prompt_content
     assert "should not show broken helper copy or capability language that overstates the currently connected live state" in prompt_content
@@ -575,6 +580,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "when legacy apple recovery hints exist and no writable calendar is connected, the root workspace capability summary should tell operators to open apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password to unlock create, edit, and cancel appointments" in prompt_content
     assert "when legacy apple recovery hints exist and no writable calendar is connected, `get /alexa/simulator` should say apple reconnect still blocks meaningful scheduling tests" in prompt_content
     assert "the simulator readiness panel should expose direct operator actions into apple setup and connections in that recovery-shaped state" in prompt_content
+    assert "the empty `target calendar` helper copy on `get /alexa/simulator` should tell operators to open apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before named calendar targeting appears" in prompt_content
+    assert "the empty `new calendar` helper copy on `get /alexa/simulator` should tell operators to open apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before reschedule moves can target a named calendar there" in prompt_content
     assert "when `any_calendar_ready` is false, the root workspace should keep the hero summary in a clearly blocked state instead of showing stale appointment counts or a stale next-up appointment" in prompt_content
     assert "the alexa voice panel on `/connections` should show whether account linking is ready or still needs setup" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit account-linking readiness row" in prompt_content
