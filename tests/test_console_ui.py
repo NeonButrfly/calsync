@@ -1615,7 +1615,7 @@ def test_connections_page_renders_provider_summary(monkeypatch) -> None:
     assert "Google:</strong> already usable for live scheduling" in response.text
     assert "Microsoft:</strong> save the shared Microsoft OAuth app before browser account connect is available" in response.text
     assert (
-        "Readiness guidance:</strong> Save Cloudflare Worker access so CalSync can turn on the live Alexa route and skill allowlist from the product."
+        "Readiness guidance:</strong> Save the Alexa plan and your real skill ID, then save Cloudflare Worker access so CalSync can turn on the live Alexa route and skill allowlist from the product."
         in response.text
     )
     assert 'href="/auth/microsoft/start"' not in response.text
@@ -2023,6 +2023,10 @@ def test_connections_page_shows_ready_account_linking_state(monkeypatch) -> None
     assert "Account linking" in response.text
     assert "Ready" in response.text
     assert "A household link code and bearer token are already saved for the live skill." in response.text
+    assert (
+        "Save the Alexa plan and your real skill ID, then save Cloudflare Worker access so CalSync can turn on the live Alexa route and skill allowlist from the product."
+        in response.text
+    )
 
 
 def test_connections_page_can_save_desired_alexa_settings(monkeypatch) -> None:
@@ -3871,6 +3875,10 @@ def test_alexa_setup_page_shows_account_linking_controls(monkeypatch) -> None:
     assert "calsync-alexa-household" in response.text
     assert "Save account linking setup" in response.text
     assert "Link code saved" in response.text
+    assert (
+        "Save the Alexa plan and your real skill ID, then save Cloudflare Worker access so CalSync can turn on the live Alexa route and skill allowlist from the product."
+        in response.text
+    )
     assert "Writable calendar connected:" in response.text
     assert "Cloudflare Worker access configured:" in response.text
     assert (

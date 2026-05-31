@@ -1108,6 +1108,18 @@ Expected behavior:
 - the older `Save a household link code, then use the authorization URL below...` wording should only render before account linking has been configured
 - the configured Step 2.5 intro should stay aligned with the existing `Link code saved` and `Access token ready` status cards on the same page
 
+## Alexa Desired-State Next-Step Requirement
+
+- GitHub issue: `#118`
+- interpreted requirement: once Apple is already connected and Alexa account linking is already configured, shared readiness and Alexa-specific next-step guidance should stop skipping over the unsaved desired Alexa plan
+
+Expected behavior:
+
+- when the desired Alexa plan is still unsaved after account linking is ready, `GET /api/readiness` should tell operators to save the Alexa plan and real skill ID before Cloudflare apply-only guidance takes over
+- `GET /alexa/setup` and `GET /connections` should keep their Alexa `Next action` copy aligned with that same desired-state-first branch
+- once the desired Alexa plan has been saved, the next-step guidance can advance to Cloudflare Worker access or live edge apply work
+- this branch should only override the older Cloudflare-only guidance after the account-linking prerequisite has already been satisfied
+
 ## Alexa Encrypted Secret Recovery Guidance Requirement
 
 - GitHub issue: `#109`

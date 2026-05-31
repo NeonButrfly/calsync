@@ -233,6 +233,8 @@ class ReadinessService:
         )
         if not account_linking_ready and not cloudflare_ready:
             return "Save a household link code and Cloudflare Worker access so CalSync can finish Alexa account linking and live edge turn-on."
+        if account_linking_ready and not cloudflare_ready and not desired_alexa.get("saved"):
+            return "Save the Alexa plan and your real skill ID, then save Cloudflare Worker access so CalSync can turn on the live Alexa route and skill allowlist from the product."
         if not cloudflare_ready:
             return "Save Cloudflare Worker access so CalSync can turn on the live Alexa route and skill allowlist from the product."
         if not account_linking_ready:

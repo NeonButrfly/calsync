@@ -144,6 +144,31 @@ def test_readiness_service_points_to_account_linking_and_cloudflare_before_edge_
     )
 
 
+def test_readiness_service_points_to_saved_desired_plan_before_cloudflare_once_account_linking_is_ready() -> None:
+    settings = _settings()
+    operator_settings = OperatorSettingsService(settings=settings)
+    ChannelTokenManager(runtime_path=settings.channel_token_runtime_path).bootstrap_channel(
+        "chatgpt"
+    )
+    operator_settings.set_apple_calendar_settings(
+        account_label="Family",
+        username="family@example.com",
+        app_specific_password="apple-secret-123",
+        primary_calendar_url="https://caldav.icloud.com/family/",
+        primary_calendar_name="Family",
+    )
+    operator_settings.set_alexa_account_linking_settings(link_code="Family123")
+
+    readiness = ReadinessService(settings=settings).build()
+
+    assert readiness["origin"]["any_calendar_ready"] is True
+    assert readiness["desired_alexa"]["saved"] is False
+    assert (
+        readiness["next_action"]
+        == "Save the Alexa plan and your real skill ID, then save Cloudflare Worker access so CalSync can turn on the live Alexa route and skill allowlist from the product."
+    )
+
+
 def test_readiness_service_points_to_restore_when_non_provider_settings_exist() -> None:
     settings = _settings()
     operator_settings = OperatorSettingsService(settings=settings)

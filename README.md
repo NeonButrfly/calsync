@@ -425,6 +425,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Hide stale Apple recovery-secret blocker copy on `/connections` after live reconnect: issue `#115`
 - Align shared Alexa readiness with the real Cloudflare and account-linking blockers after Apple reconnect: issue `#116`
 - Align Alexa setup account-linking intro copy with the already-saved state: issue `#117`
+- Align Alexa next-step guidance with the unsaved desired-state flow after account linking: issue `#118`
 - Keep the entire root workspace blocked when no calendar is connected: issue `#83`
 - Keep Alexa guidance aligned with account-linking readiness: issue `#84`
 - Keep Alexa Step 4 turn-on summary aligned with live prerequisites: issue `#85`

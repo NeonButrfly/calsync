@@ -76,6 +76,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#115" in readme_content
     assert "#116" in readme_content
     assert "#117" in readme_content
+    assert "#118" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -192,6 +193,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "shared alexa account-linking readiness on `/connections`" in readme_content
     assert "an account-linking row in alexa step 4" in readme_content
     assert "align alexa setup account-linking intro copy with the already-saved state" in readme_content
+    assert "align alexa next-step guidance with the unsaved desired-state flow after account linking" in readme_content
     assert "a writable-calendar row in alexa step 4" in readme_content
     assert "a cloudflare-access row in alexa step 4" in readme_content
     assert "a desired-settings row in alexa step 4" in readme_content
@@ -301,6 +303,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#115" in ops_content
     assert "#116" in ops_content
     assert "#117" in ops_content
+    assert "#118" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -396,6 +399,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "voice-specific next guidance for alexa setup and connections voice panels" in ops_content
     assert "exposes alexa account-linking readiness on `/connections`" in ops_content
     assert "step 2.5 intro copy from first-time save guidance to configured-state guidance" in ops_content
+    assert "save the alexa plan and real skill id before cloudflare worker apply-only guidance takes over" in ops_content
     assert "keeps the shared alexa desired-settings card on `/connections` truthful" in ops_content
     assert "exposes writable-calendar readiness on `/connections` for the alexa panel" in ops_content
     assert "keeps the shared google and microsoft next-action summary on `/connections` truthful" in ops_content
@@ -499,6 +503,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#115" in prompt_content
     assert "#116" in prompt_content
     assert "#117" in prompt_content
+    assert "#118" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content
@@ -516,6 +521,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "alexa-focused surfaces should show voice-specific next steps" in prompt_content
     assert "alexa account-linking readiness requirement" in prompt_content
     assert "alexa setup account-linking intro truthfulness requirement" in prompt_content
+    assert "alexa desired-state next-step requirement" in prompt_content
     assert "alexa step 4 prerequisite visibility requirement" in prompt_content
     assert "alexa step 4 writable calendar requirement" in prompt_content
     assert "alexa step 4 cloudflare access requirement" in prompt_content
@@ -706,6 +712,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "the alexa voice panel on `/connections` should show whether account linking is ready or still needs setup" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit account-linking readiness row" in prompt_content
     assert "the older `save a household link code, then use the authorization url below...` wording should only render before account linking has been configured" in prompt_content
+    assert "when the desired alexa plan is still unsaved after account linking is ready, `get /api/readiness` should tell operators to save the alexa plan and real skill id before cloudflare apply-only guidance takes over" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit writable-calendar readiness row" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit cloudflare-access readiness row" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit desired-state readiness row" in prompt_content
