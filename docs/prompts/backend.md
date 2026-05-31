@@ -1096,6 +1096,18 @@ Expected behavior:
 - when Cloudflare Worker access is ready but account linking is still missing, shared readiness should say to save a household link code
 - shared surfaces like `GET /connections` that print `readiness.next_action` should stay aligned automatically once the readiness API is corrected
 
+## Alexa Setup Account-Linking Intro Truthfulness Requirement
+
+- GitHub issue: `#117`
+- interpreted requirement: once Alexa account linking is already configured, the Step 2.5 intro on `GET /alexa/setup` should stop reading like first-time setup is still incomplete
+
+Expected behavior:
+
+- when a household link code and bearer token are already saved, the Step 2.5 intro should say those account-linking details are already ready and point operators toward using the authorization URL in Alexa settings
+- that same configured-state intro should still mention that the operator can save a new household link code from the page if they want to rotate it
+- the older `Save a household link code, then use the authorization URL below...` wording should only render before account linking has been configured
+- the configured Step 2.5 intro should stay aligned with the existing `Link code saved` and `Access token ready` status cards on the same page
+
 ## Alexa Encrypted Secret Recovery Guidance Requirement
 
 - GitHub issue: `#109`

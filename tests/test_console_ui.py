@@ -3883,6 +3883,14 @@ def test_alexa_setup_page_shows_account_linking_controls(monkeypatch) -> None:
     )
     assert "Account linking configured:" in response.text
     assert "Account linking configured:</strong>\n                  Yes" in response.text
+    assert (
+        "A household link code and bearer token are already saved. Use the authorization URL below in"
+        in response.text
+    )
+    assert (
+        "Save a household link code, then use the authorization URL below in"
+        not in response.text
+    )
 
 
 def test_alexa_setup_page_shows_no_writable_calendar_in_step_four(monkeypatch) -> None:

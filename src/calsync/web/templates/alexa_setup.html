@@ -157,10 +157,16 @@
                 </div>
               </div>
               <p class="appointment-detail">
+                {% if account_linking_settings.configured %}
+                A household link code and bearer token are already saved. Use the authorization URL below in
+                Alexa account-linking settings so the live skill can prove it is
+                linked to this CalSync household, or save a new household link code here if you want to rotate it.
+                {% else %}
                 Save a household link code, then use the authorization URL below in
                 Alexa account-linking settings so the live skill can prove it is
                 linked to this CalSync household before voice requests reach the
                 shared schedule.
+                {% endif %}
               </p>
               <div class="detail-grid">
                 <article class="detail-card">
