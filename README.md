@@ -427,6 +427,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Align Alexa setup account-linking intro copy with the already-saved state: issue `#117`
 - Align Alexa next-step guidance with the unsaved desired-state flow after account linking: issue `#118`
 - Expose real Alexa skill-ID guidance directly on the setup forms: issue `#119`
+- Align the remaining Connections Alexa summaries with the desired-state-first guidance: issue `#120`
 - Keep the entire root workspace blocked when no calendar is connected: issue `#83`
 - Keep Alexa guidance aligned with account-linking readiness: issue `#84`
 - Keep Alexa Step 4 turn-on summary aligned with live prerequisites: issue `#85`

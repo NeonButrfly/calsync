@@ -1132,6 +1132,18 @@ Expected behavior:
 - the `Allowed skill IDs` field should not read like unexplained low-level config when no skill ID has been saved yet
 - this guidance should stay aligned with the repo Alexa README and skill-package instructions that already describe copying the generated skill ID after import
 
+## Connections Alexa Summary Truthfulness Requirement
+
+- GitHub issue: `#120`
+- interpreted requirement: once `/api/readiness` and the main Alexa forms point to the desired-state-first next step, the remaining Alexa summaries on `/connections` should stop using older generic edge-enable wording
+
+Expected behavior:
+
+- the `Alexa edge route` status card on `GET /connections` should describe the current post-account-linking state with the same desired-state-first ordering
+- the `Finish the live stack` Alexa summary on `GET /connections` should mirror that same current guidance instead of older `finish edge enablement and skill-ID allowlisting` copy
+- these summaries should stay aligned with `readiness.next_action` and the shared Alexa form guidance on the same page
+- the page should not mix desired-state-first messaging and older generic edge-enable messaging in the same live state
+
 ## Alexa Encrypted Secret Recovery Guidance Requirement
 
 - GitHub issue: `#109`

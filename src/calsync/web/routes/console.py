@@ -4003,10 +4003,11 @@ def _build_connections_context(
                 if readiness.get("edge", {}).get("reachable")
                 and readiness.get("edge", {}).get("alexa", {}).get("enabled")
                 and account_linking_settings.get("configured")
-                else (
-                    "Save a household link code, then finish edge enablement and skill allowlisting before real device traffic is live."
-                    if not account_linking_settings.get("configured")
-                    else "Finish edge enablement and skill allowlisting before real device traffic is live."
+                else _describe_alexa_edge_route_detail(
+                    readiness=readiness,
+                    desired_settings=desired_alexa_settings,
+                    account_linking_settings=account_linking_settings,
+                    cloudflare_credentials=cloudflare_credentials,
                 )
             ),
         },
@@ -4042,6 +4043,7 @@ def _build_connections_context(
         ),
         "alexa_finish_line_action": _describe_alexa_finish_line_action(
             readiness=readiness,
+            desired_settings=desired_alexa_settings,
             account_linking_settings=account_linking_settings,
             cloudflare_credentials=cloudflare_credentials,
             legacy_apple_recovery_hints=legacy_apple_recovery_hints,
@@ -4537,12 +4539,14 @@ def _describe_alexa_next_action(
 def _describe_alexa_finish_line_action(
     *,
     readiness: dict[str, object],
+    desired_settings: dict[str, object],
     account_linking_settings: dict[str, object],
     cloudflare_credentials: dict[str, object],
     legacy_apple_recovery_hints: dict[str, object],
 ) -> str:
     account_linking_ready = bool(account_linking_settings.get("configured"))
     cloudflare_ready = bool(cloudflare_credentials.get("api_token_saved"))
+    desired_saved = bool(desired_settings.get("saved"))
     recovery_mode = _alexa_recovery_mode(
         readiness=readiness,
         legacy_apple_recovery_hints=legacy_apple_recovery_hints,
@@ -4568,9 +4572,56 @@ def _describe_alexa_finish_line_action(
                 "Alexa setup page."
             )
         return f"{recovery_action} so Alexa has a real schedule behind the shared brain."
+    if (
+        readiness.get("edge", {}).get("reachable")
+        and readiness.get("edge", {}).get("alexa", {}).get("enabled")
+        and account_linking_ready
+        and desired_saved
+    ):
+        return "already ready for signed Alexa device traffic."
+    if not account_linking_ready and not desired_saved and not cloudflare_ready:
+        return "save a household link code, then save the Alexa plan and real skill ID plus Cloudflare Worker access from the Alexa setup page."
     if account_linking_ready:
-        return "finish edge enablement and skill-ID allowlisting from the Alexa setup page."
+        if not desired_saved and not cloudflare_ready:
+            return "save the Alexa plan and real skill ID, then save Cloudflare Worker access from the Alexa setup page."
+        if not desired_saved:
+            return "save the Alexa plan and real skill ID from the Alexa setup page."
+        if not cloudflare_ready:
+            return "save Cloudflare Worker access from the Alexa setup page."
+        return "apply the saved Alexa settings and skill allowlist from the Alexa setup page."
     return "save a household link code, then finish edge enablement and skill-ID allowlisting from the Alexa setup page."
+
+
+def _describe_alexa_edge_route_detail(
+    *,
+    readiness: dict[str, object],
+    desired_settings: dict[str, object],
+    account_linking_settings: dict[str, object],
+    cloudflare_credentials: dict[str, object],
+) -> str:
+    account_linking_ready = bool(account_linking_settings.get("configured"))
+    cloudflare_ready = bool(cloudflare_credentials.get("api_token_saved"))
+    desired_saved = bool(desired_settings.get("saved"))
+    edge_ready = bool(
+        readiness.get("edge", {}).get("reachable")
+        and readiness.get("edge", {}).get("alexa", {}).get("enabled")
+        and account_linking_ready
+    )
+    if edge_ready:
+        return "The edge Worker can accept Alexa traffic and account linking is configured."
+    if not account_linking_ready and not desired_saved and not cloudflare_ready:
+        return "Save a household link code, then save the Alexa plan and real skill ID plus Cloudflare Worker access before real device traffic is live."
+    if not account_linking_ready and not cloudflare_ready:
+        return "Save a household link code and Cloudflare Worker access before real device traffic is live."
+    if not account_linking_ready:
+        return "Save a household link code before real device traffic is live."
+    if not desired_saved and not cloudflare_ready:
+        return "Save the Alexa plan and real skill ID, then save Cloudflare Worker access before real device traffic is live."
+    if not desired_saved:
+        return "Save the Alexa plan and real skill ID before real device traffic is live."
+    if not cloudflare_ready:
+        return "Save Cloudflare Worker access before real device traffic is live."
+    return "Apply the saved Alexa settings and skill allowlist before real device traffic is live."
 
 
 def _alexa_recovery_mode(

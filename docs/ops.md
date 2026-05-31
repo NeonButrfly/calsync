@@ -609,6 +609,8 @@ Recovery note:
 - once account linking is already configured but the desired Alexa plan is still unsaved, shared readiness plus the Alexa next-action helper should point operators to save the Alexa plan and real skill ID before Cloudflare Worker apply-only guidance takes over
 - issue `#119`
 - the live Alexa setup and Connections forms should tell operators to copy the generated real Alexa skill ID from the Alexa developer console after importing the package, instead of making the `Allowed skill IDs` field read like unexplained raw config
+- issue `#120`
+- the remaining Alexa summaries on `/connections`, including the edge-route status card and the `Finish the live stack` Alexa line, should mirror that same desired-state-first guidance instead of falling back to older generic edge-enable wording
 - issue `#109`
 - Alexa setup, the Connections Alexa panel, and the Alexa simulator now mirror that same legacy Apple encrypted-secret recovery state instead of falling back to fresh-password-only guidance
 - issue `#110`
