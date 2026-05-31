@@ -605,6 +605,17 @@ Expected behavior:
 - in that same state, the blocked request-time panel on `GET /book` should say Apple reconnect still blocks invitees from requesting time
 - when no recovery hint exists, the public booking page can keep the more generic no-calendar wording used for a blank-install disconnected state
 
+## Public Booking Submit Error Requirement
+
+- GitHub issue: `#100`
+- interpreted requirement: when the live deployment is in Apple recovery mode, blocked direct public booking submit responses should stop using the stale generic no-target error
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no writable calendar is connected, blocked `POST /book` responses should say Apple reconnect still blocks public booking requests
+- in that same state, blocked `POST /book/{slug}` responses should use that same Apple reconnect submit guidance
+- when no recovery hint exists, blocked public booking submit responses can keep the more generic `No writable calendar target is ready for public booking yet.` wording
+
 ## Apple Live Calendar Sync Requirement
 
 - GitHub issue: `#41`

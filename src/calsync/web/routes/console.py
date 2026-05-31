@@ -267,6 +267,9 @@ def _handle_public_booking_submit(
             booking_settings.get("target_calendar_url") or ""
         ),
     )
+    recovery_mode = _booking_setup_recovery_mode(
+        operator_settings=operator_settings
+    )
     if target is None:
         return _templates.TemplateResponse(
             request,
@@ -280,7 +283,9 @@ def _handle_public_booking_submit(
                 availability_duration_minutes=availability_duration_minutes,
                 booking_form_values=booking_form_values,
                 flash_message=None,
-                error_message="No writable calendar target is ready for public booking yet.",
+                error_message=_describe_public_booking_submit_error(
+                    recovery_mode=recovery_mode
+                ),
                 booking_confirmation=None,
             ),
             status_code=400,
@@ -2991,6 +2996,12 @@ def _describe_public_booking_not_ready_message(*, recovery_mode: bool) -> str:
     if recovery_mode:
         return "Apple reconnect still blocks public booking. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before invitees can request time."
     return "CalSync needs one writable calendar target before invitees can request time."
+
+
+def _describe_public_booking_submit_error(*, recovery_mode: bool) -> str:
+    if recovery_mode:
+        return "Apple reconnect still blocks public booking requests. Open Apple setup, confirm the loaded recovered calendar, and save a fresh app-specific password before invitees can request time."
+    return "No writable calendar target is ready for public booking yet."
 
 
 def _describe_public_booking_target_status(*, recovery_mode: bool) -> tuple[str, str]:
