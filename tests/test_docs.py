@@ -73,6 +73,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#104" in readme_content
     assert "#105" in readme_content
     assert "#106" in readme_content
+    assert "#115" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -294,6 +295,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#108" in ops_content
     assert "#113" in ops_content
     assert "#114" in ops_content
+    assert "#115" in ops_content
     assert "#31" in ops_content
     assert "#3" in ops_content
     assert "mounts it at `/app/.runtime`" in ops_content
@@ -488,6 +490,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#79" in prompt_content
     assert "#113" in prompt_content
     assert "#114" in prompt_content
+    assert "#115" in prompt_content
     assert "#31" in prompt_content
     assert "#3" in prompt_content
     assert "#17" in prompt_content

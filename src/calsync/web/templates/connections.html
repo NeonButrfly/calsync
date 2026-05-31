@@ -176,7 +176,7 @@
                   <strong>{{ apple_calendar_catalog|length }}</strong>
                   <span>Saved Apple calendars available to the workspace and Alexa.</span>
                 </article>
-                {% if legacy_apple_recovery_hints.encrypted_secret_present %}
+                {% if legacy_apple_recovery_hints.encrypted_secret_present and not apple_runtime.ready %}
                 <article class="detail-card">
                   <p class="eyebrow">Recovered password</p>
                   <strong>{% if legacy_apple_recovery_hints.can_reuse_saved_password %}Reusable now{% else %}Needs original key{% endif %}</strong>

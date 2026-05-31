@@ -1073,6 +1073,17 @@ Expected behavior:
 - that wording should flow consistently through shared readiness, blocked root and booking messaging, recovery-mode appointment API responses, Alexa setup, Connections, and the Alexa simulator
 - Apple setup can still use more specific local wording like `Enter that key below` because the form field lives on that page
 
+## Connected Apple Truthfulness Requirement
+
+- GitHub issue: `#115`
+- interpreted requirement: once Apple has been reconnected successfully and live readiness is green again, `/connections` must stop showing stale legacy recovery-secret blockers that imply Apple still needs the original key
+
+Expected behavior:
+
+- when Apple read/write is live again, the Apple card on `GET /connections` should prioritize the connected-state summary and connected accounts/targets
+- the stale `Recovered password` card should not render while Apple is already connected and writable, even if preserved legacy recovery metadata still exists in operator settings
+- legacy encrypted-secret diagnostics can still render in recovery mode before the reconnect is complete
+
 ## Alexa Encrypted Secret Recovery Guidance Requirement
 
 - GitHub issue: `#109`

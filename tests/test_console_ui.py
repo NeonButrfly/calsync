@@ -1716,6 +1716,63 @@ def test_connections_page_shows_reusable_legacy_apple_secret_state(monkeypatch) 
     assert "The preserved Apple app-specific password is reusable with the current CalSync encryption key." in response.text
 
 
+def test_connections_page_hides_recovered_password_blocker_once_apple_is_live_connected(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    recovered_secret = service._fernet.encrypt(b"apple-secret-123").decode("utf-8")
+    service.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "credential_secret_encrypted": recovered_secret,
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    service.set_apple_calendar_settings(
+        account_label="kaymayers9@gmail.com",
+        username="kaymayers9@gmail.com",
+        app_specific_password="live-secret",
+        primary_calendar_url="https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+        primary_calendar_name="Family",
+    )
+    service.set_apple_calendar_catalog(
+        [
+            {
+                "calendar_name": "Family",
+                "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                "is_default": True,
+            }
+        ]
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/connections")
+
+    assert response.status_code == 200
+    assert "Apple read/write is available to the scheduling brain." in response.text
+    assert "1 connected accounts" in response.text
+    assert "Recovered password" not in response.text
+    assert "Needs original key" not in response.text
+    assert "The preserved Apple app-specific password needs the original CalSync encryption key or a fresh manual replacement." not in response.text
+
+
 def test_connections_page_shows_checklist_and_verification_state(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
     service = OperatorSettingsService(settings=get_settings())
