@@ -592,6 +592,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "alexa recovery guidance-intent requirement" in prompt_content
     assert "appointment edit and cancel recovery requirement" in prompt_content
     assert "appointment update and cancel api recovery requirement" in prompt_content
+    assert "alexa worker recovery normalization requirement" in prompt_content
     assert "root no-calendar schedule-sync requirement" in prompt_content
     assert "apple setup no-account truthfulness requirement" in prompt_content
     assert "should not show broken helper copy or capability language that overstates the currently connected live state" in prompt_content
@@ -639,6 +640,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "the blocked deep-link state should expose direct operator actions into apple setup and connections" in prompt_content
     assert "when legacy apple recovery hints exist and no writable calendar is connected, `patch /api/appointments/{appointment_id}` should point callers to apple reconnect instead of falling through to `apple calendar target url was not found.`" in prompt_content
     assert "in that same state, `post /api/appointments/{appointment_id}/cancel` should point callers to apple reconnect instead of falling through to `apple calendar target url was not found.`" in prompt_content
+    assert "when the worker receives `apple calendar target url was not found.` from the shared scheduling backend, it should speak the same apple reconnect guidance already used for the other recovery-mode apple errors" in prompt_content
+    assert "the worker tests should cover the stale apple target error explicitly so the edge layer cannot silently drift behind origin normalization again" in prompt_content
     assert "when legacy apple recovery hints exist and no writable calendar is connected, blocked alexa scheduling intents should point to apple reconnect and the need for a fresh app-specific password" in prompt_content
     assert "simulator and live voice scheduling responses should not fall back to `primary apple/icloud calendar is not configured.`" in prompt_content
     assert "when legacy apple recovery hints exist and no writable calendar is connected, `get /api/appointments` should not surface stale local appointment rows as live calendar truth" in prompt_content

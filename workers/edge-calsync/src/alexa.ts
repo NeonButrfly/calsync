@@ -341,7 +341,8 @@ function normalizeSchedulingErrorSpeech(
   if (
     normalized === "Primary Apple/iCloud calendar is not configured." ||
     normalized === "Apple/iCloud calendar settings are incomplete." ||
-    normalized === "Appointment calendar connection not found."
+    normalized === "Appointment calendar connection not found." ||
+    normalized === "Apple calendar target URL was not found."
   ) {
     return "Apple reconnect still needs one more step. Open Apple setup in CalSync, confirm the recovered calendar, and save a fresh app-specific password before I can help with the household calendar.";
   }

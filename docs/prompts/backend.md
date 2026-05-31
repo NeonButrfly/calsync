@@ -652,6 +652,18 @@ Expected behavior:
 - create, list, get, availability, root submit, public booking submit, and stale deep-link edit routes should continue using that same recovery-mode Apple reconnect guidance after the API write paths are aligned
 - blank-install disconnected states can keep their current more generic missing-calendar behavior when no recovery hint exists
 
+## Alexa Worker Recovery Normalization Requirement
+
+- GitHub issue: `#107`
+- interpreted requirement: the Alexa Worker should normalize the stale Apple target lookup failure the same way the origin API already does, so a future edge deploy cannot drift back to the raw provider error
+
+Expected behavior:
+
+- when the Worker receives `Apple calendar target URL was not found.` from the shared scheduling backend, it should speak the same Apple reconnect guidance already used for the other recovery-mode Apple errors
+- create, availability, and any other scheduling intents that rely on the shared normalization helper should all inherit that same recovery behavior after the Worker update
+- the Worker tests should cover the stale Apple target error explicitly so the edge layer cannot silently drift behind origin normalization again
+- until the Worker is actually redeployed, treat this as a tracked code-and-test slice rather than a proven live edge behavior change
+
 ## Alexa Recovery Scheduling Error Requirement
 
 - GitHub issue: `#102`
