@@ -43,6 +43,7 @@ def _normalize_recovery_error_detail(detail: str) -> str:
         "Primary Apple/iCloud calendar is not configured.",
         "Apple/iCloud calendar settings are incomplete.",
         "Appointment calendar connection not found.",
+        "Apple calendar target URL was not found.",
     }:
         return normalized
 

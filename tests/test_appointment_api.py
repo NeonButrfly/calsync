@@ -1618,3 +1618,150 @@ def test_get_appointment_points_to_apple_reconnect_when_recovery_hints_exist(
         response.json()["detail"]
         == "Apple reconnect still needs one more step. Open Apple setup in CalSync, confirm the recovered calendar, and save a fresh app-specific password before I can help with the household calendar."
     )
+
+
+def test_update_appointment_points_to_apple_reconnect_when_recovery_hints_exist(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    original_builder = AppointmentService._build_apple_client
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self, calendar_url=None: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Telemedicine Post-Op",
+            "date": "2026-12-09",
+            "start_time": "12:40",
+            "end_time": "13:10",
+            "timezone": "America/Anchorage",
+        },
+    )
+    appointment_id = create_response.json()["appointment_id"]
+
+    monkeypatch.setattr(AppointmentService, "_build_apple_client", original_builder)
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    recovery_app = create_app()
+    recovery_client = TestClient(recovery_app)
+
+    response = recovery_client.patch(
+        f"/api/appointments/{appointment_id}",
+        json={"title": "Telemedicine Post-Op updated"},
+    )
+
+    assert response.status_code == 400
+    assert (
+        response.json()["detail"]
+        == "Apple reconnect still needs one more step. Open Apple setup in CalSync, confirm the recovered calendar, and save a fresh app-specific password before I can help with the household calendar."
+    )
+    assert response.json()["detail"] != "Apple calendar target URL was not found."
+
+
+def test_cancel_appointment_points_to_apple_reconnect_when_recovery_hints_exist(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    original_builder = AppointmentService._build_apple_client
+    monkeypatch.setattr(
+        AppointmentService,
+        "_build_apple_client",
+        lambda self, calendar_url=None: FakeAppleClient(),
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/appointments",
+        json={
+            "title": "Telemedicine Post-Op",
+            "date": "2026-12-09",
+            "start_time": "12:40",
+            "end_time": "13:10",
+            "timezone": "America/Anchorage",
+        },
+    )
+    appointment_id = create_response.json()["appointment_id"]
+
+    monkeypatch.setattr(AppointmentService, "_build_apple_client", original_builder)
+    for key in (
+        "APPLE_ACCOUNT_LABEL",
+        "APPLE_USERNAME",
+        "APPLE_APP_SPECIFIC_PASSWORD",
+        "APPLE_PRIMARY_CALENDAR_URL",
+        "APPLE_PRIMARY_CALENDAR_NAME",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    operator_settings = OperatorSettingsService(settings=get_settings())
+    operator_settings.set_legacy_apple_recovery_hints(
+        {
+            "source_filename": "calsync-db-backup.zip",
+            "account_label": "kaymayers9@gmail.com",
+            "account_username": "kaymayers9@gmail.com",
+            "calendar_home_url": "https://p52-caldav.icloud.com:443/112135872/calendars/",
+            "principal_url": "https://caldav.icloud.com/112135872/principal/",
+            "recommended_calendar_name": "Family",
+            "recommended_calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+            "calendar_count": 1,
+            "calendars": [
+                {
+                    "calendar_name": "Family",
+                    "calendar_url": "https://p52-caldav.icloud.com:443/112135872/calendars/e53367e6-75d4-42a0-b7bf-eaeb12f233f8/",
+                    "calendar_role": "writable_booking_target",
+                    "enabled": True,
+                    "is_writable_hint": True,
+                }
+            ],
+        }
+    )
+    recovery_app = create_app()
+    recovery_client = TestClient(recovery_app)
+
+    response = recovery_client.post(f"/api/appointments/{appointment_id}/cancel")
+
+    assert response.status_code == 400
+    assert (
+        response.json()["detail"]
+        == "Apple reconnect still needs one more step. Open Apple setup in CalSync, confirm the recovered calendar, and save a fresh app-specific password before I can help with the household calendar."
+    )
+    assert response.json()["detail"] != "Apple calendar target URL was not found."

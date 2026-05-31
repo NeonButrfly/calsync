@@ -640,6 +640,18 @@ Expected behavior:
 - the blocked deep-link state should expose direct operator actions into Apple setup and Connections
 - blank-install disconnected states can keep their current more generic missing-calendar behavior when no recovery hint exists
 
+## Appointment Update And Cancel API Recovery Requirement
+
+- GitHub issue: `#106`
+- interpreted requirement: when the live deployment is in Apple recovery mode, direct appointment update and cancel API routes should stop exposing the raw missing-target error that the rest of the product already normalizes
+
+Expected behavior:
+
+- when legacy Apple recovery hints exist and no writable calendar is connected, `PATCH /api/appointments/{appointment_id}` should point callers to Apple reconnect instead of falling through to `Apple calendar target URL was not found.`
+- in that same state, `POST /api/appointments/{appointment_id}/cancel` should point callers to Apple reconnect instead of falling through to `Apple calendar target URL was not found.`
+- create, list, get, availability, root submit, public booking submit, and stale deep-link edit routes should continue using that same recovery-mode Apple reconnect guidance after the API write paths are aligned
+- blank-install disconnected states can keep their current more generic missing-calendar behavior when no recovery hint exists
+
 ## Alexa Recovery Scheduling Error Requirement
 
 - GitHub issue: `#102`
