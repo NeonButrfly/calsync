@@ -634,6 +634,8 @@ Recovery note:
 - the Alexa Worker code is now deployed live on Cloudflare with the recovery-guidance normalization, so launch, help, fallback, and recovery-error speech stay aligned with the original-key Apple recovery flow on the real edge path
 - issue `#128`
 - the Alexa docs and skill-package instructions now point operators to the current CalSync Alexa setup flow first, instead of reading like direct Worker env edits and redeploys are still the primary turn-on path
+- issue `#129`
+- the live Alexa Worker now defaults to deny when no allowed skill IDs are configured, so an empty allowlist cannot accidentally act permissive during draft or partially configured turn-on states
 
 ## Current follow-up item
 

@@ -86,6 +86,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#125" in readme_content
     assert "#126" in readme_content
     assert "#127" in readme_content
+    assert "#129" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -737,6 +738,9 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "live cloudflare deployments should keep the `loadapplerecoveryguidance`, `normalizeschedulingerrorspeech`, and `apple reconnect still needs one more step.` markers present" in prompt_content
     assert "once the live alexa worker code gap is cleared, operator docs and the imported skill-package instructions should stop reading like direct worker env edits and manual redeploys are still the primary setup flow" in prompt_content
     assert "the alexa package `testinginstructions` should point to calsync-managed desired settings and allowlist save steps before mentioning any lower-level worker fallback" in prompt_content
+    assert "the live alexa worker should default to deny when no real allowed skill ids have been configured yet" in prompt_content
+    assert "`post /alexa` should reject requests when `alexa_allowed_skill_ids` is empty" in prompt_content
+    assert "empty-allowlist `403` path" in prompt_content
     assert "when legacy apple recovery hints exist and no writable calendar is connected, blocked alexa scheduling intents should point to apple reconnect and the need for a fresh app-specific password" in prompt_content
     assert "simulator and live voice scheduling responses should not fall back to `primary apple/icloud calendar is not configured.`" in prompt_content
     assert "when legacy apple recovery hints exist and no writable calendar is connected, `get /api/appointments` should not surface stale local appointment rows as live calendar truth" in prompt_content

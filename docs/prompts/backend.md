@@ -759,6 +759,17 @@ Expected behavior:
 - the Alexa docs should tell operators to copy the generated real Alexa skill ID into the CalSync Alexa setup flow first
 - the Alexa package `testingInstructions` should point to CalSync-managed desired settings and allowlist save steps before mentioning any lower-level Worker fallback
 
+## Alexa Worker Allowlist Safety Requirement
+
+- GitHub issue: `#129`
+- interpreted requirement: the live Alexa Worker should default to deny when no real allowed skill IDs have been configured yet, instead of treating an empty allowlist as permissive
+
+Expected behavior:
+
+- `POST /alexa` should reject requests when `ALEXA_ALLOWED_SKILL_IDS` is empty, even if the incoming request contains a non-empty Alexa `applicationId`
+- the Worker should only accept live Alexa requests after at least one configured allowed skill ID is present and the incoming skill ID matches it
+- Worker tests should keep explicit coverage for the empty-allowlist `403` path so this edge safety contract cannot silently drift
+
 ## Alexa Recovery Scheduling Error Requirement
 
 - GitHub issue: `#102`

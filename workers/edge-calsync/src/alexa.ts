@@ -107,7 +107,7 @@ export async function handleAlexaRequest(
   const skillId = extractSkillId(payload);
   const allowedSkillIds = allowedAlexaSkillIds(env);
 
-  if (!skillId || (allowedSkillIds.length > 0 && !allowedSkillIds.includes(skillId))) {
+  if (!skillId || allowedSkillIds.length === 0 || !allowedSkillIds.includes(skillId)) {
     return alexaErrorResponse(403, "Alexa skill ID is not allowed.", requestId);
   }
 

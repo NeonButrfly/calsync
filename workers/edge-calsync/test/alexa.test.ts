@@ -105,6 +105,38 @@ describe("alexa worker adapter", () => {
     alexaVerifierMock.mockClear();
   });
 
+  it("returns 403 when the allowed skill list is empty", async () => {
+    const request = buildAlexaRequest({
+      session: {
+        application: {
+          applicationId: "amzn1.ask.skill.test",
+        },
+      },
+      request: {
+        type: "LaunchRequest",
+        timestamp: new Date().toISOString(),
+      },
+    });
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(
+      request,
+      {
+        ...alexaEnv(),
+        ALEXA_ALLOWED_SKILL_IDS: "",
+      },
+      ctx,
+    );
+
+    await waitOnExecutionContext(ctx);
+
+    expect(alexaVerifierMock).not.toHaveBeenCalled();
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      message: "Alexa skill ID is not allowed.",
+    });
+  });
+
   it("returns a welcome response for launch requests", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = String(input);
