@@ -46,8 +46,8 @@
               </article>
               <article class="detail-card">
                 <p class="eyebrow">Voice route</p>
-                <strong>{% if simulator_state.edge_enabled %}Live{% elif simulator_state.edge_reachable %}Preview only{% else %}Status unclear{% endif %}</strong>
-                <span>{% if simulator_state.edge_enabled %}The live Alexa route is enabled.{% elif simulator_state.edge_reachable %}The simulator can still preview voice behavior before the real route is enabled.{% else %}CalSync cannot confirm the live edge route right now.{% endif %}</span>
+                <strong>{{ simulator_state.voice_route_label }}</strong>
+                <span>{{ simulator_state.voice_route_detail }}</span>
               </article>
               <article class="detail-card">
                 <p class="eyebrow">Useful now</p>

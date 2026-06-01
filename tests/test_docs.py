@@ -84,6 +84,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#123" in readme_content
     assert "#124" in readme_content
     assert "#125" in readme_content
+    assert "#126" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -420,6 +421,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "alexa save responses should stop flashing `desired alexa settings saved securely.` when no real plan exists yet" in ops_content
     assert "once the operator has only a skill-id-missing alexa draft, the helper copy under the alexa forms should stop saying it will save a desired alexa plan" in ops_content
     assert "once the operator has only an alexa draft with `enable_alexa=true` and no real skill id, the app should stop calling that state `defaults`" in ops_content
+    assert "once the operator has only an alexa draft with `enable_alexa=true` and no real skill id, `/alexa/simulator` should stop reading like route enablement is the only missing step" in ops_content
     assert "copy the generated real alexa skill id from the alexa developer console after importing the package" in ops_content
     assert "remaining alexa summaries on `/connections`, including the edge-route status card and the `finish the live stack` alexa line" in ops_content
     assert "keeps the shared alexa desired-settings card on `/connections` truthful" in ops_content
@@ -651,6 +653,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "booking setup recovery guidance requirement" in prompt_content
     assert "workspace capability recovery guidance requirement" in prompt_content
     assert "alexa simulator recovery guidance requirement" in prompt_content
+    assert "alexa simulator draft-state requirement" in prompt_content
     assert "alexa simulator selector guidance requirement" in prompt_content
     assert "public booking recovery guidance requirement" in prompt_content
     assert "public booking submit error requirement" in prompt_content
@@ -689,6 +692,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "`post /calendar/setup` should accept that original key, decrypt the preserved apple secret if the key is correct, and save the apple account by re-encrypting the recovered password under the current deployment key" in prompt_content
     assert "original-key-needed recovery guidance should tell operators to open apple setup and enter the original calsync encryption key there" in prompt_content
     assert "when the preserved apple password is reusable with the current key, `get /alexa/setup`, the alexa panel on `get /connections`, and `get /alexa/simulator` should point operators to validate or save the already-loaded recovered calendar" in prompt_content
+    assert "when `desired_alexa.enable_alexa=true`, `desired_alexa.saved=false`, and no real skill id exists yet, `get /alexa/simulator` should explicitly describe that the live alexa plan is still only a draft" in prompt_content
     assert "when the preserved apple password still needs the original key, those same alexa surfaces should tell operators to enter the original calsync encryption key on apple setup or save a fresh manual app-specific password before the remaining alexa steps" in prompt_content
     assert "the alexa simulator readiness copy and empty selector helper text should follow the same reusable-versus-original-key distinction so voice rehearsal guidance does not drift behind apple setup and connections" in prompt_content
     assert "blocked root workspace messaging, blocked booking flows, and stale appointment edit/cancel blockers should all distinguish between reusable preserved apple secrets, original-key-needed recovery, and the older fresh-password-only recovery case" in prompt_content

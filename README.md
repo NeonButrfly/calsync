@@ -433,6 +433,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Keep Alexa save responses truthful when no real plan exists: issue `#123`
 - Keep Alexa helper copy truthful when the skill ID is still missing: issue `#124`
 - Keep Alexa draft state distinct from untouched defaults: issue `#125`
+- Keep Alexa simulator truthful while the live plan is still only a draft: issue `#126`
 - Keep the entire root workspace blocked when no calendar is connected: issue `#83`
 - Keep Alexa guidance aligned with account-linking readiness: issue `#84`
 - Keep Alexa Step 4 turn-on summary aligned with live prerequisites: issue `#85`

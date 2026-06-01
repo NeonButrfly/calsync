@@ -4866,9 +4866,11 @@ def _describe_alexa_simulator_state(
 ) -> dict[str, object]:
     origin = readiness.get("origin", {})
     edge = readiness.get("edge", {})
+    desired_alexa = readiness.get("desired_alexa", {})
     any_calendar_ready = bool(origin.get("any_calendar_ready"))
     edge_reachable = bool(edge.get("reachable", False))
     edge_enabled = bool(edge.get("alexa", {}).get("enabled", False))
+    desired_draft = bool(desired_alexa.get("draft"))
     if not any_calendar_ready:
         headline = (
             "Apple reconnect still blocks meaningful scheduling tests"
@@ -4885,6 +4887,32 @@ def _describe_alexa_simulator_state(
             "Apple, Google, or Microsoft setup is connected."
         )
         useful_now = "LaunchRequest and copy checks"
+        voice_route_label = (
+            "Live"
+            if edge_enabled
+            else "Preview only"
+            if edge_reachable
+            else "Status unclear"
+        )
+        voice_route_detail = (
+            "The live Alexa route is enabled."
+            if edge_enabled
+            else "The simulator can still preview voice behavior before the real route is enabled."
+            if edge_reachable
+            else "CalSync cannot confirm the live edge route right now."
+        )
+    elif desired_draft:
+        headline = "Scheduling simulation works while live Alexa is still only a draft"
+        detail = (
+            "A writable calendar is ready, so the simulator can exercise scheduling "
+            f"intents now. {readiness.get('next_action')}"
+        )
+        useful_now = "LaunchRequest plus scheduling intents"
+        voice_route_label = "Preview only"
+        voice_route_detail = (
+            "The simulator can still preview voice behavior while the live Alexa "
+            "plan is still only a draft."
+        )
     elif not edge_enabled:
         headline = "Scheduling simulation is ready before full device turn-on"
         detail = (
@@ -4892,6 +4920,10 @@ def _describe_alexa_simulator_state(
             "intents even though the real Alexa route is still disabled."
         )
         useful_now = "LaunchRequest plus scheduling intents"
+        voice_route_label = "Preview only"
+        voice_route_detail = (
+            "The simulator can still preview voice behavior before the real route is enabled."
+        )
     elif not edge_reachable:
         headline = "Simulator guidance is limited while edge status is unavailable"
         detail = (
@@ -4899,6 +4931,8 @@ def _describe_alexa_simulator_state(
             "confirm the live edge state."
         )
         useful_now = "Most simulator requests"
+        voice_route_label = "Status unclear"
+        voice_route_detail = "CalSync cannot confirm the live edge route right now."
     else:
         headline = "Simulator is ready for end-to-end voice rehearsal"
         detail = (
@@ -4906,14 +4940,19 @@ def _describe_alexa_simulator_state(
             "this page can preview the real voice behavior before signed Amazon traffic."
         )
         useful_now = "LaunchRequest plus scheduling intents"
+        voice_route_label = "Live"
+        voice_route_detail = "The live Alexa route is enabled."
     return {
         "calendar_ready": any_calendar_ready,
         "edge_reachable": edge_reachable,
         "edge_enabled": edge_enabled,
         "recovery_mode": recovery_mode,
+        "desired_draft": desired_draft,
         "headline": headline,
         "detail": detail,
         "useful_now": useful_now,
+        "voice_route_label": voice_route_label,
+        "voice_route_detail": voice_route_detail,
         "target_option_count": len(calendar_name_options),
         "calendar_detail": (
             "At least one writable calendar path is connected for scheduling tests."

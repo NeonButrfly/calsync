@@ -573,6 +573,17 @@ Expected behavior:
 - that draft-only state should stay distinct from untouched defaults and from a real saved live plan
 - the draft-only state should still keep the real skill-ID step visible and should not imply that Cloudflare access is already the next blocker
 
+## Alexa Simulator Draft-State Requirement
+
+- GitHub issue: `#126`
+- interpreted requirement: when the operator has only a skill-ID-missing Alexa draft, `/alexa/simulator` should stop reading like route enablement is the only remaining Alexa gap
+
+Expected behavior:
+
+- when `desired_alexa.enable_alexa=true`, `desired_alexa.saved=false`, and no real skill ID exists yet, `GET /alexa/simulator` should explicitly describe that the live Alexa plan is still only a draft
+- in that same state, the simulator readiness detail should keep the shared skill-ID-first next action visible instead of only saying the real route is disabled
+- the simulator should still say scheduling rehearsal is useful now because the writable calendar path is connected; this is a truthfulness requirement about the remaining live blocker, not a rollback of simulator usefulness
+
 ## Blocked Operator Apple Reconnect Requirement
 
 - GitHub issue: `#92`

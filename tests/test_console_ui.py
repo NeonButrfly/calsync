@@ -5571,6 +5571,46 @@ def test_alexa_simulator_page_points_to_original_key_recovery_when_preserved_sec
     )
 
 
+def test_alexa_simulator_page_keeps_draft_alexa_state_truthful(monkeypatch) -> None:
+    db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
+    get_settings.cache_clear()
+    _get_engine_for_url.cache_clear()
+    _get_session_factory_for_url.cache_clear()
+    Base.metadata.create_all(_get_engine_for_url(get_settings().database_url))
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_apple_calendar_settings(
+        account_label="Family",
+        username="family@example.com",
+        app_specific_password="apple-secret-123",
+        primary_calendar_url="https://caldav.icloud.com/family/",
+        primary_calendar_name="Family",
+    )
+    service.set_alexa_account_linking_settings(link_code="Family123")
+    service.set_desired_alexa_settings(
+        enable_alexa=True,
+        allowed_skill_ids=[],
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/alexa/simulator")
+
+    assert response.status_code == 200
+    assert (
+        "Scheduling simulation works while live Alexa is still only a draft"
+        in response.text
+    )
+    assert (
+        "Save the Alexa plan and your real skill ID, then save Cloudflare Worker access so CalSync can turn on the live Alexa route and skill allowlist from the product."
+        in response.text
+    )
+    assert (
+        "A writable calendar is ready, so the simulator can exercise scheduling intents even though the real Alexa route is still disabled."
+        not in response.text
+    )
+
+
 def test_alexa_simulator_run_points_guidance_intents_to_apple_reconnect_when_recovery_hints_exist(
     monkeypatch,
 ) -> None:
