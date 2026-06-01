@@ -4520,19 +4520,25 @@ def _describe_alexa_action_copy(
         if str(value).strip()
     ]
     manageable = bool(edge_settings.get("manageable"))
+    if not desired_saved and desired_enabled and not desired_skill_ids:
+        return {
+            "manageable": manageable,
+            "setup_button_label": (
+                "Apply edge settings" if manageable else "Save desired Alexa settings"
+            ),
+            "connections_button_label": (
+                "Apply Alexa settings"
+                if manageable
+                else "Save desired Alexa settings"
+            ),
+            "helper_message": "Add the real Alexa skill ID before CalSync can save a live Alexa plan or queue edge updates.",
+        }
     if manageable:
         return {
             "manageable": True,
             "setup_button_label": "Apply edge settings",
             "connections_button_label": "Apply Alexa settings",
             "helper_message": "This will save the desired Alexa plan in CalSync and update the live edge Worker now.",
-        }
-    if not desired_saved and desired_enabled and not desired_skill_ids:
-        return {
-            "manageable": False,
-            "setup_button_label": "Save desired Alexa settings",
-            "connections_button_label": "Save desired Alexa settings",
-            "helper_message": "Add the real Alexa skill ID before CalSync can save a live Alexa plan or queue edge updates.",
         }
     return {
         "manageable": False,

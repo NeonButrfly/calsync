@@ -433,6 +433,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Keep blank Alexa saves from counting as a real desired plan: issue `#122`
 - Keep Alexa save responses truthful when no real plan exists: issue `#123`
 - Keep Alexa helper copy truthful when the skill ID is still missing: issue `#124`
+- Keep that Alexa helper copy truthful even after Cloudflare Worker access is already configured, so the live GET forms still point to the real skill-ID blocker first: issue `#124`
 - Keep Alexa draft state distinct from untouched defaults: issue `#125`
 - Keep Alexa simulator truthful while the live plan is still only a draft: issue `#126`
 - Keep the Connections Alexa live-route card aligned with the real blocker order: issue `#127`

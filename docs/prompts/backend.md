@@ -558,6 +558,7 @@ Expected behavior:
 Expected behavior:
 
 - on both `GET /alexa/setup` and `GET /connections`, when the current Alexa draft is enabled but still has no real skill ID, the helper copy below the form should say that the real Alexa skill ID is still required
+- that same helper copy should stay truthful even after Cloudflare Worker access is already configured, so the GET forms do not fall back to `update the live edge Worker now` while the real skill ID is still missing
 - that helper should not keep saying `this will save the desired Alexa plan in CalSync until live edge updates are available`
 - the helper should stay aligned with the truthful incomplete-submit response copy, the `Not saved yet` cards, and the shared readiness next action
 
