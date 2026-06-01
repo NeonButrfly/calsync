@@ -221,27 +221,13 @@
               <div class="detail-grid">
                 <article class="detail-card">
                   <p class="eyebrow">Desired Alexa settings</p>
-                  <strong>
-                    {% if desired_alexa_settings.enable_alexa %}
-                    Alexa should be enabled
-                    {% else %}
-                    Alexa should stay disabled
-                    {% endif %}
-                  </strong>
+                  <strong>{{ alexa_drift.desired_label }}</strong>
                   <span>{{ alexa_drift.message }}</span>
                 </article>
                 <article class="detail-card">
                   <p class="eyebrow">Pending edge changes</p>
-                  <strong>
-                    {% if alexa_drift.pending_changes %}
-                    Live Worker differs from the saved plan
-                    {% else %}
-                    Live Worker already matches
-                    {% endif %}
-                  </strong>
-                  <span>
-                    Desired skill IDs: {{ desired_alexa_settings.allowed_skill_ids | join(", ") if desired_alexa_settings.allowed_skill_ids else "None saved yet" }}
-                  </span>
+                  <strong>{{ alexa_drift.pending_label }}</strong>
+                  <span>{{ alexa_drift.pending_message }}</span>
                 </article>
               </div>
               <form class="form-grid" method="post" action="/alexa/setup">

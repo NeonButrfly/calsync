@@ -512,6 +512,18 @@ Expected behavior:
 - when the shared OAuth app is missing, the summary should say to save the shared OAuth app before browser account connect is available
 - only once the shared OAuth app is saved should the summary advance to telling operators to connect the account through the browser
 
+## Alexa Setup Unsaved Desired-State Truthfulness Requirement
+
+- GitHub issue: `#121`
+- interpreted requirement: `/alexa/setup` should not present fallback default Alexa settings as if they were a real saved operator plan when no desired Alexa edge state has actually been saved yet
+
+Expected behavior:
+
+- when `desired_alexa.saved` is false, the `Desired Alexa settings` card should render an explicit unsaved state instead of `Alexa should stay disabled`
+- in that same unsaved state, the `Pending edge changes` card should not say `Live Worker already matches`
+- the page should instead explain that no desired Alexa plan has been saved yet and that CalSync cannot compare the live Worker to a saved plan until one exists
+- once a desired Alexa plan is actually saved, the setup page can resume the existing enabled/disabled and drift-vs-match wording
+
 ## Blocked Operator Apple Reconnect Requirement
 
 - GitHub issue: `#92`

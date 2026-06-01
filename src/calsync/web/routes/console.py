@@ -4422,17 +4422,42 @@ def _describe_alexa_settings_drift(
     pending_enable_change = desired_enabled != live_enabled
     pending_skill_id_change = desired_skill_ids != live_skill_ids
     pending_changes = pending_enable_change or pending_skill_id_change
-    if not desired_settings.get("saved"):
+    desired_saved = bool(desired_settings.get("saved"))
+    if not desired_saved:
         message = "No desired Alexa edge state has been saved in the product yet."
+        desired_label = "Not saved yet"
+        pending_label = "No saved plan yet"
+        pending_message = (
+            "Save a desired Alexa plan before CalSync compares it with the live Worker."
+        )
     elif pending_changes:
         message = "Desired Alexa settings differ from the live Worker and still need to be applied."
+        desired_label = (
+            "Alexa should be enabled" if desired_enabled else "Alexa should stay disabled"
+        )
+        pending_label = "Live Worker differs from the saved plan"
+        pending_message = (
+            "Desired skill IDs: "
+            + (", ".join(desired_skill_ids) if desired_skill_ids else "None saved yet")
+        )
     else:
         message = "Desired Alexa settings already match the live Worker."
+        desired_label = (
+            "Alexa should be enabled" if desired_enabled else "Alexa should stay disabled"
+        )
+        pending_label = "Live Worker already matches"
+        pending_message = (
+            "Desired skill IDs: "
+            + (", ".join(desired_skill_ids) if desired_skill_ids else "None saved yet")
+        )
     return {
         "pending_changes": pending_changes,
         "pending_enable_change": pending_enable_change,
         "pending_skill_id_change": pending_skill_id_change,
         "message": message,
+        "desired_label": desired_label,
+        "pending_label": pending_label,
+        "pending_message": pending_message,
         "live_skill_id_count": len(live_skill_ids),
         "desired_skill_id_count": len(desired_skill_ids),
     }

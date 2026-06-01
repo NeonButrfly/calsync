@@ -3699,6 +3699,43 @@ def test_alexa_setup_page_renders_operator_steps(monkeypatch) -> None:
     assert ">No<" in response.text
 
 
+def test_alexa_setup_page_keeps_unsaved_desired_state_truthful(monkeypatch) -> None:
+    _configure_test_env(monkeypatch)
+
+    class FakeCloudflareWorkerConfigService:
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": False,
+                "credential_source": "missing",
+                "message": "Cloudflare worker management is not configured for this deployment.",
+            }
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        FakeCloudflareWorkerConfigService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/alexa/setup")
+
+    assert response.status_code == 200
+    assert "Desired Alexa settings" in response.text
+    assert "Not saved yet" in response.text
+    assert "No desired Alexa edge state has been saved in the product yet." in response.text
+    assert "Pending edge changes" in response.text
+    assert "No saved plan yet" in response.text
+    assert (
+        "Save a desired Alexa plan before CalSync compares it with the live Worker."
+        in response.text
+    )
+    assert "Alexa should stay disabled" not in response.text
+    assert "Live Worker already matches" not in response.text
+
+
 def test_alexa_setup_page_shows_cloudflare_permission_error(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
 

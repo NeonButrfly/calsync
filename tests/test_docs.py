@@ -79,6 +79,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#118" in readme_content
     assert "#119" in readme_content
     assert "#120" in readme_content
+    assert "#121" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -198,6 +199,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "align alexa next-step guidance with the unsaved desired-state flow after account linking" in readme_content
     assert "expose real alexa skill-id guidance directly on the setup forms" in readme_content
     assert "align the remaining connections alexa summaries with the desired-state-first guidance" in readme_content
+    assert "keep `/alexa/setup` truthful when no desired alexa plan has been saved yet" in readme_content
     assert "a writable-calendar row in alexa step 4" in readme_content
     assert "a cloudflare-access row in alexa step 4" in readme_content
     assert "a desired-settings row in alexa step 4" in readme_content
