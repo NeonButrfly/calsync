@@ -781,6 +781,17 @@ Expected behavior:
 - the Pi-side `CLOUDFLARE_API_TOKEN` / `sync-cloudflare` path can stay documented as a lower-priority operational nicety instead of the main Alexa blocker
 - docs-test coverage should assert that the follow-up section names the real Alexa skill ID and no longer treats `sync-cloudflare` as the current blocker
 
+## Alexa Setup Status-Line Truthfulness Requirement
+
+- GitHub issue: `#131`
+- interpreted requirement: when Cloudflare Worker access is already configured but the current Alexa state is still only a draft with no real skill ID, `/alexa/setup` should stop showing the older generic Worker-ready status line
+
+Expected behavior:
+
+- in the draft-without-skill-ID state, the `Edge Worker controls` status line on `GET /alexa/setup` should point at the real skill-ID blocker instead of saying the Worker is ready to configure
+- the existing `Draft only` and `Still needs real skill ID` cards should stay unchanged and the status line should align with them
+- once a real saved Alexa plan exists, the Worker-ready status line can still appear again for states that are actually ready for the next edge-configuration step
+
 ## Alexa Recovery Scheduling Error Requirement
 
 - GitHub issue: `#102`

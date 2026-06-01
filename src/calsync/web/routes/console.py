@@ -675,6 +675,10 @@ def _render_alexa_setup_page(
     account_linking_settings = operator_settings.describe_alexa_account_linking_settings()
     cloudflare_credentials = operator_settings.describe_cloudflare_worker_credentials()
     legacy_apple_recovery_hints = operator_settings.describe_legacy_apple_recovery_hints()
+    alexa_drift = _describe_alexa_settings_drift(
+        desired_settings=desired_settings,
+        edge_settings=edge_settings,
+    )
     alexa_action_copy = _describe_alexa_action_copy(
         edge_settings=edge_settings,
         desired_settings=desired_settings,
@@ -687,9 +691,10 @@ def _render_alexa_setup_page(
             "readiness": readiness,
             "edge_settings": edge_settings,
             "desired_alexa_settings": desired_settings,
-            "alexa_drift": _describe_alexa_settings_drift(
-                desired_settings=desired_settings,
+            "alexa_drift": alexa_drift,
+            "alexa_edge_status_message": _describe_alexa_setup_status_message(
                 edge_settings=edge_settings,
+                alexa_drift=alexa_drift,
             ),
             "alexa_next_action": _describe_alexa_next_action(
                 readiness=readiness,
@@ -4535,6 +4540,18 @@ def _describe_alexa_action_copy(
         "connections_button_label": "Save desired Alexa settings",
         "helper_message": "Cloudflare Worker access is still missing, so this will save the desired Alexa plan in CalSync until live edge updates are available.",
     }
+
+
+def _describe_alexa_setup_status_message(
+    *,
+    edge_settings: dict[str, object],
+    alexa_drift: dict[str, object],
+) -> str:
+    if bool(edge_settings.get("manageable")) and str(
+        alexa_drift.get("pending_label") or ""
+    ) in {"Still needs real skill ID", "No saved plan yet"}:
+        return str(alexa_drift.get("pending_message") or "")
+    return str(edge_settings.get("message") or "")
 
 
 def _describe_incomplete_alexa_plan_save_message(

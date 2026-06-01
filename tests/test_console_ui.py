@@ -3846,6 +3846,50 @@ def test_alexa_setup_page_keeps_unsaved_desired_state_truthful(monkeypatch) -> N
     assert "Live Worker already matches" not in response.text
 
 
+def test_alexa_setup_page_status_points_to_real_skill_id_when_draft_is_incomplete(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    service = OperatorSettingsService(settings=get_settings())
+    service.set_cloudflare_worker_credentials(
+        account_id="acct-123",
+        api_token="token-123",
+    )
+    service.set_alexa_account_linking_settings(link_code="Family123")
+    service.set_desired_alexa_settings(
+        enable_alexa=True,
+        allowed_skill_ids=[],
+    )
+
+    class FakeCloudflareWorkerConfigService:
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": True,
+                "credential_source": "product_vault",
+                "message": "Ready to configure the edge Worker from the product.",
+            }
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        FakeCloudflareWorkerConfigService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.get("/alexa/setup")
+
+    assert response.status_code == 200
+    assert "Current draft: enable Alexa after you save the real skill ID." in response.text
+    assert (
+        "Status:</strong> Add the real Alexa skill ID before CalSync can save a live plan or compare it with the live Worker."
+        in response.text
+    )
+    assert "Ready to configure the edge Worker from the product." not in response.text
+
+
 def test_alexa_setup_page_shows_cloudflare_permission_error(monkeypatch) -> None:
     _configure_test_env(monkeypatch)
 

@@ -88,6 +88,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#127" in readme_content
     assert "#129" in readme_content
     assert "#130" in readme_content
+    assert "#131" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -436,6 +437,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "exposes writable-calendar readiness on `/connections` for the alexa panel" in ops_content
     assert "keeps the shared alexa live-route card on `/connections` truthful" in ops_content
     assert "keeps the shared google and microsoft next-action summary on `/connections` truthful" in ops_content
+    assert "the `status` line in the `edge worker controls` panel on `get /alexa/setup` should stop saying the worker is ready to configure and should point at the real skill-id blocker instead" in ops_content
     assert "exposes account-linking readiness directly in alexa step 4" in ops_content
     assert "exposes writable-calendar readiness directly in alexa step 4" in ops_content
     assert "exposes cloudflare worker access readiness directly in alexa step 4" in ops_content
@@ -769,6 +771,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "`get /alexa/setup` should tell operators to import the skill package in the alexa developer console, copy the generated real alexa skill id, and paste it into `allowed skill ids`" in prompt_content
     assert "the `finish the live stack` alexa summary on `get /connections` should mirror that same current guidance instead of older `finish edge enablement and skill-id allowlisting` copy" in prompt_content
     assert "the `live route` detail card on `get /connections` should stay aligned with the same blocker ordering already used by readiness and the other alexa cards on that page" in prompt_content
+    assert "when cloudflare worker access is already configured but the current alexa state is still only a draft with no real skill id, `/alexa/setup` should stop showing the older generic worker-ready status line" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit writable-calendar readiness row" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit cloudflare-access readiness row" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit desired-state readiness row" in prompt_content

@@ -626,6 +626,7 @@ Recovery note:
 - once the operator has only an Alexa draft with `enable_alexa=true` and no real skill ID, `/alexa/simulator` should stop reading like route enablement is the only missing step and should expose that the live Alexa plan is still only a draft
 - issue `#127`
 - once the operator has only an Alexa draft with no real skill ID saved yet, the `Live route` detail card on `GET /connections` should stop saying route enablement is the only missing step and should reuse the same blocker ordering as the other desired-state-first Alexa guidance on that page
+- once Cloudflare Worker access is configured but Alexa is still only a draft with no real skill ID, the `Status` line in the `Edge Worker controls` panel on `GET /alexa/setup` should stop saying the Worker is ready to configure and should point at the real skill-ID blocker instead
 - issue `#109`
 - Alexa setup, the Connections Alexa panel, and the Alexa simulator now mirror that same legacy Apple encrypted-secret recovery state instead of falling back to fresh-password-only guidance
 - issue `#110`
