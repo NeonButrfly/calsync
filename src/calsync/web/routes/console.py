@@ -4448,7 +4448,15 @@ def _describe_alexa_settings_drift(
     pending_skill_id_change = desired_skill_ids != live_skill_ids
     pending_changes = pending_enable_change or pending_skill_id_change
     desired_saved = bool(desired_settings.get("saved"))
-    if not desired_saved:
+    desired_draft = bool(desired_settings.get("draft"))
+    if desired_draft:
+        message = "Alexa is toggled on in the current draft, but a real skill ID is still missing."
+        desired_label = "Draft only"
+        pending_label = "Still needs real skill ID"
+        pending_message = (
+            "Add the real Alexa skill ID before CalSync can save a live plan or compare it with the live Worker."
+        )
+    elif not desired_saved:
         message = "No desired Alexa edge state has been saved in the product yet."
         desired_label = "Not saved yet"
         pending_label = "No saved plan yet"

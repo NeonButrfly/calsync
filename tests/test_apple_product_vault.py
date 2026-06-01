@@ -220,7 +220,9 @@ def test_readiness_service_keeps_skill_id_guidance_when_alexa_enabled_without_sk
     readiness = ReadinessService(settings=settings).build()
 
     assert readiness["origin"]["any_calendar_ready"] is True
+    assert readiness["desired_alexa"]["enable_alexa"] is True
     assert readiness["desired_alexa"]["saved"] is False
+    assert readiness["desired_alexa"]["source"] == "draft"
     assert (
         readiness["next_action"]
         == "Save the Alexa plan and your real skill ID, then save Cloudflare Worker access so CalSync can turn on the live Alexa route and skill allowlist from the product."

@@ -619,6 +619,8 @@ Recovery note:
 - Alexa save responses should stop flashing `Desired Alexa settings saved securely.` when no real plan exists yet; blank or skill-ID-missing saves should stay local, skip edge apply attempts, and tell operators whether no plan was saved yet or a real skill ID is still required
 - issue `#124`
 - once the operator has only a skill-ID-missing Alexa draft, the helper copy under the Alexa forms should stop saying it will save a desired Alexa plan; it should instead say that the real Alexa skill ID is still required before CalSync can save a live plan or queue edge updates
+- issue `#125`
+- once the operator has only an Alexa draft with `enable_alexa=true` and no real skill ID, the app should stop calling that state `defaults`; shared readiness and the Alexa desired-settings cards should treat it as an explicit draft-only state that is distinct from untouched defaults
 - issue `#109`
 - Alexa setup, the Connections Alexa panel, and the Alexa simulator now mirror that same legacy Apple encrypted-secret recovery state instead of falling back to fresh-password-only guidance
 - issue `#110`

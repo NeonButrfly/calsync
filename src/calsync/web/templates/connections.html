@@ -401,7 +401,7 @@
                 </article>
                 <article class="detail-card">
                   <p class="eyebrow">Desired settings</p>
-                  <strong>{% if desired_alexa_settings.saved %}Saved{% else %}Not saved yet{% endif %}</strong>
+                  <strong>{{ alexa_drift.desired_label }}</strong>
                   <span>
                     {% if desired_alexa_settings.saved %}
                       {% if desired_alexa_settings.enable_alexa %}
@@ -409,6 +409,9 @@
                       {% else %}
                         Saved plan: keep Alexa off.
                       {% endif %}
+                      {{ alexa_drift.message }}
+                    {% elif desired_alexa_settings.draft %}
+                      Current draft: enable Alexa after you save the real skill ID.
                       {{ alexa_drift.message }}
                     {% else %}
                       {{ alexa_drift.message }}

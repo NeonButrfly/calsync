@@ -83,6 +83,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#122" in readme_content
     assert "#123" in readme_content
     assert "#124" in readme_content
+    assert "#125" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -206,6 +207,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "keep blank alexa saves from counting as a real desired plan" in readme_content
     assert "keep alexa save responses truthful when no real plan exists" in readme_content
     assert "keep alexa helper copy truthful when the skill id is still missing" in readme_content
+    assert "keep alexa draft state distinct from untouched defaults" in readme_content
     assert "a writable-calendar row in alexa step 4" in readme_content
     assert "a cloudflare-access row in alexa step 4" in readme_content
     assert "a desired-settings row in alexa step 4" in readme_content
@@ -417,6 +419,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "saving blank alexa defaults or an enabled-without-skill-id state should not count as a real desired alexa plan" in ops_content
     assert "alexa save responses should stop flashing `desired alexa settings saved securely.` when no real plan exists yet" in ops_content
     assert "once the operator has only a skill-id-missing alexa draft, the helper copy under the alexa forms should stop saying it will save a desired alexa plan" in ops_content
+    assert "once the operator has only an alexa draft with `enable_alexa=true` and no real skill id, the app should stop calling that state `defaults`" in ops_content
     assert "copy the generated real alexa skill id from the alexa developer console after importing the package" in ops_content
     assert "remaining alexa summaries on `/connections`, including the edge-route status card and the `finish the live stack` alexa line" in ops_content
     assert "keeps the shared alexa desired-settings card on `/connections` truthful" in ops_content
@@ -742,6 +745,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "with `enable_alexa=true` but no real skill id should say that the real alexa skill id is still required before a live plan can be saved" in prompt_content
     assert "when the current alexa draft is enabled but still has no real skill id, the helper copy below the form should say that the real alexa skill id is still required" in prompt_content
     assert "should not keep saying `this will save the desired alexa plan in calsync until live edge updates are available`" in prompt_content
+    assert "`get /api/readiness` should expose the skill-id-missing state as a draft, not `source=defaults`" in prompt_content
+    assert "`get /alexa/setup` and `get /connections` should show an explicit draft-only desired-settings state when `enable_alexa=true` but no real skill id exists yet" in prompt_content
     assert "`get /alexa/setup` should tell operators to import the skill package in the alexa developer console, copy the generated real alexa skill id, and paste it into `allowed skill ids`" in prompt_content
     assert "the `finish the live stack` alexa summary on `get /connections` should mirror that same current guidance instead of older `finish edge enablement and skill-id allowlisting` copy" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit writable-calendar readiness row" in prompt_content

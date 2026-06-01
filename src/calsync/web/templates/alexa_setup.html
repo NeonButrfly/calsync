@@ -222,7 +222,7 @@
                 <article class="detail-card">
                   <p class="eyebrow">Desired Alexa settings</p>
                   <strong>{{ alexa_drift.desired_label }}</strong>
-                  <span>{{ alexa_drift.message }}</span>
+                  <span>{% if desired_alexa_settings.draft %}Current draft: enable Alexa after you save the real skill ID. {% endif %}{{ alexa_drift.message }}</span>
                 </article>
                 <article class="detail-card">
                   <p class="eyebrow">Pending edge changes</p>

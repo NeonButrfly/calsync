@@ -337,11 +337,19 @@ class OperatorSettingsService:
     def describe_desired_alexa_settings(self) -> dict[str, object]:
         values = self.get_desired_alexa_settings()
         saved = bool(values["allowed_skill_ids"])
+        has_draft = bool(values["enable_alexa"]) and not saved
         return {
             "enable_alexa": bool(values["enable_alexa"]),
             "allowed_skill_ids": list(values["allowed_skill_ids"]),
             "saved": saved,
-            "source": "product_vault" if saved else "defaults",
+            "source": (
+                "product_vault"
+                if saved
+                else "draft"
+                if has_draft
+                else "defaults"
+            ),
+            "draft": has_draft,
         }
 
     def set_alexa_account_linking_settings(

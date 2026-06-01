@@ -561,6 +561,18 @@ Expected behavior:
 - that helper should not keep saying `this will save the desired Alexa plan in CalSync until live edge updates are available`
 - the helper should stay aligned with the truthful incomplete-submit response copy, the `Not saved yet` cards, and the shared readiness next action
 
+## Alexa Draft-State Distinction Requirement
+
+- GitHub issue: `#125`
+- interpreted requirement: when the operator has turned Alexa on in the form but still has no real skill ID, CalSync should describe that as a draft state, not as untouched defaults
+
+Expected behavior:
+
+- `GET /api/readiness` should expose the skill-ID-missing state as a draft, not `source=defaults`
+- `GET /alexa/setup` and `GET /connections` should show an explicit draft-only desired-settings state when `enable_alexa=true` but no real skill ID exists yet
+- that draft-only state should stay distinct from untouched defaults and from a real saved live plan
+- the draft-only state should still keep the real skill-ID step visible and should not imply that Cloudflare access is already the next blocker
+
 ## Blocked Operator Apple Reconnect Requirement
 
 - GitHub issue: `#92`
