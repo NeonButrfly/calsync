@@ -87,6 +87,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#126" in readme_content
     assert "#127" in readme_content
     assert "#129" in readme_content
+    assert "#130" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -911,3 +912,16 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "save the desired alexa plan there" in skill_manifest["manifest"][
         "publishingInformation"
     ]["testingInstructions"].lower()
+
+
+def test_ops_follow_up_item_tracks_live_alexa_blocker() -> None:
+    ops_content = Path("docs/ops.md").read_text(encoding="utf-8").lower()
+    prompt_content = Path("docs/prompts/backend.md").read_text(encoding="utf-8").lower()
+
+    follow_up_section = ops_content.split("## current follow-up item", 1)[1]
+
+    assert "real alexa skill id" in follow_up_section
+    assert "lower-priority ops nicety" in follow_up_section
+    assert "main blocker for alexa turn-on" in follow_up_section
+    assert "#130" in prompt_content
+    assert "once product-managed cloudflare worker access is already configured" in prompt_content

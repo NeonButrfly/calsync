@@ -436,6 +436,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Keep Alexa draft state distinct from untouched defaults: issue `#125`
 - Keep Alexa simulator truthful while the live plan is still only a draft: issue `#126`
 - Keep the Connections Alexa live-route card aligned with the real blocker order: issue `#127`
+- Keep the Alexa follow-up docs aligned with the live skill-ID blocker instead of the old Pi token-sync nicety: issue `#130`
 - Sync Alexa docs and skill-package instructions with the live Worker deployment state: issue `#128`
 - Default-deny Alexa Worker requests when the allowed skill list is empty: issue `#129`
 - Keep the entire root workspace blocked when no calendar is connected: issue `#83`

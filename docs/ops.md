@@ -639,6 +639,12 @@ Recovery note:
 
 ## Current follow-up item
 
-The live edge path works today, but automatic Pi-to-Cloudflare token-hash sync still wants one more production nicety:
+The live edge path and product-managed Cloudflare access now work today. The real current Alexa follow-up item is the final live turn-on blocker:
 
-- a dedicated `CLOUDFLARE_API_TOKEN` in the Pi `.env` so `sync-cloudflare` can run directly on-host without a workstation-assisted sync
+- recover the real Alexa skill ID from the Alexa developer console
+- save that skill ID through the CalSync Alexa setup flow so the desired Alexa plan can become a real saved plan instead of a draft
+- enable the live Alexa route only after the real skill ID is present, then verify signed Alexa traffic or real device traffic end to end
+
+Lower-priority ops nicety:
+
+- a dedicated `CLOUDFLARE_API_TOKEN` in the Pi `.env` would still let `sync-cloudflare` run directly on-host without a workstation-assisted sync, but that is no longer the main blocker for Alexa turn-on

@@ -770,6 +770,17 @@ Expected behavior:
 - the Worker should only accept live Alexa requests after at least one configured allowed skill ID is present and the incoming skill ID matches it
 - Worker tests should keep explicit coverage for the empty-allowlist `403` path so this edge safety contract cannot silently drift
 
+## Alexa Follow-up Docs Truthfulness Requirement
+
+- GitHub issue: `#130`
+- interpreted requirement: once product-managed Cloudflare Worker access is already configured, the repo docs should stop presenting the old Pi-side `sync-cloudflare` token nicety as the main current follow-up item
+
+Expected behavior:
+
+- the docs follow-up section should say the real current blocker is recovering the real Alexa skill ID, saving the final desired Alexa plan, and enabling the live route safely
+- the Pi-side `CLOUDFLARE_API_TOKEN` / `sync-cloudflare` path can stay documented as a lower-priority operational nicety instead of the main Alexa blocker
+- docs-test coverage should assert that the follow-up section names the real Alexa skill ID and no longer treats `sync-cloudflare` as the current blocker
+
 ## Alexa Recovery Scheduling Error Requirement
 
 - GitHub issue: `#102`
