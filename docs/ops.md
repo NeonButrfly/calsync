@@ -47,6 +47,7 @@ This guide covers the current CalSync service, family scheduling UX, the planner
 - exposes Alexa account-linking readiness on `/connections` so the shared voice panel shows whether the household link code is already configured
 - keeps the shared Alexa desired-settings card on `/connections` truthful, so unsaved defaults do not read like a real saved voice plan
 - exposes writable-calendar readiness on `/connections` for the Alexa panel so the shared voice surface shows the first real schedule prerequisite too
+- keeps the shared Alexa live-route card on `/connections` truthful, so it reflects the real blocker order instead of acting like route enablement is the only missing step when the real skill ID or Cloudflare access still comes first
 - keeps the shared Google and Microsoft next-action summary on `/connections` truthful, so missing OAuth setup is surfaced before browser account connect is suggested
 - exposes account-linking readiness directly in Alexa Step 4 so the final live turn-on summary no longer hides that prerequisite
 - exposes writable-calendar readiness directly in Alexa Step 4 so the final live turn-on summary shows the first real scheduling blocker alongside the edge and auth prerequisites
@@ -623,6 +624,8 @@ Recovery note:
 - once the operator has only an Alexa draft with `enable_alexa=true` and no real skill ID, the app should stop calling that state `defaults`; shared readiness and the Alexa desired-settings cards should treat it as an explicit draft-only state that is distinct from untouched defaults
 - issue `#126`
 - once the operator has only an Alexa draft with `enable_alexa=true` and no real skill ID, `/alexa/simulator` should stop reading like route enablement is the only missing step and should expose that the live Alexa plan is still only a draft
+- issue `#127`
+- once the operator has only an Alexa draft with no real skill ID saved yet, the `Live route` detail card on `GET /connections` should stop saying route enablement is the only missing step and should reuse the same blocker ordering as the other desired-state-first Alexa guidance on that page
 - issue `#109`
 - Alexa setup, the Connections Alexa panel, and the Alexa simulator now mirror that same legacy Apple encrypted-secret recovery state instead of falling back to fresh-password-only guidance
 - issue `#110`

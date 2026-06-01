@@ -85,6 +85,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#124" in readme_content
     assert "#125" in readme_content
     assert "#126" in readme_content
+    assert "#127" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -209,11 +210,13 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "keep alexa save responses truthful when no real plan exists" in readme_content
     assert "keep alexa helper copy truthful when the skill id is still missing" in readme_content
     assert "keep alexa draft state distinct from untouched defaults" in readme_content
+    assert "keep the connections alexa live-route card aligned with the real blocker order" in readme_content
     assert "a writable-calendar row in alexa step 4" in readme_content
     assert "a cloudflare-access row in alexa step 4" in readme_content
     assert "a desired-settings row in alexa step 4" in readme_content
     assert "a truthful desired-settings card on `/connections`" in readme_content
     assert "a writable-calendar card on `/connections` for alexa" in readme_content
+    assert "a truthful live-route card on `/connections` for alexa" in readme_content
     assert "truthful google and microsoft next-action summaries on `/connections`" in readme_content
     assert "simulator readiness summary for no-calendar voice testing states" in readme_content
     assert "live-vs-desired drift visibility" in readme_content
@@ -426,6 +429,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "remaining alexa summaries on `/connections`, including the edge-route status card and the `finish the live stack` alexa line" in ops_content
     assert "keeps the shared alexa desired-settings card on `/connections` truthful" in ops_content
     assert "exposes writable-calendar readiness on `/connections` for the alexa panel" in ops_content
+    assert "keeps the shared alexa live-route card on `/connections` truthful" in ops_content
     assert "keeps the shared google and microsoft next-action summary on `/connections` truthful" in ops_content
     assert "exposes account-linking readiness directly in alexa step 4" in ops_content
     assert "exposes writable-calendar readiness directly in alexa step 4" in ops_content
@@ -753,6 +757,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "`get /alexa/setup` and `get /connections` should show an explicit draft-only desired-settings state when `enable_alexa=true` but no real skill id exists yet" in prompt_content
     assert "`get /alexa/setup` should tell operators to import the skill package in the alexa developer console, copy the generated real alexa skill id, and paste it into `allowed skill ids`" in prompt_content
     assert "the `finish the live stack` alexa summary on `get /connections` should mirror that same current guidance instead of older `finish edge enablement and skill-id allowlisting` copy" in prompt_content
+    assert "the `live route` detail card on `get /connections` should stay aligned with the same blocker ordering already used by readiness and the other alexa cards on that page" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit writable-calendar readiness row" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit cloudflare-access readiness row" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit desired-state readiness row" in prompt_content

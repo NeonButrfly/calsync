@@ -2246,7 +2246,15 @@ def test_connections_page_requires_skill_id_before_saving_live_alexa_plan(
     assert "Cloudflare worker management is not configured for this deployment." not in response.text
     assert "Current draft: enable Alexa after you save the real skill ID." in response.text
     assert (
+        "Save the Alexa plan and real skill ID, then save Cloudflare Worker access before real device traffic is live."
+        in response.text
+    )
+    assert (
         "Cloudflare Worker access is still missing, so this will save the desired Alexa plan in CalSync until live edge updates are available."
+        not in response.text
+    )
+    assert (
+        "The edge Worker still needs Alexa enabled before real device traffic can flow."
         not in response.text
     )
 

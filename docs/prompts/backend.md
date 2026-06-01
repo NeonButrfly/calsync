@@ -584,6 +584,17 @@ Expected behavior:
 - in that same state, the simulator readiness detail should keep the shared skill-ID-first next action visible instead of only saying the real route is disabled
 - the simulator should still say scheduling rehearsal is useful now because the writable calendar path is connected; this is a truthfulness requirement about the remaining live blocker, not a rollback of simulator usefulness
 
+## Connections Alexa Live Route Truthfulness Requirement
+
+- GitHub issue: `#127`
+- interpreted requirement: when the operator only has an Alexa draft and no real skill ID has been saved yet, the `Live route` detail card on `GET /connections` should stay aligned with the same blocker ordering already used by readiness and the other Alexa cards on that page
+
+Expected behavior:
+
+- in the skill-ID-missing draft state, the `Live route` card on `GET /connections` should not say route enablement is the only missing step
+- that card should instead describe the current blocker ordering with the same desired-state-first guidance as the rest of the Alexa panel
+- the Connections Alexa panel should not mix newer draft-state guidance with older route-enable-only detail copy in the same live state
+
 ## Blocked Operator Apple Reconnect Requirement
 
 - GitHub issue: `#92`

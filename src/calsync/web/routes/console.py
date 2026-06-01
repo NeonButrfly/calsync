@@ -4066,6 +4066,12 @@ def _build_connections_context(
             cloudflare_credentials=cloudflare_credentials,
             legacy_apple_recovery_hints=legacy_apple_recovery_hints,
         ),
+        "alexa_edge_route_detail": _describe_alexa_edge_route_detail(
+            readiness=readiness,
+            desired_settings=desired_alexa_settings,
+            account_linking_settings=account_linking_settings,
+            cloudflare_credentials=cloudflare_credentials,
+        ),
         "alexa_finish_line_action": _describe_alexa_finish_line_action(
             readiness=readiness,
             desired_settings=desired_alexa_settings,

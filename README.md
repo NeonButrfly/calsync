@@ -97,6 +97,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - a desired-settings row in Alexa Step 4, so the final live turn-on summary now shows whether CalSync actually has a saved Alexa plan instead of leaving that prerequisite only in a separate status card
 - a truthful desired-settings card on `/connections`, so the shared Alexa panel now says when no Alexa plan has been saved yet instead of presenting unsaved defaults like a real live plan
 - a writable-calendar card on `/connections` for Alexa, so the shared voice panel now surfaces the first real scheduling prerequisite instead of hiding it only in next-action copy
+- a truthful live-route card on `/connections` for Alexa, so the shared voice panel no longer acts like route enablement is the only missing step when the real skill ID or Cloudflare access still comes first
 - truthful Google and Microsoft next-action summaries on `/connections`, so the shared finish-line panel now says to save the shared OAuth app first when browser connect is not actually available yet
 - a simulator readiness summary for no-calendar voice testing states, so `/alexa/simulator` explains when LaunchRequest is still useful and why scheduling-intent tests are still blocked
 - recovery-aware simulator readiness guidance on `/alexa/simulator`, so the voice testing page now points operators to Apple reconnect instead of falling back to blank-install no-calendar wording when legacy hints already exist
@@ -434,6 +435,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Keep Alexa helper copy truthful when the skill ID is still missing: issue `#124`
 - Keep Alexa draft state distinct from untouched defaults: issue `#125`
 - Keep Alexa simulator truthful while the live plan is still only a draft: issue `#126`
+- Keep the Connections Alexa live-route card aligned with the real blocker order: issue `#127`
 - Keep the entire root workspace blocked when no calendar is connected: issue `#83`
 - Keep Alexa guidance aligned with account-linking readiness: issue `#84`
 - Keep Alexa Step 4 turn-on summary aligned with live prerequisites: issue `#85`
