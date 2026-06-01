@@ -524,6 +524,19 @@ Expected behavior:
 - the page should instead explain that no desired Alexa plan has been saved yet and that CalSync cannot compare the live Worker to a saved plan until one exists
 - once a desired Alexa plan is actually saved, the setup page can resume the existing enabled/disabled and drift-vs-match wording
 
+## Alexa Blank-Save Truthfulness Requirement
+
+- GitHub issue: `#122`
+- interpreted requirement: saving blank Alexa defaults, or saving Alexa enabled without any real skill ID, should not count as a real desired Alexa live plan
+
+Expected behavior:
+
+- `GET /api/readiness` should keep telling operators to save the Alexa plan and real skill ID until at least one real skill ID is saved
+- `GET /alexa/setup` should keep the desired-settings and pending-edge cards in a not-saved state when no real skill ID exists yet
+- `GET /connections` should keep the shared Alexa desired-settings card in a not-saved state when no real skill ID exists yet
+- blank/default Alexa saves may preserve the safe disabled runtime state, but they should not suppress the real missing-skill-ID guidance
+- simply checking `enable_alexa` without a real skill ID should still leave the setup flow blocked on the skill-ID step
+
 ## Blocked Operator Apple Reconnect Requirement
 
 - GitHub issue: `#92`

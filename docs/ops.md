@@ -613,6 +613,8 @@ Recovery note:
 - the remaining Alexa summaries on `/connections`, including the edge-route status card and the `Finish the live stack` Alexa line, should mirror that same desired-state-first guidance instead of falling back to older generic edge-enable wording
 - issue `#121`
 - `/alexa/setup` should keep the desired-settings and pending-edge cards truthful when no desired Alexa plan has been saved yet, instead of presenting the unsaved defaults like a real saved plan
+- issue `#122`
+- saving blank Alexa defaults or an enabled-without-skill-id state should not count as a real desired Alexa plan, so shared readiness and the Alexa setup or Connections cards must keep the real skill-ID step visible until at least one real skill ID is saved
 - issue `#109`
 - Alexa setup, the Connections Alexa panel, and the Alexa simulator now mirror that same legacy Apple encrypted-secret recovery state instead of falling back to fresh-password-only guidance
 - issue `#110`

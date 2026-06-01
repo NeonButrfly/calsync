@@ -2149,6 +2149,53 @@ def test_connections_page_can_save_desired_alexa_settings_without_manageable_wor
     }
 
 
+def test_connections_page_blank_alexa_save_does_not_count_as_a_real_plan(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    OperatorSettingsService(settings=get_settings()).set_alexa_account_linking_settings(
+        link_code="Family123"
+    )
+
+    class FakeCloudflareWorkerConfigService:
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": False,
+                "credential_source": "missing",
+                "message": "Cloudflare worker management is not configured for this deployment.",
+            }
+
+        def update_alexa_settings(self, *, enable_alexa: bool, allowed_skill_ids: list[str]):
+            assert enable_alexa is False
+            assert allowed_skill_ids == []
+            raise ValueError(
+                "Cloudflare worker management is not configured for this deployment."
+            )
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        FakeCloudflareWorkerConfigService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/connections/alexa",
+        data={
+            "allowed_skill_ids": "",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Desired settings" in response.text
+    assert "Not saved yet" in response.text
+    assert "Saved plan: keep Alexa off." not in response.text
+    assert "Save the Alexa plan and your real skill ID" in response.text
+
+
 def test_alexa_setup_page_shows_voice_specific_next_guidance(monkeypatch) -> None:
     db_path = Path(tempfile.gettempdir()) / f"calsync-ui-test-{uuid4()}.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path.as_posix()}")
@@ -3865,6 +3912,50 @@ def test_alexa_setup_page_saves_desired_settings_even_when_worker_is_not_managea
         "enable_alexa": True,
         "allowed_skill_ids": ["amzn1.ask.skill.saved"],
     }
+
+
+def test_alexa_setup_page_blank_alexa_save_does_not_count_as_a_real_plan(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+
+    class FakeCloudflareWorkerConfigService:
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": False,
+                "credential_source": "missing",
+                "message": "Cloudflare worker management is not configured for this deployment.",
+            }
+
+        def update_alexa_settings(self, *, enable_alexa: bool, allowed_skill_ids: list[str]):
+            assert enable_alexa is False
+            assert allowed_skill_ids == []
+            raise ValueError(
+                "Cloudflare worker management is not configured for this deployment."
+            )
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        FakeCloudflareWorkerConfigService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/alexa/setup",
+        data={
+            "allowed_skill_ids": "",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Not saved yet" in response.text
+    assert "No saved plan yet" in response.text
+    assert "Desired Alexa settings saved:</strong>\n                  No" in response.text
+    assert "Alexa should stay disabled" not in response.text
 
 
 def test_alexa_setup_page_saves_cloudflare_credentials(monkeypatch) -> None:

@@ -429,6 +429,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Expose real Alexa skill-ID guidance directly on the setup forms: issue `#119`
 - Align the remaining Connections Alexa summaries with the desired-state-first guidance: issue `#120`
 - Keep `/alexa/setup` truthful when no desired Alexa plan has been saved yet: issue `#121`
+- Keep blank Alexa saves from counting as a real desired plan: issue `#122`
 - Keep the entire root workspace blocked when no calendar is connected: issue `#83`
 - Keep Alexa guidance aligned with account-linking readiness: issue `#84`
 - Keep Alexa Step 4 turn-on summary aligned with live prerequisites: issue `#85`

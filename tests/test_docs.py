@@ -80,6 +80,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "#119" in readme_content
     assert "#120" in readme_content
     assert "#121" in readme_content
+    assert "#122" in readme_content
     assert "#31" in readme_content
     assert "#3" in readme_content
     assert "#37" in readme_content
@@ -200,6 +201,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "expose real alexa skill-id guidance directly on the setup forms" in readme_content
     assert "align the remaining connections alexa summaries with the desired-state-first guidance" in readme_content
     assert "keep `/alexa/setup` truthful when no desired alexa plan has been saved yet" in readme_content
+    assert "keep blank alexa saves from counting as a real desired plan" in readme_content
     assert "a writable-calendar row in alexa step 4" in readme_content
     assert "a cloudflare-access row in alexa step 4" in readme_content
     assert "a desired-settings row in alexa step 4" in readme_content
@@ -408,6 +410,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "exposes alexa account-linking readiness on `/connections`" in ops_content
     assert "step 2.5 intro copy from first-time save guidance to configured-state guidance" in ops_content
     assert "save the alexa plan and real skill id before cloudflare worker apply-only guidance takes over" in ops_content
+    assert "saving blank alexa defaults or an enabled-without-skill-id state should not count as a real desired alexa plan" in ops_content
     assert "copy the generated real alexa skill id from the alexa developer console after importing the package" in ops_content
     assert "remaining alexa summaries on `/connections`, including the edge-route status card and the `finish the live stack` alexa line" in ops_content
     assert "keeps the shared alexa desired-settings card on `/connections` truthful" in ops_content
@@ -727,6 +730,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "`get /alexa/setup` step 4 should include an explicit account-linking readiness row" in prompt_content
     assert "the older `save a household link code, then use the authorization url below...` wording should only render before account linking has been configured" in prompt_content
     assert "when the desired alexa plan is still unsaved after account linking is ready, `get /api/readiness` should tell operators to save the alexa plan and real skill id before cloudflare apply-only guidance takes over" in prompt_content
+    assert "saving blank alexa defaults, or saving alexa enabled without any real skill id, should not count as a real desired alexa live plan" in prompt_content
+    assert "simply checking `enable_alexa` without a real skill id should still leave the setup flow blocked on the skill-id step" in prompt_content
     assert "`get /alexa/setup` should tell operators to import the skill package in the alexa developer console, copy the generated real alexa skill id, and paste it into `allowed skill ids`" in prompt_content
     assert "the `finish the live stack` alexa summary on `get /connections` should mirror that same current guidance instead of older `finish edge enablement and skill-id allowlisting` copy" in prompt_content
     assert "`get /alexa/setup` step 4 should include an explicit writable-calendar readiness row" in prompt_content

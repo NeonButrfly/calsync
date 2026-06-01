@@ -304,6 +304,10 @@ class OperatorSettingsService:
         allowed_skill_ids: list[str],
     ) -> None:
         normalized_skill_ids = self._normalize_skill_ids(allowed_skill_ids)
+        if not enable_alexa and not normalized_skill_ids:
+            self.delete_value("desired_alexa_enable")
+            self.delete_value("desired_alexa_allowed_skill_ids")
+            return
         self.set_value(
             "desired_alexa_enable",
             "true" if enable_alexa else "false",
@@ -332,10 +336,7 @@ class OperatorSettingsService:
 
     def describe_desired_alexa_settings(self) -> dict[str, object]:
         values = self.get_desired_alexa_settings()
-        saved = bool(
-            self.get_value("desired_alexa_enable")
-            or self.get_value("desired_alexa_allowed_skill_ids")
-        )
+        saved = bool(values["allowed_skill_ids"])
         return {
             "enable_alexa": bool(values["enable_alexa"]),
             "allowed_skill_ids": list(values["allowed_skill_ids"]),
