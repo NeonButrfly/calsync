@@ -668,6 +668,7 @@ def _render_alexa_setup_page(
     operator_settings: OperatorSettingsService,
     edge_settings: dict[str, object],
     flash_message: str | None,
+    flash_style: str = "success",
     error_message: str | None,
     status_code: int,
 ):
@@ -712,6 +713,7 @@ def _render_alexa_setup_page(
             "terms_url": "https://calsync.neonbutterfly.net/terms",
             "simulator_url": "/alexa/simulator",
             "flash_message": flash_message,
+            "flash_style": flash_style,
             "error_message": error_message,
         },
         status_code=status_code,
@@ -727,9 +729,11 @@ def alexa_setup_update_account_linking(
     try:
         operator_settings.set_alexa_account_linking_settings(link_code=link_code)
         flash_message = "Alexa account linking is ready."
+        flash_style = "success"
         error_message = None
     except ValueError as exc:
         flash_message = None
+        flash_style = "success"
         error_message = str(exc)
     edge_settings = CloudflareWorkerConfigService().get_alexa_settings()
     return _render_alexa_setup_page(
@@ -738,6 +742,7 @@ def alexa_setup_update_account_linking(
         operator_settings=operator_settings,
         edge_settings=edge_settings,
         flash_message=flash_message,
+        flash_style=flash_style,
         error_message=error_message,
         status_code=200 if error_message is None else 400,
     )
@@ -1435,6 +1440,7 @@ def connections_alexa_update(
             requested_enable_alexa=requested_enable_alexa,
             requested_skill_ids=normalized_skill_ids,
         )
+        flash_style = "warning"
         error_message = None
     else:
         try:
@@ -1443,9 +1449,11 @@ def connections_alexa_update(
                 allowed_skill_ids=normalized_skill_ids,
             )
             flash_message = "Desired Alexa settings saved and edge Worker updated."
+            flash_style = "success"
             error_message = None
         except ValueError as exc:
             flash_message = "Desired Alexa settings saved securely."
+            flash_style = "success"
             error_message = str(exc)
 
     return _templates.TemplateResponse(
@@ -1454,6 +1462,7 @@ def connections_alexa_update(
         _build_connections_context(
             request,
             flash_message=flash_message,
+            flash_style=flash_style,
             error_message=error_message,
         ),
         status_code=200,
@@ -2422,6 +2431,7 @@ def alexa_setup_update(
             requested_enable_alexa=requested_enable_alexa,
             requested_skill_ids=normalized_skill_ids,
         )
+        flash_style = "warning"
         error_message = None
     else:
         try:
@@ -2432,10 +2442,12 @@ def alexa_setup_update(
             if edge_settings is None:
                 edge_settings = service.get_alexa_settings()
             flash_message = "Desired Alexa settings saved and edge Worker updated."
+            flash_style = "success"
             error_message = None
         except ValueError as exc:
             edge_settings = service.get_alexa_settings()
             flash_message = "Desired Alexa settings saved securely."
+            flash_style = "success"
             error_message = str(exc)
     readiness = ReadinessService().build()
 
@@ -2445,6 +2457,7 @@ def alexa_setup_update(
         operator_settings=operator_settings,
         edge_settings=edge_settings,
         flash_message=flash_message,
+        flash_style=flash_style,
         error_message=error_message,
         status_code=200,
     )
@@ -3927,6 +3940,7 @@ def _build_connections_context(
     request: Request,
     *,
     flash_message: str | None,
+    flash_style: str = "success",
     error_message: str | None,
 ) -> dict[str, object]:
     operator_settings = OperatorSettingsService()
@@ -4087,6 +4101,7 @@ def _build_connections_context(
         "cloudflare_credentials": cloudflare_credentials,
         "account_linking_settings": account_linking_settings,
         "flash_message": flash_message,
+        "flash_style": flash_style,
         "error_message": error_message,
         "setup_checklist": setup_checklist,
         "apple_targets": apple_targets,

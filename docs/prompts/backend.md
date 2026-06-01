@@ -549,6 +549,7 @@ Expected behavior:
 - `POST /alexa/setup` and `POST /connections/alexa` with `enable_alexa=true` but no real skill ID should say that the real Alexa skill ID is still required before a live plan can be saved
 - these incomplete submits should skip edge-apply attempts and should not surface Cloudflare apply errors as if the only blocker were Worker access
 - the rendered response should stay aligned with `desired_alexa.saved=false`, the `Not saved yet` cards, and the shared readiness next action
+- those incomplete-save responses should not render as green success flashes, because no real Alexa plan was actually saved
 
 ## Alexa Draft Helper-Copy Truthfulness Requirement
 

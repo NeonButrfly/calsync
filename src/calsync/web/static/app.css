@@ -716,6 +716,12 @@ button:hover,
   color: var(--danger);
 }
 
+.flash--warning {
+  background: rgba(176, 120, 14, 0.12);
+  border: 1px solid rgba(176, 120, 14, 0.2);
+  color: #8a5b00;
+}
+
 .appointment-meta,
 .appointment-detail,
 .timeline-item p {

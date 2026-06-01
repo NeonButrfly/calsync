@@ -53,7 +53,7 @@
         </section>
 
         {% if flash_message %}
-        <section class="flash flash--success">{{ flash_message }}</section>
+        <section class="flash flash--{{ flash_style|default('success') }}">{{ flash_message }}</section>
         {% endif %}
 
         {% if error_message %}

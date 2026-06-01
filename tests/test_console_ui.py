@@ -2244,6 +2244,10 @@ def test_connections_page_blank_alexa_save_does_not_count_as_a_real_plan(
     assert "Not saved yet" in response.text
     assert "Saved plan: keep Alexa off." not in response.text
     assert "Save the Alexa plan and your real skill ID" in response.text
+    assert (
+        '<section class="flash flash--warning">No desired Alexa plan saved yet.</section>'
+        in response.text
+    )
 
 
 def test_connections_page_requires_skill_id_before_saving_live_alexa_plan(
@@ -2303,6 +2307,10 @@ def test_connections_page_requires_skill_id_before_saving_live_alexa_plan(
     assert (
         "The edge Worker still needs Alexa enabled before real device traffic can flow."
         not in response.text
+    )
+    assert (
+        '<section class="flash flash--warning">Add the real Alexa skill ID before CalSync can save a live Alexa plan.</section>'
+        in response.text
     )
 
 
@@ -4159,6 +4167,10 @@ def test_alexa_setup_page_blank_alexa_save_does_not_count_as_a_real_plan(
     assert "No saved plan yet" in response.text
     assert "Desired Alexa settings saved:</strong>\n                  No" in response.text
     assert "Alexa should stay disabled" not in response.text
+    assert (
+        '<section class="flash flash--warning">No desired Alexa plan saved yet.</section>'
+        in response.text
+    )
 
 
 def test_alexa_setup_page_requires_skill_id_before_saving_live_alexa_plan(
@@ -4206,6 +4218,10 @@ def test_alexa_setup_page_requires_skill_id_before_saving_live_alexa_plan(
     assert (
         "Cloudflare Worker access is still missing, so this will save the desired Alexa plan in CalSync until live edge updates are available."
         not in response.text
+    )
+    assert (
+        '<section class="flash flash--warning">Add the real Alexa skill ID before CalSync can save a live Alexa plan.</section>'
+        in response.text
     )
 
 

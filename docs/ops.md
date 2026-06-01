@@ -618,6 +618,7 @@ Recovery note:
 - saving blank Alexa defaults or an enabled-without-skill-id state should not count as a real desired Alexa plan, so shared readiness and the Alexa setup or Connections cards must keep the real skill-ID step visible until at least one real skill ID is saved
 - issue `#123`
 - Alexa save responses should stop flashing `Desired Alexa settings saved securely.` when no real plan exists yet; blank or skill-ID-missing saves should stay local, skip edge apply attempts, and tell operators whether no plan was saved yet or a real skill ID is still required
+- those incomplete-save responses should also stop rendering as green success flashes; when no real plan was saved, the response treatment should stay warning-shaped instead of successful
 - issue `#124`
 - once the operator has only a skill-ID-missing Alexa draft, the helper copy under the Alexa forms should stop saying it will save a desired Alexa plan; it should instead say that the real Alexa skill ID is still required before CalSync can save a live plan or queue edge updates
 - that same helper rule still applies after Cloudflare Worker access is already configured; the live GET forms should not fall back to `update the live edge Worker now` while the real skill ID is still missing

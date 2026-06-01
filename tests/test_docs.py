@@ -211,6 +211,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "keep `/alexa/setup` truthful when no desired alexa plan has been saved yet" in readme_content
     assert "keep blank alexa saves from counting as a real desired plan" in readme_content
     assert "keep alexa save responses truthful when no real plan exists" in readme_content
+    assert "green success flashes when no real plan was saved" in readme_content
     assert "keep alexa helper copy truthful when the skill id is still missing" in readme_content
     assert "even after cloudflare worker access is already configured" in readme_content
     assert "keep alexa draft state distinct from untouched defaults" in readme_content
@@ -427,6 +428,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "save the alexa plan and real skill id before cloudflare worker apply-only guidance takes over" in ops_content
     assert "saving blank alexa defaults or an enabled-without-skill-id state should not count as a real desired alexa plan" in ops_content
     assert "alexa save responses should stop flashing `desired alexa settings saved securely.` when no real plan exists yet" in ops_content
+    assert "those incomplete-save responses should also stop rendering as green success flashes" in ops_content
     assert "once the operator has only a skill-id-missing alexa draft, the helper copy under the alexa forms should stop saying it will save a desired alexa plan" in ops_content
     assert "the live get forms should not fall back to `update the live edge worker now` while the real skill id is still missing" in ops_content
     assert "once the operator has only an alexa draft with `enable_alexa=true` and no real skill id, the app should stop calling that state `defaults`" in ops_content
@@ -765,6 +767,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "saving blank alexa defaults, or saving alexa enabled without any real skill id, should not count as a real desired alexa live plan" in prompt_content
     assert "simply checking `enable_alexa` without a real skill id should still leave the setup flow blocked on the skill-id step" in prompt_content
     assert "blank `post /alexa/setup` and blank `post /connections/alexa` should not flash `desired alexa settings saved securely.`" in prompt_content
+    assert "those incomplete-save responses should not render as green success flashes" in prompt_content
     assert "with `enable_alexa=true` but no real skill id should say that the real alexa skill id is still required before a live plan can be saved" in prompt_content
     assert "when the current alexa draft is enabled but still has no real skill id, the helper copy below the form should say that the real alexa skill id is still required" in prompt_content
     assert "the get forms do not fall back to `update the live edge worker now` while the real skill id is still missing" in prompt_content
