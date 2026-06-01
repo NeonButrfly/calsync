@@ -27,12 +27,19 @@ This folder now contains the first real Alexa developer-console package for issu
    - grant type: implicit
 5. Save a household link code on `GET /alexa/setup` before you try the Alexa link flow.
 6. After the skill is created, copy the real Alexa skill ID.
-7. Set the Worker environment:
-   - `ALEXA_ALLOWED_SKILL_IDS=<real skill id>`
-   - `ENABLE_ALEXA=true`
-8. Redeploy the Worker.
-9. Test the launch, next-up, list, availability, create, cancel, and reschedule flows in the developer console.
-10. If more than one connected calendar target is saved in CalSync, test provider-aware named calendar routing as part of the create and reschedule flows.
+7. Paste that skill ID into `Allowed skill IDs` on `GET /alexa/setup`.
+8. Save the desired Alexa plan in CalSync.
+9. If Cloudflare Worker access is configured in CalSync, use `GET /alexa/setup` to turn Alexa on for the live Worker.
+10. Test the launch, next-up, list, availability, create, cancel, and reschedule flows in the developer console.
+11. If more than one connected calendar target is saved in CalSync, test provider-aware named calendar routing as part of the create and reschedule flows.
+
+## Low-level fallback
+
+If you intentionally need the manual Worker path instead of the CalSync setup flow:
+
+- set `ALEXA_ALLOWED_SKILL_IDS=<real skill id>`
+- set `ENABLE_ALEXA=true`
+- redeploy the Worker
 
 ## Current scope
 

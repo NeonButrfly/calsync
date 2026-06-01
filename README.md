@@ -420,7 +420,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Auto-load the recommended Apple recovery hint on reconnect: issue `#81`
 - Align Apple recovery guidance with the new auto-loaded reconnect flow: issue `#82`
 - Legacy Apple encrypted-secret recovery diagnostics: issue `#108`
-- Align Alexa Worker recovery guidance with the live Apple reconnect flow: issue `#107`
+- Deploy Alexa Worker recovery guidance live on Cloudflare: issue `#107`
 - One-time legacy Apple secret recovery with the original CalSync encryption key: issue `#113`
 - Align original-key Apple recovery guidance with the in-product setup flow: issue `#114`
 - Hide stale Apple recovery-secret blocker copy on `/connections` after live reconnect: issue `#115`
@@ -436,6 +436,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Keep Alexa draft state distinct from untouched defaults: issue `#125`
 - Keep Alexa simulator truthful while the live plan is still only a draft: issue `#126`
 - Keep the Connections Alexa live-route card aligned with the real blocker order: issue `#127`
+- Sync Alexa docs and skill-package instructions with the live Worker deployment state: issue `#128`
 - Keep the entire root workspace blocked when no calendar is connected: issue `#83`
 - Keep Alexa guidance aligned with account-linking readiness: issue `#84`
 - Keep Alexa Step 4 turn-on summary aligned with live prerequisites: issue `#85`

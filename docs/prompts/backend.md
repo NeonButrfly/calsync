@@ -738,7 +738,7 @@ Expected behavior:
 ## Alexa Worker Recovery Normalization Requirement
 
 - GitHub issue: `#107`
-- interpreted requirement: the Alexa Worker should follow the current origin Apple reconnect guidance instead of hardcoding older fresh-password-only recovery copy, so a future edge deploy cannot drift behind the live original-key recovery flow
+- interpreted requirement: the Alexa Worker should follow the current origin Apple reconnect guidance instead of hardcoding older fresh-password-only recovery copy, so the live edge path cannot drift behind the original-key recovery flow
 
 Expected behavior:
 
@@ -746,7 +746,18 @@ Expected behavior:
 - when the Worker receives `Apple calendar target URL was not found.` or the other recovery-mode Apple backend errors, it should speak that same current Apple reconnect guidance instead of falling back to stale Worker-owned copy
 - create, availability, cancel, reschedule, and any other scheduling intents that rely on the shared normalization helper should all inherit that same recovery behavior after the Worker update
 - the Worker tests should cover the stale Apple target error explicitly so the edge layer cannot silently drift behind origin normalization again
-- until the Worker is actually redeployed, treat this as a tracked code-and-test slice rather than a proven live edge behavior change
+- live Cloudflare deployments should keep the `loadAppleRecoveryGuidance`, `normalizeSchedulingErrorSpeech`, and `Apple reconnect still needs one more step.` markers present so the edge proof cannot silently drift behind the repo code
+
+## Alexa Operator Docs Truthfulness Requirement
+
+- GitHub issue: `#128`
+- interpreted requirement: once the live Alexa Worker code gap is cleared, operator docs and the imported skill-package instructions should stop reading like direct Worker env edits and manual redeploys are still the primary setup flow
+
+Expected behavior:
+
+- README and ops tracking should reflect that issue `#107` is the closed live Worker deployment slice, not an still-blocked redeploy path
+- the Alexa docs should tell operators to copy the generated real Alexa skill ID into the CalSync Alexa setup flow first
+- the Alexa package `testingInstructions` should point to CalSync-managed desired settings and allowlist save steps before mentioning any lower-level Worker fallback
 
 ## Alexa Recovery Scheduling Error Requirement
 

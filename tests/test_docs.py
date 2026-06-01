@@ -211,6 +211,7 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "keep alexa helper copy truthful when the skill id is still missing" in readme_content
     assert "keep alexa draft state distinct from untouched defaults" in readme_content
     assert "keep the connections alexa live-route card aligned with the real blocker order" in readme_content
+    assert "sync alexa docs and skill-package instructions with the live worker deployment state" in readme_content
     assert "a writable-calendar row in alexa step 4" in readme_content
     assert "a cloudflare-access row in alexa step 4" in readme_content
     assert "a desired-settings row in alexa step 4" in readme_content
@@ -426,6 +427,8 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "once the operator has only an alexa draft with `enable_alexa=true` and no real skill id, the app should stop calling that state `defaults`" in ops_content
     assert "once the operator has only an alexa draft with `enable_alexa=true` and no real skill id, `/alexa/simulator` should stop reading like route enablement is the only missing step" in ops_content
     assert "copy the generated real alexa skill id from the alexa developer console after importing the package" in ops_content
+    assert "the alexa worker code is now deployed live on cloudflare with the recovery-guidance normalization" in ops_content
+    assert "the alexa docs and skill-package instructions now point operators to the current calsync alexa setup flow first" in ops_content
     assert "remaining alexa summaries on `/connections`, including the edge-route status card and the `finish the live stack` alexa line" in ops_content
     assert "keeps the shared alexa desired-settings card on `/connections` truthful" in ops_content
     assert "exposes writable-calendar readiness on `/connections` for the alexa panel" in ops_content
@@ -731,6 +734,9 @@ def test_docs_cover_first_family_scheduling_console() -> None:
     assert "when the worker receives `apple calendar target url was not found.` or the other recovery-mode apple backend errors, it should speak that same current apple reconnect guidance instead of falling back to stale worker-owned copy" in prompt_content
     assert "when the worker is in apple recovery mode, launch, help, and fallback guidance should follow the current readiness-driven apple reconnect message instead of older hardcoded fresh-password-only wording" in prompt_content
     assert "the worker tests should cover the stale apple target error explicitly so the edge layer cannot silently drift behind origin normalization again" in prompt_content
+    assert "live cloudflare deployments should keep the `loadapplerecoveryguidance`, `normalizeschedulingerrorspeech`, and `apple reconnect still needs one more step.` markers present" in prompt_content
+    assert "once the live alexa worker code gap is cleared, operator docs and the imported skill-package instructions should stop reading like direct worker env edits and manual redeploys are still the primary setup flow" in prompt_content
+    assert "the alexa package `testinginstructions` should point to calsync-managed desired settings and allowlist save steps before mentioning any lower-level worker fallback" in prompt_content
     assert "when legacy apple recovery hints exist and no writable calendar is connected, blocked alexa scheduling intents should point to apple reconnect and the need for a fresh app-specific password" in prompt_content
     assert "simulator and live voice scheduling responses should not fall back to `primary apple/icloud calendar is not configured.`" in prompt_content
     assert "when legacy apple recovery hints exist and no writable calendar is connected, `get /api/appointments` should not surface stale local appointment rows as live calendar truth" in prompt_content
@@ -889,3 +895,15 @@ def test_docs_cover_first_alexa_skill_slice() -> None:
     assert "named calendar routing" in alexa_readme_content
     assert "provider-aware named calendar target across apple, google, and microsoft" in alexa_readme_content
     assert "household link code" in alexa_readme_content
+    assert "paste that skill id into `allowed skill ids` on `get /alexa/setup`" in alexa_readme_content
+    assert "save the desired alexa plan in calsync" in alexa_readme_content
+    assert "low-level fallback" in alexa_readme_content
+    assert (
+        "copy the generated real alexa skill id into allowed skill ids on the calsync alexa setup page"
+        in skill_manifest["manifest"]["publishingInformation"][
+            "testingInstructions"
+        ].lower()
+    )
+    assert "save the desired alexa plan there" in skill_manifest["manifest"][
+        "publishingInformation"
+    ]["testingInstructions"].lower()
