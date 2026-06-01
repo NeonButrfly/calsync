@@ -2244,6 +2244,10 @@ def test_connections_page_requires_skill_id_before_saving_live_alexa_plan(
     assert "Desired Alexa settings saved securely." not in response.text
     assert "Cloudflare worker management is not configured for this deployment." not in response.text
     assert "Not saved yet" in response.text
+    assert (
+        "Cloudflare Worker access is still missing, so this will save the desired Alexa plan in CalSync until live edge updates are available."
+        not in response.text
+    )
 
 
 def test_alexa_setup_page_shows_voice_specific_next_guidance(monkeypatch) -> None:
@@ -4051,6 +4055,10 @@ def test_alexa_setup_page_requires_skill_id_before_saving_live_alexa_plan(
     )
     assert "Desired Alexa settings saved securely." not in response.text
     assert "Not saved yet" in response.text
+    assert (
+        "Cloudflare Worker access is still missing, so this will save the desired Alexa plan in CalSync until live edge updates are available."
+        not in response.text
+    )
 
 
 def test_alexa_setup_page_saves_cloudflare_credentials(monkeypatch) -> None:

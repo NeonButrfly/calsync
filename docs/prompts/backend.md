@@ -550,6 +550,17 @@ Expected behavior:
 - these incomplete submits should skip edge-apply attempts and should not surface Cloudflare apply errors as if the only blocker were Worker access
 - the rendered response should stay aligned with `desired_alexa.saved=false`, the `Not saved yet` cards, and the shared readiness next action
 
+## Alexa Draft Helper-Copy Truthfulness Requirement
+
+- GitHub issue: `#124`
+- interpreted requirement: when the operator has only an Alexa draft with `enable_alexa=true` but no real skill ID, the helper copy under the Alexa forms should not talk like a real desired plan can already be saved
+
+Expected behavior:
+
+- on both `GET /alexa/setup` and `GET /connections`, when the current Alexa draft is enabled but still has no real skill ID, the helper copy below the form should say that the real Alexa skill ID is still required
+- that helper should not keep saying `this will save the desired Alexa plan in CalSync until live edge updates are available`
+- the helper should stay aligned with the truthful incomplete-submit response copy, the `Not saved yet` cards, and the shared readiness next action
+
 ## Blocked Operator Apple Reconnect Requirement
 
 - GitHub issue: `#92`

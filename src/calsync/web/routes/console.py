@@ -675,7 +675,10 @@ def _render_alexa_setup_page(
     account_linking_settings = operator_settings.describe_alexa_account_linking_settings()
     cloudflare_credentials = operator_settings.describe_cloudflare_worker_credentials()
     legacy_apple_recovery_hints = operator_settings.describe_legacy_apple_recovery_hints()
-    alexa_action_copy = _describe_alexa_action_copy(edge_settings=edge_settings)
+    alexa_action_copy = _describe_alexa_action_copy(
+        edge_settings=edge_settings,
+        desired_settings=desired_settings,
+    )
     return _templates.TemplateResponse(
         request,
         "alexa_setup.html",
@@ -4052,7 +4055,10 @@ def _build_connections_context(
         "edge_settings": edge_settings,
         "desired_alexa_settings": desired_alexa_settings,
         "alexa_drift": alexa_drift,
-        "alexa_action_copy": _describe_alexa_action_copy(edge_settings=edge_settings),
+        "alexa_action_copy": _describe_alexa_action_copy(
+            edge_settings=edge_settings,
+            desired_settings=desired_alexa_settings,
+        ),
         "alexa_next_action": _describe_alexa_next_action(
             readiness=readiness,
             desired_settings=desired_alexa_settings,
@@ -4485,7 +4491,15 @@ def _describe_alexa_settings_drift(
 def _describe_alexa_action_copy(
     *,
     edge_settings: dict[str, object],
+    desired_settings: dict[str, object],
 ) -> dict[str, str | bool]:
+    desired_saved = bool(desired_settings.get("saved"))
+    desired_enabled = bool(desired_settings.get("enable_alexa"))
+    desired_skill_ids = [
+        str(value).strip()
+        for value in desired_settings.get("allowed_skill_ids", [])
+        if str(value).strip()
+    ]
     manageable = bool(edge_settings.get("manageable"))
     if manageable:
         return {
@@ -4493,6 +4507,13 @@ def _describe_alexa_action_copy(
             "setup_button_label": "Apply edge settings",
             "connections_button_label": "Apply Alexa settings",
             "helper_message": "This will save the desired Alexa plan in CalSync and update the live edge Worker now.",
+        }
+    if not desired_saved and desired_enabled and not desired_skill_ids:
+        return {
+            "manageable": False,
+            "setup_button_label": "Save desired Alexa settings",
+            "connections_button_label": "Save desired Alexa settings",
+            "helper_message": "Add the real Alexa skill ID before CalSync can save a live Alexa plan or queue edge updates.",
         }
     return {
         "manageable": False,
