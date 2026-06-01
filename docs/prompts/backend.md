@@ -1273,6 +1273,18 @@ Expected behavior:
 - incomplete Alexa saves should keep their truthful warning behavior even when multiple submits overlap
 - this should be fixed in the shared operator-settings layer so other operator save flows do not inherit the same concurrent-write fragility
 
+## Alexa Draft-Only Action Label Requirement
+
+- GitHub issue: `#133`
+- interpreted requirement: when Cloudflare Worker access is already configured but Alexa is still only a skill-ID-missing draft, the main save buttons should not imply that a live apply can happen yet
+
+Expected behavior:
+
+- on `GET /alexa/setup`, when `desired_alexa.enable_alexa=true`, `desired_alexa.saved=false`, and no real skill ID exists, the main button should use draft-save wording instead of `Apply edge settings`
+- on `GET /connections`, in that same state, the main button should use draft-save wording instead of `Apply Alexa settings`
+- the helper copy and the main button labels should agree that the real Alexa skill ID is still required before a live plan or edge updates can happen
+- once a real saved Alexa plan exists, live-apply wording may return for manageable Worker states
+
 ## Connections Alexa Summary Truthfulness Requirement
 
 - GitHub issue: `#120`

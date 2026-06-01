@@ -4538,14 +4538,8 @@ def _describe_alexa_action_copy(
     if not desired_saved and desired_enabled and not desired_skill_ids:
         return {
             "manageable": manageable,
-            "setup_button_label": (
-                "Apply edge settings" if manageable else "Save desired Alexa settings"
-            ),
-            "connections_button_label": (
-                "Apply Alexa settings"
-                if manageable
-                else "Save desired Alexa settings"
-            ),
+            "setup_button_label": "Save Alexa draft",
+            "connections_button_label": "Save Alexa draft",
             "helper_message": "Add the real Alexa skill ID before CalSync can save a live Alexa plan or queue edge updates.",
         }
     if manageable:

@@ -938,3 +938,7 @@ def test_ops_follow_up_item_tracks_live_alexa_blocker() -> None:
     assert "staledataerror" in ops_content
     assert "#132" in prompt_content
     assert "concurrent operator settings save robustness requirement" in prompt_content
+    assert "#133" in ops_content
+    assert "should describe saving the draft instead" in ops_content
+    assert "#133" in prompt_content
+    assert "alexa draft-only action label requirement" in prompt_content

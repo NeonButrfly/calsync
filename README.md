@@ -441,6 +441,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Keep the Alexa follow-up docs aligned with the live skill-ID blocker instead of the old Pi token-sync nicety: issue `#130`
 - Keep the Alexa setup status line aligned with the real skill-ID blocker instead of the older Worker-ready message: issue `#131`
 - Keep overlapping operator-setting saves from 500ing on stale concurrent updates: issue `#132`
+- Keep Alexa action buttons truthful when the current state is only a skill-ID-missing draft: issue `#133`
 - Sync Alexa docs and skill-package instructions with the live Worker deployment state: issue `#128`
 - Default-deny Alexa Worker requests when the allowed skill list is empty: issue `#129`
 - Keep the entire root workspace blocked when no calendar is connected: issue `#83`

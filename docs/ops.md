@@ -621,6 +621,8 @@ Recovery note:
 - those incomplete-save responses should also stop rendering as green success flashes; when no real plan was saved, the response treatment should stay warning-shaped instead of successful
 - issue `#132`
 - overlapping operator saves, including overlapping Alexa settings submits, should retry safely instead of surfacing `sqlalchemy.orm.exc.StaleDataError` as an HTTP 500 from the shared `operator_settings` write path
+- issue `#133`
+- when Alexa is still only a skill-ID-missing draft, the main buttons on `/alexa/setup` and `/connections` should stop promising a live apply and should describe saving the draft instead
 - issue `#124`
 - once the operator has only a skill-ID-missing Alexa draft, the helper copy under the Alexa forms should stop saying it will save a desired Alexa plan; it should instead say that the real Alexa skill ID is still required before CalSync can save a live plan or queue edge updates
 - that same helper rule still applies after Cloudflare Worker access is already configured; the live GET forms should not fall back to `update the live edge Worker now` while the real skill ID is still missing

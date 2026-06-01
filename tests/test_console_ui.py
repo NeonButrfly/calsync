@@ -2086,7 +2086,8 @@ def test_connections_page_helper_points_to_real_skill_id_when_draft_is_incomplet
     response = client.get("/connections")
 
     assert response.status_code == 200
-    assert "Apply Alexa settings" in response.text
+    assert "Save Alexa draft" in response.text
+    assert "Apply Alexa settings" not in response.text
     assert (
         "Add the real Alexa skill ID before CalSync can save a live Alexa plan or queue edge updates."
         in response.text
@@ -3981,7 +3982,8 @@ def test_alexa_setup_page_helper_points_to_real_skill_id_when_draft_is_incomplet
     response = client.get("/alexa/setup")
 
     assert response.status_code == 200
-    assert "Apply edge settings" in response.text
+    assert "Save Alexa draft" in response.text
+    assert "Apply edge settings" not in response.text
     assert (
         "Add the real Alexa skill ID before CalSync can save a live Alexa plan or queue edge updates."
         in response.text
