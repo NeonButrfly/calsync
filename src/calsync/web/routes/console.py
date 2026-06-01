@@ -1412,24 +1412,33 @@ def connections_alexa_update(
     enable_alexa: str | None = Form(None),
 ):
     operator_settings = OperatorSettingsService()
+    requested_enable_alexa = enable_alexa == "true"
     normalized_skill_ids = [
         value.strip() for value in allowed_skill_ids.split(",") if value.strip()
     ]
     operator_settings.set_desired_alexa_settings(
-        enable_alexa=enable_alexa == "true",
+        enable_alexa=requested_enable_alexa,
         allowed_skill_ids=normalized_skill_ids,
     )
+    desired_settings = operator_settings.describe_desired_alexa_settings()
     service = CloudflareWorkerConfigService()
-    try:
-        service.update_alexa_settings(
-            enable_alexa=enable_alexa == "true",
-            allowed_skill_ids=normalized_skill_ids,
+    if not desired_settings.get("saved"):
+        flash_message = _describe_incomplete_alexa_plan_save_message(
+            requested_enable_alexa=requested_enable_alexa,
+            requested_skill_ids=normalized_skill_ids,
         )
-        flash_message = "Desired Alexa settings saved and edge Worker updated."
         error_message = None
-    except ValueError as exc:
-        flash_message = "Desired Alexa settings saved securely."
-        error_message = str(exc)
+    else:
+        try:
+            service.update_alexa_settings(
+                enable_alexa=requested_enable_alexa,
+                allowed_skill_ids=normalized_skill_ids,
+            )
+            flash_message = "Desired Alexa settings saved and edge Worker updated."
+            error_message = None
+        except ValueError as exc:
+            flash_message = "Desired Alexa settings saved securely."
+            error_message = str(exc)
 
     return _templates.TemplateResponse(
         request,
@@ -2389,27 +2398,37 @@ def alexa_setup_update(
     enable_alexa: str | None = Form(None),
 ):
     operator_settings = OperatorSettingsService()
+    requested_enable_alexa = enable_alexa == "true"
     normalized_skill_ids = [
         value.strip() for value in allowed_skill_ids.split(",") if value.strip()
     ]
     operator_settings.set_desired_alexa_settings(
-        enable_alexa=enable_alexa == "true",
+        enable_alexa=requested_enable_alexa,
         allowed_skill_ids=normalized_skill_ids,
     )
+    desired_settings = operator_settings.describe_desired_alexa_settings()
     service = CloudflareWorkerConfigService()
-    try:
-        edge_settings = service.update_alexa_settings(
-            enable_alexa=enable_alexa == "true",
-            allowed_skill_ids=normalized_skill_ids,
-        )
-        if edge_settings is None:
-            edge_settings = service.get_alexa_settings()
-        flash_message = "Desired Alexa settings saved and edge Worker updated."
-        error_message = None
-    except ValueError as exc:
+    if not desired_settings.get("saved"):
         edge_settings = service.get_alexa_settings()
-        flash_message = "Desired Alexa settings saved securely."
-        error_message = str(exc)
+        flash_message = _describe_incomplete_alexa_plan_save_message(
+            requested_enable_alexa=requested_enable_alexa,
+            requested_skill_ids=normalized_skill_ids,
+        )
+        error_message = None
+    else:
+        try:
+            edge_settings = service.update_alexa_settings(
+                enable_alexa=requested_enable_alexa,
+                allowed_skill_ids=normalized_skill_ids,
+            )
+            if edge_settings is None:
+                edge_settings = service.get_alexa_settings()
+            flash_message = "Desired Alexa settings saved and edge Worker updated."
+            error_message = None
+        except ValueError as exc:
+            edge_settings = service.get_alexa_settings()
+            flash_message = "Desired Alexa settings saved securely."
+            error_message = str(exc)
     readiness = ReadinessService().build()
 
     return _render_alexa_setup_page(
@@ -4481,6 +4500,16 @@ def _describe_alexa_action_copy(
         "connections_button_label": "Save desired Alexa settings",
         "helper_message": "Cloudflare Worker access is still missing, so this will save the desired Alexa plan in CalSync until live edge updates are available.",
     }
+
+
+def _describe_incomplete_alexa_plan_save_message(
+    *,
+    requested_enable_alexa: bool,
+    requested_skill_ids: list[str],
+) -> str:
+    if requested_enable_alexa and not requested_skill_ids:
+        return "Add the real Alexa skill ID before CalSync can save a live Alexa plan."
+    return "No desired Alexa plan saved yet."
 
 
 def _describe_alexa_next_action(

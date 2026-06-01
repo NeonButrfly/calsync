@@ -537,6 +537,19 @@ Expected behavior:
 - blank/default Alexa saves may preserve the safe disabled runtime state, but they should not suppress the real missing-skill-ID guidance
 - simply checking `enable_alexa` without a real skill ID should still leave the setup flow blocked on the skill-ID step
 
+## Alexa Save-Response Truthfulness Requirement
+
+- GitHub issue: `#123`
+- interpreted requirement: when an Alexa submit still does not create a real desired live plan, the response itself should not claim success as if a live plan was saved
+
+Expected behavior:
+
+- blank `POST /alexa/setup` and blank `POST /connections/alexa` should not flash `Desired Alexa settings saved securely.`
+- instead, those blank saves should say that no desired Alexa plan was saved yet
+- `POST /alexa/setup` and `POST /connections/alexa` with `enable_alexa=true` but no real skill ID should say that the real Alexa skill ID is still required before a live plan can be saved
+- these incomplete submits should skip edge-apply attempts and should not surface Cloudflare apply errors as if the only blocker were Worker access
+- the rendered response should stay aligned with `desired_alexa.saved=false`, the `Not saved yet` cards, and the shared readiness next action
+
 ## Blocked Operator Apple Reconnect Requirement
 
 - GitHub issue: `#92`

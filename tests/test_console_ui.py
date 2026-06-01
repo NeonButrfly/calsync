@@ -2190,10 +2190,60 @@ def test_connections_page_blank_alexa_save_does_not_count_as_a_real_plan(
     )
 
     assert response.status_code == 200
+    assert "No desired Alexa plan saved yet." in response.text
+    assert "Desired Alexa settings saved securely." not in response.text
+    assert "Cloudflare worker management is not configured for this deployment." not in response.text
     assert "Desired settings" in response.text
     assert "Not saved yet" in response.text
     assert "Saved plan: keep Alexa off." not in response.text
     assert "Save the Alexa plan and your real skill ID" in response.text
+
+
+def test_connections_page_requires_skill_id_before_saving_live_alexa_plan(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+    OperatorSettingsService(settings=get_settings()).set_alexa_account_linking_settings(
+        link_code="Family123"
+    )
+
+    class FakeCloudflareWorkerConfigService:
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": False,
+                "credential_source": "missing",
+                "message": "Cloudflare worker management is not configured for this deployment.",
+            }
+
+        def update_alexa_settings(self, *, enable_alexa: bool, allowed_skill_ids: list[str]):
+            raise AssertionError("edge update should not run without a real skill ID")
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        FakeCloudflareWorkerConfigService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/connections/alexa",
+        data={
+            "enable_alexa": "true",
+            "allowed_skill_ids": "",
+        },
+    )
+
+    assert response.status_code == 200
+    assert (
+        "Add the real Alexa skill ID before CalSync can save a live Alexa plan."
+        in response.text
+    )
+    assert "Desired Alexa settings saved securely." not in response.text
+    assert "Cloudflare worker management is not configured for this deployment." not in response.text
+    assert "Not saved yet" in response.text
 
 
 def test_alexa_setup_page_shows_voice_specific_next_guidance(monkeypatch) -> None:
@@ -3952,10 +4002,55 @@ def test_alexa_setup_page_blank_alexa_save_does_not_count_as_a_real_plan(
     )
 
     assert response.status_code == 200
+    assert "No desired Alexa plan saved yet." in response.text
+    assert "Desired Alexa settings saved securely." not in response.text
     assert "Not saved yet" in response.text
     assert "No saved plan yet" in response.text
     assert "Desired Alexa settings saved:</strong>\n                  No" in response.text
     assert "Alexa should stay disabled" not in response.text
+
+
+def test_alexa_setup_page_requires_skill_id_before_saving_live_alexa_plan(
+    monkeypatch,
+) -> None:
+    _configure_test_env(monkeypatch)
+
+    class FakeCloudflareWorkerConfigService:
+        def get_alexa_settings(self):
+            return {
+                "worker_name": "edge-calsync",
+                "enable_alexa": False,
+                "allowed_skill_ids": [],
+                "manageable": False,
+                "credential_source": "missing",
+                "message": "Cloudflare worker management is not configured for this deployment.",
+            }
+
+        def update_alexa_settings(self, *, enable_alexa: bool, allowed_skill_ids: list[str]):
+            raise AssertionError("edge update should not run without a real skill ID")
+
+    monkeypatch.setattr(
+        "calsync.web.routes.console.CloudflareWorkerConfigService",
+        FakeCloudflareWorkerConfigService,
+    )
+    app = create_app()
+    client = TestClient(app)
+
+    response = client.post(
+        "/alexa/setup",
+        data={
+            "enable_alexa": "true",
+            "allowed_skill_ids": "",
+        },
+    )
+
+    assert response.status_code == 200
+    assert (
+        "Add the real Alexa skill ID before CalSync can save a live Alexa plan."
+        in response.text
+    )
+    assert "Desired Alexa settings saved securely." not in response.text
+    assert "Not saved yet" in response.text
 
 
 def test_alexa_setup_page_saves_cloudflare_credentials(monkeypatch) -> None:
