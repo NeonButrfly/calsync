@@ -8,6 +8,8 @@ import secrets
 from datetime import UTC, datetime
 
 from cryptography.fernet import Fernet
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import StaleDataError
 
 from calsync.config import Settings, get_settings
 from calsync.db import create_session_factory
@@ -15,6 +17,8 @@ from calsync.models import OperatorSetting
 
 
 class OperatorSettingsService:
+    _WRITE_RETRY_ATTEMPTS = 3
+
     def __init__(
         self,
         *,
@@ -41,18 +45,13 @@ class OperatorSettingsService:
             raise ValueError(f"{normalized_key} cannot be empty.")
 
         encrypted_value = self._fernet.encrypt(value.encode("utf-8")).decode("utf-8")
-        with self.session_factory() as session:
-            self._ensure_table(session)
-            record = session.get(OperatorSetting, normalized_key)
-            if record is None:
-                record = OperatorSetting(
-                    key=normalized_key,
-                    value_encrypted=encrypted_value,
-                )
-                session.add(record)
-            else:
-                record.value_encrypted = encrypted_value
-            session.commit()
+        self._run_write_with_retry(
+            lambda session: self._upsert_encrypted_value(
+                session=session,
+                key=normalized_key,
+                encrypted_value=encrypted_value,
+            )
+        )
 
     def get_value(self, key: str) -> str | None:
         with self.session_factory() as session:
@@ -65,12 +64,11 @@ class OperatorSettingsService:
             ).decode("utf-8")
 
     def delete_value(self, key: str) -> None:
-        with self.session_factory() as session:
-            self._ensure_table(session)
-            record = session.get(OperatorSetting, key)
-            if record is not None:
-                session.delete(record)
-                session.commit()
+        self._run_write_with_retry(
+            lambda session: session.query(OperatorSetting)
+            .filter(OperatorSetting.key == key)
+            .delete(synchronize_session=False)
+        )
 
     def export_operator_settings_backup(self) -> dict[str, object]:
         settings_map = self._read_all_settings_plaintext()
@@ -2190,6 +2188,41 @@ class OperatorSettingsService:
                 ).decode("utf-8")
                 for record in records
             }
+
+    def _run_write_with_retry(self, operation) -> None:
+        last_error: Exception | None = None
+        for attempt in range(self._WRITE_RETRY_ATTEMPTS):
+            with self.session_factory() as session:
+                self._ensure_table(session)
+                try:
+                    operation(session)
+                    session.commit()
+                    return
+                except (IntegrityError, StaleDataError) as exc:
+                    session.rollback()
+                    last_error = exc
+                    if attempt == self._WRITE_RETRY_ATTEMPTS - 1:
+                        raise
+        if last_error is not None:
+            raise last_error
+
+    @staticmethod
+    def _upsert_encrypted_value(session, *, key: str, encrypted_value: str) -> None:
+        updated = (
+            session.query(OperatorSetting)
+            .filter(OperatorSetting.key == key)
+            .update(
+                {"value_encrypted": encrypted_value},
+                synchronize_session=False,
+            )
+        )
+        if updated == 0:
+            session.add(
+                OperatorSetting(
+                    key=key,
+                    value_encrypted=encrypted_value,
+                )
+            )
 
     @staticmethod
     def _ensure_table(session) -> None:

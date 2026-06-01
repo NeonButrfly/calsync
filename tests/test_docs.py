@@ -934,3 +934,7 @@ def test_ops_follow_up_item_tracks_live_alexa_blocker() -> None:
     assert "main blocker for alexa turn-on" in follow_up_section
     assert "#130" in prompt_content
     assert "once product-managed cloudflare worker access is already configured" in prompt_content
+    assert "#132" in ops_content
+    assert "staledataerror" in ops_content
+    assert "#132" in prompt_content
+    assert "concurrent operator settings save robustness requirement" in prompt_content

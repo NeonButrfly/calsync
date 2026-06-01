@@ -1261,6 +1261,18 @@ Expected behavior:
 - the `Allowed skill IDs` field should not read like unexplained low-level config when no skill ID has been saved yet
 - this guidance should stay aligned with the repo Alexa README and skill-package instructions that already describe copying the generated skill ID after import
 
+## Concurrent Operator Settings Save Robustness Requirement
+
+- GitHub issue: `#132`
+- interpreted requirement: overlapping operator-setting saves should not surface a stale-write server error from the shared product-vault write helper
+
+Expected behavior:
+
+- overlapping or near-concurrent submits on `POST /alexa/setup` and `POST /connections/alexa` should not return HTTP 500 because of `sqlalchemy.orm.exc.StaleDataError`
+- the shared `OperatorSettingsService` write path should retry transient stale-update or insert-conflict failures instead of letting them escape to the route layer
+- incomplete Alexa saves should keep their truthful warning behavior even when multiple submits overlap
+- this should be fixed in the shared operator-settings layer so other operator save flows do not inherit the same concurrent-write fragility
+
 ## Connections Alexa Summary Truthfulness Requirement
 
 - GitHub issue: `#120`

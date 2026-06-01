@@ -3,6 +3,8 @@ import tempfile
 from pathlib import Path
 from uuid import uuid4
 
+from sqlalchemy.orm.exc import StaleDataError
+
 from calsync.config import Settings
 from calsync.db import _get_engine_for_url, _get_session_factory_for_url
 from calsync.models import Base
@@ -102,6 +104,55 @@ def test_operator_settings_can_store_desired_alexa_settings() -> None:
     ]
     assert described["saved"] is True
     assert described["source"] == "product_vault"
+
+
+def test_operator_settings_retries_stale_updates_when_saving_alexa_settings() -> None:
+    settings = _settings()
+    real_session_factory = _get_session_factory_for_url(settings.database_url)
+    failure_state = {"raised": False}
+
+    class _FlakySession:
+        def __init__(self, session):
+            self._session = session
+
+        def __enter__(self):
+            self._session.__enter__()
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return self._session.__exit__(exc_type, exc, tb)
+
+        def commit(self):
+            if not failure_state["raised"]:
+                failure_state["raised"] = True
+                self._session.rollback()
+                raise StaleDataError("simulated concurrent operator_settings update")
+            return self._session.commit()
+
+        def rollback(self):
+            return self._session.rollback()
+
+        def __getattr__(self, name):
+            return getattr(self._session, name)
+
+    def flaky_session_factory():
+        return _FlakySession(real_session_factory())
+
+    service = OperatorSettingsService(
+        settings=settings,
+        session_factory=flaky_session_factory,
+    )
+
+    service.set_desired_alexa_settings(
+        enable_alexa=True,
+        allowed_skill_ids=["amzn1.ask.skill.retry"],
+    )
+
+    assert failure_state["raised"] is True
+    assert service.get_desired_alexa_settings() == {
+        "enable_alexa": True,
+        "allowed_skill_ids": ["amzn1.ask.skill.retry"],
+    }
 
 
 def test_operator_settings_can_store_alexa_account_linking_settings() -> None:
