@@ -111,6 +111,7 @@ Current live topology:
 For the app host, set `DATABASE_URL` to the remote Postgres service on `tichuml1` before starting the stack. The app container should no longer expect a local Compose `db` dependency during migration or startup.
 
 For the database host, start only the `db` service from the same Compose project so Postgres stays isolated on `tichuml1`.
+The database service publishes port `5432` by default, so the app host can reach `tichuml1:5432` directly.
 
 Example service split:
 
