@@ -100,6 +100,28 @@ Copy `.env.example` to `.env` and fill in:
 - `ALEXA_ALLOWED_SKILL_IDS`
 - `ALEXA_DEFAULT_TIMEZONE`
 
+## Split Host Deployment
+
+Current live topology:
+
+- app runtime: `kayraspi2`
+- database: `tichuml1` (`192.168.50.196`)
+- public reverse proxy: `kayraspi2`
+
+For the app host, set `DATABASE_URL` to the remote Postgres service on `tichuml1` before starting the stack. The app container should no longer expect a local Compose `db` dependency during migration or startup.
+
+For the database host, start only the `db` service from the same Compose project so Postgres stays isolated on `tichuml1`.
+
+Example service split:
+
+```powershell
+# on tichuml1
+docker compose up -d db
+
+# on kayraspi2
+docker compose up -d migrate api
+```
+
 Minimum production values that must be real:
 
 - `POSTGRES_PASSWORD`

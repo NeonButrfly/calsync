@@ -56,6 +56,7 @@ Issues `#3`, `#17`, `#31`, `#32`, `#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#43
 - live MCP hostname: `https://mcp-calsync.neonbutterfly.net`
 - workers.dev MCP fallback: `https://mcp-calsync.kaymayers9.workers.dev`
 - Live Pi origin hostname: `https://calsync.neonbutterfly.net`
+- current live split-host topology: app on `kayraspi2`, Postgres on `tichuml1` (`192.168.50.196`)
 - a first Alexa custom-skill adapter on top of the same shared scheduling brain
 - named Apple calendar targeting through Alexa and the simulator, so voice flows can choose a saved household calendar instead of always using the default destination
 - provider-aware Alexa calendar targeting across Apple, Google, and Microsoft, so voice and simulator flows can choose the right connected calendar path without relying on Apple-only assumptions
@@ -418,6 +419,7 @@ That same Alexa setup flow now also persists the desired `ENABLE_ALEXA` and `ALE
 - Add safe Apple setup validation before reconnect save: issue `#79`
 - Prefer true writable Apple targets in legacy recovery hints: issue `#80`
 - Auto-load the recommended Apple recovery hint on reconnect: issue `#81`
+- Move the database to tichuml1 and keep the rest of the stack on kayraspi2: issue `#134`
 - Align Apple recovery guidance with the new auto-loaded reconnect flow: issue `#82`
 - Legacy Apple encrypted-secret recovery diagnostics: issue `#108`
 - Deploy Alexa Worker recovery guidance live on Cloudflare: issue `#107`
